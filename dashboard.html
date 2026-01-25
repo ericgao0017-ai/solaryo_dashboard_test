@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Solaryo Partner Hub</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* =========================================
+           🎨 核心样式 (V6.0 UI/UX Optimized)
+           ========================================= */
+        :root {
+            --primary: #0f172a; --accent: #10b981; --orange: #f59e0b; --red: #ef4444; --blue: #3b82f6;
+            --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text-main: #334155; --text-light: #64748b;
+        }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; min-height: 100vh; }
+        .container { max-width: 1100px; margin: 0 auto; padding-bottom: 50px; }
+        
+        /* 导航 & 头部 */
+        .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 5px; }
+        .logo { font-weight: 800; font-size: 1.5rem; color: var(--primary); }
+        .logo span { color: var(--orange); }
+        .user-pill { display: flex; align-items: center; gap: 10px; background: white; padding: 6px 16px; border-radius: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        
+        /* 卡片 & 布局 */
+        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; }
+        .dash-header { border-left-width: 5px; border-left-style: solid; padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        
+        /* 统计看板 (优化版) */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 110px; }
+        .stat-main { font-size: 2.2rem; font-weight: 700; margin: 5px 0; line-height: 1; }
+        .stat-sub { font-size: 0.75rem; opacity: 0.8; margin-top: auto; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.1); display: flex; justify-content: space-between; }
+
+        /* 进度条样式 */
+        .step-container { display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 100px; }
+        .step-bar { display: flex; gap: 3px; width: 100%; }
+        .step-segment { flex: 1; height: 6px; background: #e2e8f0; border-radius: 2px; transition: all 0.3s ease; }
+        .step-segment.active { background: var(--blue); }
+        .step-segment.active-green { background: var(--accent); }
+        .step-segment.active-red { background: var(--red); opacity: 0.6; }
+        .progress-label { font-size: 0.65rem; color: var(--text-light); font-weight: 600; display: flex; justify-content: space-between; margin-top: 2px; }
+
+        /* 表格优化 */
+        .table-container { overflow-x: auto; padding-bottom: 60px; -webkit-overflow-scrolling: touch; } /* 增加底部padding防遮挡 */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
+        th { text-align: left; padding: 12px 15px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); border-bottom: 2px solid #f1f5f9; background: #fff; position: sticky; top: 0; z-index: 10; }
+        td { padding: 16px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: top; background: #fff; }
+        tr:last-child td { border-bottom: none; }
+        
+        /* 交互元素 */
+        .clickable-name { color: var(--primary); font-weight: 600; cursor: pointer; transition: color 0.2s; text-decoration: underline; text-decoration-color: #cbd5e1; text-underline-offset: 4px; }
+        .clickable-name:hover { color: var(--blue); text-decoration-color: var(--blue); }
+        
+        .installer-select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff; cursor: pointer; transition: all 0.2s; }
+        .installer-select:hover { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+        .btn-action { width: 100%; padding: 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; border: 1px solid transparent; }
+        .btn-action:active { transform: scale(0.98); }
+        .btn-nudge { background: #fff7ed; color: #c2410c; border-color: #ffedd5; }
+        .btn-confirm { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(15, 23, 42, 0.15); }
+        
+        /* 🔵 Modal 弹窗样式 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 999; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
+        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); transform: translateY(20px); transition: transform 0.3s; position: relative; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+        .modal-close { background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; color: #64748b; display: flex; align-items: center; justify-content: center; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem; }
+        .detail-label { color: #64748b; }
+        .detail-value { font-weight: 600; color: var(--primary); text-align: right; max-width: 60%; }
+        .system-badge { background: #eff6ff; color: var(--blue); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; display: inline-block; margin-top: 5px; }
+
+        /* 手机适配辅助 */
+        @media (max-width: 600px) {
+            .dash-header { flex-direction: column; align-items: flex-start; }
+            .dash-header button { width: 100%; margin-top: 10px; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="nav-bar">
+        <div class="logo">Solar<span>yo</span> <span style="font-size:0.7rem; background:var(--primary); color:white; padding:2px 6px; border-radius:4px; vertical-align:middle; margin-left:5px;">PARTNER</span></div>
+        <div class="user-pill">
+            <div style="text-align:right; line-height:1.2;">
+                <div id="nav-user-name" style="font-weight:700; font-size:0.85rem;">Loading...</div>
+                <div id="nav-user-role" style="font-size:0.65rem; color:var(--text-light); letter-spacing:0.5px;">VERIFYING</div>
+            </div>
+            <div style="width:32px; height:32px; background:#f1f5f9; border-radius:50%; display:flex; align-items:center; justify-content:center;">👤</div>
+        </div>
+    </div>
+
+    <div id="loading-view" style="text-align:center; padding:50px;">
+        <div style="font-size:2rem; margin-bottom:10px;">🔄</div>
+        <div style="color:var(--text-light);">Loading Hub...</div>
+    </div>
+
+    <div id="view-referral" style="display:none;">
+        <div class="card dash-header" style="border-left-color: var(--orange); background: linear-gradient(to right, #fff7ed 0%, #ffffff 30%);">
+            <div style="flex:1;">
+                <h1 style="margin:0; font-size:1.4rem; color:var(--primary);">Hi, <span id="ref-welcome-name" style="color:var(--orange);">Partner</span>!</h1>
+                <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-light);">Here is your performance overview.</p>
+                <button id="btn-back-installer" onclick="appBackToInstaller()" style="display:none; margin-top:10px; background:white; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:0.75rem; color:var(--text-light); cursor:pointer;">⬅ Back to Installer View</button>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:0.65rem; font-weight:700; color:#94a3b8; margin-bottom:4px;">REFERRAL CODE</div>
+                <div id="ref-code-display" style="background:linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color:white; padding:8px 16px; border-radius:10px; font-family:'Courier New'; font-weight:800; font-size:1.2rem; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">...</div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="card stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border:none;">
+                <div>
+                    <h3 style="margin:0; font-size:0.9rem; opacity:0.9;">Wallet Balance</h3>
+                    <p id="stat-earned" class="stat-main">$0.00</p>
+                </div>
+                <button onclick="handleWithdraw()" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.4); padding:6px 14px; border-radius:20px; font-weight:600; font-size:0.75rem; align-self:flex-start; backdrop-filter:blur(4px);">Withdraw ➜</button>
+            </div>
+            <div class="card stat-card">
+                <div>
+                    <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Processing Payouts</h3>
+                    <p id="stat-pending" class="stat-main" style="color:var(--orange);">$0.00</p>
+                </div>
+                <div class="stat-sub">
+                    <span>Total Paid Out:</span>
+                    <strong id="stat-total-paid" style="color:#10b981;">$0.00</strong>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div>
+                    <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Total Leads</h3>
+                    <p id="stat-referrals" class="stat-main" style="color:var(--primary);">0</p>
+                </div>
+                <div class="stat-sub">
+                    <span id="stat-contacted-count" style="color:#3b82f6;">0 Contacted</span>
+                    <span id="stat-installed-count" style="color:#10b981;">0 Installed</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="ref-link-box" style="display:flex; align-items:center; gap:10px; background:#f8fafc; border:2px dashed #cbd5e1;">
+            <div style="flex:1; min-width:180px;"><h3 style="margin:0; font-size:1rem;">🚀 Share Link</h3><span style="font-size:0.75rem; color:var(--accent); font-weight:600;">$200 Lead Unlock + Commission</span></div>
+            <input type="text" readonly style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:8px; color:var(--text-light); font-family:monospace;">
+            <button onclick="document.querySelector('#ref-link-box input').select(); document.execCommand('copy'); alert('Copied!');" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;">Copy</button>
+        </div>
+
+        <div class="card" style="padding-bottom:5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">🕵️ Lead Manager</h3>
+                <div id="default-installer-box" style="display:flex; align-items:center; gap:8px; background:#f0fdf4; border:1px solid #bbf7d0; padding:6px 12px; border-radius:20px;"></div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">Client Info</th>
+                            <th style="width: 25%;">Progress Steps</th> 
+                            <th style="width: 20%;">Earned Detail</th>
+                            <th style="width: 20%;">Assigned Installer</th>
+                            <th style="width: 15%; text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="referrer-leads-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div> 
+    
+    <div id="view-installer" style="display:none;">
+        <div class="card dash-header" style="border-left-color: var(--blue); background: linear-gradient(to right, #eff6ff 0%, #ffffff 30%);">
+            <div style="flex:1;">
+                <h1 style="margin:0; font-size:1.4rem; color:var(--primary);">Installer Hub: <span id="inst-company-name" style="color:var(--blue);">...</span></h1>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button onclick="alert('Map View Feature coming soon!')" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                        🗺️ Browse Map
+                    </button>
+                    <button onclick="appSwitchToReferral()" style="background:white; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:0.75rem; color:#64748b; font-weight:600; cursor:pointer;">
+                        Switch View ➜
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="card stat-card" style="border-top: 4px solid var(--primary); min-height: 140px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; height: 100%;">
+                    
+                    <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                        <div>
+                            <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Total Leads</h3>
+                            <p id="inst-stat-total" class="stat-main" style="color:var(--primary); font-size:2.2rem;">0</p>
+                        </div>
+                        <div style="font-size:0.75rem; color:#64748b;">
+                            Active (New): <strong id="inst-stat-new" style="color:var(--orange);">0</strong>
+                        </div>
+                    </div>
+
+                    <div style="width:1px; background:#e2e8f0; margin:0 10px; height:80%;"></div>
+
+                    <div style="display:flex; flex-direction:column; justify-content:center; gap:12px; height:100%; text-align:right;">
+                        <div>
+                            <h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Valid</h3>
+                            <p id="inst-stat-valid" style="margin:0; font-size:1.2rem; font-weight:700; color:#10b981;">0</p>
+                        </div>
+                        <div>
+                            <h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Cancelled</h3>
+                            <p id="inst-stat-cancelled" style="margin:0; font-size:1.2rem; font-weight:700; color:#ef4444;">0</p>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div class="stat-sub" style="margin-top:10px; padding-top:8px; border-top:1px dashed #e2e8f0;">
+                    <span>Pipeline Health</span>
+                    <span>📊</span>
+                </div>
+            </div>
+            <div class="card stat-card" style="border-top: 4px solid var(--accent); min-height: 140px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; height: 100%;">
+                    
+                    <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                        <div>
+                            <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Installed</h3>
+                            <p id="inst-stat-completed" class="stat-main" style="color:var(--accent); font-size:1.8rem;">0</p>
+                        </div>
+                        <div style="font-size:0.7rem; color:#94a3b8;">
+                            Comm Paid:<br>
+                            <span id="inst-stat-comm-paid" style="color:#ef4444; font-weight:600;">$0</span>
+                        </div>
+                    </div>
+
+                    <div style="width:1px; background:#e2e8f0; margin:0 10px; height:80%;"></div>
+
+                    <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%; text-align:right;">
+                        <div>
+                            <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Contacted</h3>
+                            <p id="inst-stat-contacted" class="stat-main" style="color:#3b82f6; font-size:1.8rem;">0</p>
+                        </div>
+                        <div style="font-size:0.7rem; color:#94a3b8;">
+                            Unlock Fees:<br>
+                            <span id="inst-stat-unlock-paid" style="color:#ef4444; font-weight:600;">$0</span>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div class="stat-sub" style="margin-top:10px; padding-top:8px; border-top:1px dashed #e2e8f0;">
+                    <span>Total Invested</span>
+                    <strong id="inst-stat-total-spent" style="color:#334155;">$0.00</strong>
+                </div>
+            </div>
+            <div class="card stat-card" style="border-top: 4px solid var(--blue);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Wallet Credit</h3>
+                        <p id="inst-stat-credit" class="stat-main" style="color:var(--blue);">$0</p>
+                    </div>
+                    <button onclick="alert('Top-up feature coming soon')" style="background:#eff6ff; color:#1e40af; border:none; padding:6px 10px; border-radius:6px; font-size:0.7rem; font-weight:700; cursor:pointer;">+ Top Up</button>
+                </div>
+                <div class="stat-sub">
+                    <span>Pre-paid Balance</span>
+                    <span>💳</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding-bottom:5px;">
+            <h3 style="margin-top:0; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+                📋 Assigned Jobs 
+                <span style="font-size:0.7rem; background:#f1f5f9; padding:2px 8px; border-radius:10px; color:#64748b; font-weight:400;">Swipe for more ➜</span>
+            </h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">Customer Details</th>
+                            <th style="width: 15%;">Referrer</th> <th style="width: 20%;">Financials</th> 
+                            <th style="width: 25%;">Workflow Control</th>
+                            <th style="width: 20%;">Current Status</th> </tr>
+                    </thead>
+                    <tbody id="installer-leads-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="lead-details-modal" class="modal-overlay" onclick="closeLeadModal(event)">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-lead-name" style="margin:0; font-size:1.4rem; color:var(--primary);">Customer Details</h2>
+            <button class="modal-close" onclick="closeLeadModal()">×</button>
+        </div>
+        <div id="modal-body">
+            </div>
+        <div style="margin-top:25px; text-align:right;">
+            <button onclick="closeLeadModal()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="dashboard-logic.js"></script>
+</body>
+</html>

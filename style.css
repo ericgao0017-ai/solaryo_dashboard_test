@@ -628,25 +628,140 @@ input[type=range]:hover::-webkit-slider-runnable-track {
     opacity: 0.7;
 }
 
-.rec-box {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 24px;
-    border-radius: 20px;
-    margin-bottom: 32px;
-    font-size: 1rem;
-    color: #e2e8f0;
-    line-height: 1.6;
-    backdrop-filter: blur(5px);
+/* --- [NEW] Selected Specs Dashboard (选配仪表盘) --- */
+/* --- [REFINED] Compact Spec Dashboard (紧凑版配置仪表盘) --- */
+/* --- [UPDATED] Spec Dashboard Style --- */
+
+/* 1. 确保标题区域不被隐藏 */
+[data-i18n="rec_title"] {
+    display: none !important;
+    /* 这个是HTML里原本的静态标题，我们不需要它，继续隐藏 */
 }
 
+/* 2. 容器样式 */
+.rec-box {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    /* 稍微增加一点内边距让标题呼吸 */
+    border-radius: 16px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* 3. 新的标题样式 (重点优化) */
 .rec-box strong {
-    color: var(--accent);
     display: block;
-    margin-bottom: 10px;
-    font-size: 1.2rem;
+    /* 恢复显示 */
+    color: var(--solar-gold);
+    /* 金色 */
+    font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.12em;
+    /* 宽字间距，显高级 */
+    font-weight: 700;
+
+    /* 分割线样式 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+
+    /* 让标题看起来不像普通文字 */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 4. 网格布局 */
+.spec-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+/* 5. 参数块样式 */
+.spec-item {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 10px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.2s;
+}
+
+.spec-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent);
+}
+
+.spec-icon {
+    font-size: 1.2rem;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.spec-label {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 2px;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.spec-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.2;
+}
+
+/* 6. 警告信息样式 */
+.spec-warnings {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    /* 虚线分隔 */
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.warning-item,
+.upsell-item {
+    margin-bottom: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.warning-item {
+    color: #ef5350;
+}
+
+.upsell-item {
+    color: var(--accent);
+}
+
+/* 手机端适配 */
+@media (max-width: 500px) {
+    .spec-grid {
+        gap: 6px;
+    }
+
+    .spec-value {
+        font-size: 0.85rem;
+    }
+
+    /* 手机上标题稍微小一点 */
+    .rec-box strong {
+        font-size: 0.75rem;
+        margin-bottom: 12px;
+    }
 }
 
 /* --- ROI Dashboard --- */
@@ -765,10 +880,12 @@ input[type=range]:hover::-webkit-slider-runnable-track {
 }
 
 .price-value {
-    display: block;
-    font-size: 1.2rem;
-    font-weight: 800;
-    color: white;
+    /* 🟢 稍微缩小字体，以容纳 "xxx ~ xxx" 的长格式 */
+    font-size: 1.0rem !important;
+    white-space: nowrap;
+    /* 防止换行 */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* --- Unlock Overlay --- */
@@ -885,6 +1002,13 @@ input[type=range]:hover::-webkit-slider-runnable-track {
 
     100% {
         left: 100%;
+    }
+}
+
+@media (max-width: 500px) {
+    .price-value {
+        font-size: 0.85rem !important;
+        /* 手机上更小一点 */
     }
 }
 
@@ -1925,13 +2049,50 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* 只有在移动端/平板端才显示这个逻辑 (< 768px) */
+/* ==========================================
+   [UPDATED] 底部行动栏 (长条透明版)
+   ========================================== */
+.sticky-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    /* 恢复全宽长条 */
+    z-index: 999;
+
+    /* 🟢 材质修改：同步顶部胶囊的“亮色透明毛玻璃” */
+    background: rgba(255, 255, 255, 0.55);
+    /* 半透明亮色 */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+
+    /* 边框：只保留上边框，增强分割感 */
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 0;
+    /* 不要圆角 */
+
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+
+    /* 🟢 高度压缩：减小内边距 */
+    padding: 8px 20px;
+    /* 适配 iPhone 底部黑条，保证不被遮挡 */
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+
+    /* 动画保持不变 */
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+    display: none;
+    /* 默认隐藏，由JS控制显示 */
+}
+
+/* 媒体查询：仅在移动端显示 */
 @media (max-width: 768px) {
     .sticky-footer {
         display: block;
     }
 }
 
-/* 激活状态：向上滑出 */
 .sticky-footer.visible {
     transform: translateY(0);
 }
@@ -1947,30 +2108,40 @@ input[type="file"]::file-selector-button:hover {
 .sticky-info {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    /* 紧凑排列 */
 }
 
+/* 🟢 文字颜色适配：因为背景变亮了，文字要改深色 */
 .sticky-label {
-    font-size: 0.7rem;
-    color: #94a3b8;
+    font-size: 0.65rem;
+    color: #64748b;
+    /* 深灰 */
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    line-height: 1.2;
 }
 
 .sticky-price {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 800;
-    color: #ffffff;
+    color: #1e293b;
+    /* 深黑 */
     font-family: 'Outfit', sans-serif;
+    line-height: 1.2;
 }
 
+/* 按钮微调 */
 .sticky-btn {
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     color: white;
     border: none;
-    padding: 10px 24px;
+    /* 按钮变小一点，适应变矮的栏 */
+    padding: 8px 20px;
     border-radius: 30px;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     transition: transform 0.2s;
@@ -2112,148 +2283,158 @@ input[type="file"]::file-selector-button:hover {
     animation: none;
 }
 
-/* --- New: Fixed Trust Badge Styles --- */
+/* ==========================================
+   [修正版] 右下角 CEC Logo (悬浮在聊天按钮上方)
+   ========================================== */
 
 .fixed-trust-badge {
     position: fixed;
-    top: 50px;
-    /* 距离顶部 */
-    left: 20px;
-    /* <--- 修改点：距离左侧边缘 */
-    /* right: 20px; <--- 移除或注释 */
-    z-index: 100;
-    /* 确保它浮在其他内容之上 */
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(5px);
-    border: 2px solid var(--accent);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    opacity: 0.7;
-    /* 默认略微透明，不干扰主流程 */
+    /* 🟢 修改 1：直接把基础层级设高，始终高于聊天窗口(9990) */
+    z-index: 9995;
 
+    /* --- 1. 尺寸调整 --- */
+    /* 稍微加大一点 (之前是 42px) */
+    width: 50px;
+    height: 50px;
+
+    /* --- 2. 位置重新对齐 --- */
+    /* 垂直：聊天按钮底部(30px) + 高度(56px) + 间距(18px) */
+    bottom: 104px;
+
+    /* 水平：根据 50px 宽度重新居中对齐聊天按钮 */
+    /* 聊天按钮中心点距离右边 58px，Logo半径25px -> right = 33px */
+    right: 33px;
+    left: auto;
+    top: auto;
+
+    /* --- 3. 颜色与质感修复 (不再发灰) --- */
+    /* 背景改亮：乳白色半透明 */
+    background: rgba(255, 255, 255, 0.75);
+
+    /* 毛玻璃效果 */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    /* 边框亮一点 */
+    border: 1px solid rgba(255, 255, 255, 0.6);
+
+    /* 透明度调高，避免显得暗淡 */
+    opacity: 0.65;
+
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* 给一点柔和的阴影，让它更有层次感 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .fixed-trust-badge img {
-    width: 80%;
-    /* Logo 在圆形内的大小 */
-    height: 80%;
+    /* 图标稍微放大，撑满一点 */
+    width: 75%;
+    height: 75%;
     object-fit: contain;
+
+    /* 🟢 关键修改：去掉黑白滤镜，恢复 Logo 原色 */
+    filter: none;
+
+    transition: transform 0.3s ease;
 }
 
-/* 悬停效果：放大、提高透明度、显示提示 */
+/* --- 鼠标悬停状态 --- */
 .fixed-trust-badge:hover {
     opacity: 1;
-    transform: scale(1.1);
-    width: 70px;
-    height: 70px;
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
-    /* 绿色阴影 */
+    /* 悬停时完全不透明 */
+    background: #ffffff;
+    /* 纯白背景 */
+    transform: scale(1.15) translateY(-2px);
+    /* 放大并微微上浮 */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    /* 阴影加深 */
+    border-color: #fff;
 }
 
-/* 提示文字 Tooltip */
+.fixed-trust-badge:hover img {
+    filter: grayscale(0%);
+    /* 恢复彩色 */
+}
+
+/* ==========================================
+   [修正版] 提示文字 (Tooltip) - 改为向左弹出
+   ========================================== */
 .trust-tooltip {
     position: absolute;
     top: 50%;
-    right: auto;
-    left: 100%;
-    /* <--- 修改点：放在徽章的右侧 */
     transform: translateY(-50%);
 
-    /* 增加一个指向徽章的小箭头 */
-    margin-left: 15px;
-    /* <--- 修改点 */
+    /* --- 核心修改：让提示文字出现在 Logo 的左侧 --- */
+    left: auto;
+    right: 125%;
+    /* 放在左边，距离 125% 避免挨太近 */
 
     background: var(--primary);
-    /* 深色背景 */
     color: white;
     white-space: nowrap;
-    padding: 8px 15px;
-    border-radius: 12px;
-    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
     font-weight: 600;
 
+    /* 默认隐藏 */
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s, right 0.3s, visibility 0.3s;
+    transition: all 0.2s ease;
+    pointer-events: none;
 
-    /* 增加一个指向徽章的小箭头 */
-    margin-right: 15px;
+    /* 阴影 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-/* 提示文字的小箭头 */
+/* 提示文字的小箭头 (指向右边) */
 .trust-tooltip::after {
     content: '';
     position: absolute;
     top: 50%;
-    /* 箭头位置 */
-    left: -5px;
+
+    /* 箭头位置：Tooltip 的最右侧 */
+    right: -4px;
+    left: auto;
+
     transform: translateY(-50%) rotate(45deg);
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background: var(--primary);
-    box-shadow: 1px -1px 1px rgba(0, 0, 0, 0.1);
 }
 
+/* 悬停时显示 Tooltip */
 .fixed-trust-badge:hover .trust-tooltip {
     opacity: 1;
     visibility: visible;
-    left: calc(100% + 15px);
-    /* <--- 修改点：悬停时向右移动 */
+    right: 140%;
+    /* 稍微有个滑入的动效 */
 }
 
-
-@media (max-width: 768px) {
+/* ==========================================
+   [修正版] 移动端适配 (手机屏幕)
+   ========================================== */
+@media (max-width: 500px) {
     .fixed-trust-badge {
-        top: auto;
-        /* 取消顶部定位 */
-        bottom: 75px;
-        /* 移到左下角 */
-        right: auto;
-        left: 10px;
+        bottom: 175px;
+        /* 相应上移 */
+        right: 19px;
+        /* 重新计算右边距适配手机 */
         width: 40px;
-        /* 缩小尺寸 */
+        /* 手机上也稍微大一点点 */
         height: 40px;
-        z-index: 1000;
-        /* 确保在移动端浮动按钮上方 */
     }
 
-    /* 移动端悬停时，提示文字向上显示 */
-    .fixed-trust-badge:hover {
-        transform: scale(1.05);
-        /* 稍微缩小放大程度 */
-    }
-
+    /* 手机端点击后，Tooltip 可能会遮挡，稍微调整一下 */
     .trust-tooltip {
-        top: auto;
-        bottom: 100%;
-        /* 向上显示 */
-        right: auto;
-        left: 50%;
-        transform: translateX(-50%);
-        margin-right: 0;
-        margin-bottom: 15px;
-    }
-
-    .trust-tooltip::after {
-        top: 100%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(45deg);
-        box-shadow: -1px 1px 1px rgba(0, 0, 0, 0.1);
-    }
-
-    .fixed-trust-badge:hover .trust-tooltip {
-        right: auto;
-        left: 50%;
-        transform: translateX(-50%);
-        opacity: 1;
-        visibility: visible;
+        font-size: 0.7rem;
+        padding: 4px 8px;
     }
 }
 
@@ -2273,51 +2454,65 @@ input[type="file"]::file-selector-button:hover {
 
 /* 1. 悬浮按钮 - 视觉优化 */
 .chat-toggle-btn {
-    /* 恢复鼠标点击事件 */
     pointer-events: auto;
 
     width: 56px;
-    /* 稍微缩小 (原60px) */
     height: 56px;
     border-radius: 50%;
 
-    /* 🟢 [核心优化]：平时半透明 + 毛玻璃效果 */
-    background: rgba(15, 23, 42, 0.85);
-    /* 深色半透明背景 */
-    backdrop-filter: blur(8px);
-    /* 磨砂玻璃质感 */
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    /* 增加精致感 */
+    /* --- 核心修改：静止状态下的透明感 --- */
+    /* 背景改为深色半透明 (不再是深黑) */
+    background: rgba(15, 23, 42, 0.4);
+
+    /* 毛玻璃效果 */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    /* 边框非常淡 */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+
+    /* 整体透明度降低 */
+    opacity: 0.7;
+
+    /* 去掉厚重的阴影，只留一点点轮廓感 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 
     color: white;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    /* 柔和阴影 */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
-
-    /* 初始透明度略低，减少视觉干扰 */
-    opacity: 0.9;
 }
 
 /* 🟢 鼠标悬停：变大、变实、变亮 */
+/* --- 鼠标悬停状态：完全唤醒 --- */
 .chat-toggle-btn:hover {
+    /* 变大、上浮 */
     transform: scale(1.1) translateY(-2px);
+
+    /* 变成品牌绿色 (或者你可以改成深色 var(--primary)) */
     background: var(--accent);
-    /* 悬停时变成品牌绿色 */
+
+    /* 完全不透明 */
     opacity: 1;
+
+    /* 加上强烈的投影，产生悬浮感 */
     box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4);
+
     border-color: transparent;
 }
 
+.chat-toggle-btn svg {
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+}
+
+/* 红色小圆点 (未读消息) 保持鲜艳，提醒用户 */
 .chat-badge {
     position: absolute;
-    top: -5px;
-    right: -5px;
+    top: -2px;
+    right: -2px;
     background: #ef5350;
     color: white;
     font-size: 0.75rem;
@@ -2328,7 +2523,11 @@ input[type="file"]::file-selector-button:hover {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    border: 2px solid white;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+
+    /* 即使按钮半透明，未读红点也要显眼 */
+    opacity: 1 !important;
 }
 
 /* 2. 聊天主窗口 */
@@ -2528,13 +2727,11 @@ input[type="file"]::file-selector-button:hover {
     }
 
     .chat-toggle-btn {
-        /* 🟢 手机端进一步缩小 */
         width: 48px;
         height: 48px;
-
-        /* 手机端更加透明，因为手指遮挡更严重 */
-        background: rgba(15, 23, 42, 0.7);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        /* 手机端背景稍微深一点点，防止在复杂背景上看不清 */
+        background: rgba(15, 23, 42, 0.6);
+        opacity: 0.8;
     }
 
     /* 调整图标大小适配小按钮 */
@@ -2550,5 +2747,2273 @@ input[type="file"]::file-selector-button:hover {
         font-size: 0.65rem;
         top: -2px;
         right: -2px;
+    }
+}
+
+/* --- style.css (新增) --- */
+
+/* 聊天窗口里的邮箱链接样式 */
+.agent-email-link {
+    color: rgba(255, 255, 255, 0.8);
+    /* 浅白色 */
+    font-size: 0.7rem;
+    text-decoration: none;
+    /* 去掉下划线 */
+    font-weight: 400;
+    transition: opacity 0.2s;
+    letter-spacing: 0.02em;
+    font-family: sans-serif;
+}
+
+.agent-email-link:hover {
+    color: #fff;
+    /* 悬停变亮 */
+    text-decoration: underline;
+    /* 悬停显示下划线 */
+}
+
+/* --- [NEW] 顶部提示条与高亮动画 --- */
+/* --- [MODIFIED] 顶部提示条 (透明磨砂 & 位置下移) --- */
+.toast-msg {
+    visibility: hidden;
+    min-width: 300px;
+
+    /* 1. 透明背景：使用 rgba 设置 85% 不透明度 */
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.7) 0%, rgba(217, 119, 6, 0.7) 100%);
+
+    /* 2. 毛玻璃特效 */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    /* 3. 增加一点白色边框，增强玻璃质感 */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+
+    color: #fff;
+    text-align: center;
+    border-radius: 50px;
+    padding: 12px 24px;
+    position: fixed;
+
+    /* 4. 层级要低于 FOMO Bar (10001)，所以设为 10000 */
+    z-index: 10000;
+
+    left: 50%;
+
+    /* 5. 初始位置：稍微偏上一点，为了弹跳动画 */
+    top: 60px;
+
+    transform: translateX(-50%);
+
+    /* 阴影也稍微调淡一点，配合透明感 */
+    box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+
+    font-weight: 700;
+    font-size: 0.95rem;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.toast-msg.show {
+    visibility: visible;
+    opacity: 1;
+
+    /* 6. 最终位置：下移到 75px */
+    /* FOMO Bar 占据了顶部约 50px 的空间，75px 可以完美避开它 */
+    top: 75px;
+}
+
+/* 呼吸灯高亮效果 */
+@keyframes glow-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+        border-color: #f59e0b;
+    }
+
+    70% {
+        box-shadow: 0 0 0 12px rgba(245, 158, 11, 0);
+        border-color: #f59e0b;
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        border-color: transparent;
+    }
+}
+
+.input-highlight {
+    animation: glow-pulse 1.5s infinite;
+    border-radius: 16px;
+}
+
+/* ==========================================
+   [FINAL] Apple Style Notification (Dynamic Pill)
+   ========================================== */
+
+/* 1. 确保 Body 不需要额外的 Padding (按您的要求) */
+body {
+    padding-top: 40px !important;
+    /* 保持原有的少量留白即可，不需要特意为Bar腾位置 */
+}
+
+/* 2. 灵动岛胶囊样式 */
+/* --- 1. 容器样式 (电脑端) --- */
+.fomo-bar.apple-notify {
+    /* 基础属性 */
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10001;
+
+    /* 🟢 高度变大 */
+    height: 46px;
+
+    /* 布局与外观 */
+    width: auto;
+    min-width: 280px;
+    max-width: 92%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 100px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    /* 🟢 内边距微调 */
+    padding: 0 14px 0 18px;
+    gap: 12px;
+
+    cursor: pointer;
+    transition: all 0.3s ease;
+    animation: notifyPopIn 0.8s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+/* --- 2. 内部字体样式 (电脑端) --- */
+
+/* 图标变大 */
+.fomo-icon {
+    font-size: 1.1rem;
+    /* 原 1rem */
+    animation: pulse 2s infinite;
+}
+
+/* 标签变大 */
+.fomo-label {
+    font-size: 0.6rem;
+    /* 原 0.55rem */
+    font-weight: 800;
+    padding: 3px 7px;
+    /* 标签内边距也微调 */
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    line-height: 1.2;
+}
+
+/* 主文字变大 */
+.fomo-text {
+    font-size: 0.85rem;
+    /* 原 0.8rem */
+    font-weight: 600;
+    color: #1e293b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+
+/* 箭头变大 */
+.fomo-arrow {
+    font-size: 1.2rem;
+    /* 原 1.1rem */
+    color: #94a3b8;
+    line-height: 1;
+    margin-right: 2px;
+    padding-bottom: 2px;
+    transition: transform 0.3s;
+}
+
+.fomo-bar.apple-notify:hover {
+    background: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    /* 如果发现边缘被切，可以去掉下面这行 transform */
+    transform: translateX(-50%) scale(1.02);
+}
+
+/* 图标 */
+.fomo-icon {
+    font-size: 1rem;
+    animation: pulse 2s infinite;
+}
+
+/* 2. 动画容器：控制滚动 */
+.fomo-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    overflow: hidden;
+
+    /* 添加过渡属性，控制位移和透明度 */
+    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+        opacity 0.5s ease;
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* 🟢 状态A：旧内容向上滚走 */
+.fomo-content.scrolling-out {
+    transform: translateY(-20px);
+    /* 向上移动 */
+    opacity: 0;
+    /* 变透明 */
+}
+
+/* 🟢 状态B：新内容准备从下方进入 (JS瞬间切换到这里) */
+.fomo-content.scrolling-in-ready {
+    transition: none;
+    /* 瞬间移动，不要动画 */
+    transform: translateY(20px);
+    /* 放在下方 */
+    opacity: 0;
+}
+
+.fomo-text-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* 标签：做得非常小，像 App 角标 */
+.fomo-label {
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    line-height: 1.2;
+}
+
+/* 主文字：清晰、紧凑 */
+.fomo-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1e293b;
+    /* 深色文字 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+}
+
+/* 右侧箭头：简单的灰色小箭头 */
+.fomo-arrow {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    line-height: 1;
+    margin-right: 2px;
+    padding-bottom: 2px;
+    transition: transform 0.3s;
+}
+
+.fomo-bar.apple-notify:hover .fomo-arrow {
+    color: var(--primary);
+    transform: translateX(2px);
+}
+
+/* 动画定义 */
+@keyframes notifyPopIn {
+    0% {
+        top: -60px;
+        opacity: 0;
+    }
+
+    100% {
+        top: 10px;
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* --- 3. 手机端适配 --- */
+@media (max-width: 500px) {
+    .fomo-bar.apple-notify {
+        top: 8px;
+
+        /* 🟢 手机端高度 */
+        height: 40px;
+
+        min-width: auto;
+        width: 90%;
+        padding: 0 10px 0 14px;
+    }
+
+    /* 🟢 手机端字体适配 */
+    .fomo-text {
+        font-size: 0.8rem;
+        /* 原 0.75rem，稍微大一点点更清晰 */
+        max-width: 400px;
+    }
+
+    .fomo-label {
+        font-size: 0.55rem;
+        /* 原 0.5rem */
+        padding: 2px 6px;
+    }
+
+    .fomo-icon {
+        font-size: 1rem;
+    }
+}
+
+/* ==========================================
+   [INTERACTION] FOMO Modal (iOS Card Style)
+   ========================================== */
+
+/* 1. 遮罩层：深色加模糊，聚焦视线 */
+.fomo-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20000;
+    /* 最高层级 */
+    background: rgba(0, 0, 0, 0.4);
+    /* 半透明黑 */
+    backdrop-filter: blur(8px);
+    /* 背景模糊 */
+    -webkit-backdrop-filter: blur(8px);
+
+    display: none;
+    /* 默认隐藏 */
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+
+    animation: fadeIn 0.3s ease;
+}
+
+/* 2. 卡片本体 */
+.fomo-card {
+    width: 100%;
+    max-width: 420px;
+    /* 类似手机弹窗的宽度 */
+    background: #ffffff;
+    border-radius: 24px;
+    /* iOS 风格大圆角 */
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    position: relative;
+
+    transform: scale(0.9);
+    opacity: 0;
+    animation: cardPopUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 3. 图片区域 */
+.fomo-card-image {
+    width: 100%;
+    height: 200px;
+    background: #f1f5f9;
+    position: relative;
+    overflow: hidden;
+}
+
+.fomo-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.fomo-card:hover .fomo-card-image img {
+    transform: scale(1.05);
+    /* 悬停时图片微放大 */
+}
+
+/* 图片上的标签 */
+.fomo-card-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(4px);
+}
+
+/* 4. 关闭按钮 (右上角悬浮) */
+.fomo-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
+
+.fomo-close-btn:hover {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.fomo-close-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* 5. 内容区域 */
+/* 修改后的内容区域：支持长文滚动 */
+.fomo-card-body {
+    padding: 24px;
+    text-align: left;
+
+    /* 🟢 新增：限制最大高度 + 允许垂直滚动 */
+    max-height: 50vh;
+    /* 内容区最多占屏幕高度的一半 */
+    overflow-y: auto;
+    /* 内容多了自动出现滚动条 */
+
+    /* 优化滚动条样式 (Chrome/Safari) */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.fomo-card-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.fomo-card-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.fomo-card-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.fomo-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+#fomo-modal-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1.3;
+}
+
+.fomo-divider {
+    width: 40px;
+    height: 3px;
+    background: var(--border);
+    margin: 16px 0;
+    border-radius: 2px;
+}
+
+#fomo-modal-desc {
+    font-size: 0.95rem;
+    color: #475569;
+    line-height: 1.6;
+    margin: 0 0 24px 0;
+}
+
+/* 底部大按钮 */
+.fomo-action-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.fomo-action-btn:active {
+    transform: scale(0.98);
+}
+
+/* 动画定义 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes cardPopUp {
+    from {
+        transform: scale(0.9) translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 手机适配 */
+@media (max-width: 500px) {
+    .fomo-card-image {
+        height: 160px;
+    }
+
+    .fomo-card-body {
+        padding: 20px;
+    }
+
+    #fomo-modal-title {
+        font-size: 1.1rem;
+    }
+}
+
+/* --- [修复] 强制隐藏 FOMO Bar 的锁 --- */
+/* 只要 body 带有 .hide-fomo 类，#fomo-bar 必须隐藏，谁来都不好使 */
+body.hide-fomo #fomo-bar {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    animation: none !important;
+    /* 关键：杀掉动画，防止动画让它复活 */
+}
+
+body.hide-fomo .fixed-trust-badge,
+body.hide-fomo .chat-widget-container {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    animation: none !important;
+}
+
+/* ==========================================
+   [Mobile Alignment Fix] 小屏 iPhone 极致排版修复
+   (不改变字体大小，仅调整间距和布局结构)
+   ========================================== */
+
+@media (max-width: 430px) {
+
+    /* 1. 容器：以此换取更多水平空间 */
+    .container {
+        /* 原来是 24px 16px，左右留白太多了，现在改为 12px */
+        padding: 24px 10px !important;
+        /* 宽度撑满，防止左右晃动 */
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 2. 顶部 Logo 行：防止错位折行 */
+    .brand-row {
+        gap: 4px !important;
+        /* 极小的间距 */
+    }
+
+    .header-center {
+        /* 让中间标题区域能被压缩，优先保证左右 Logo 和 语言按钮 */
+        flex: 1;
+        padding: 0 2px !important;
+        white-space: nowrap;
+        /* 强制不换行 */
+        overflow: hidden;
+        /* 超出隐藏 */
+    }
+
+    .lang-switch button {
+        /* 语言按钮稍微瘦身一点点，不改字号 */
+        width: 32px !important;
+    }
+
+    /* 3. 安装模式按钮 (Mode Selector) */
+    .mode-selector {
+        gap: 6px !important;
+        /* 缩小按钮间距 */
+    }
+
+    .mode-btn {
+        /* 减少按钮内部左右留白，给文字腾地方 */
+        padding: 12px 2px !important;
+        min-width: 0 !important;
+        /* 允许按钮被压缩 */
+    }
+
+    /* 4. 推荐配置网格 (Spec Grid) */
+    .spec-grid {
+        gap: 4px !important;
+        /* 3列变紧凑 */
+    }
+
+    .spec-item {
+        padding: 10px 2px !important;
+        /* 减少格子内边距 */
+    }
+
+    /* 5. 价格对比栏 (最重要的修复) */
+    /* 这里的文字很长(Premium/Tesla)，如果不缩小字体，必须减少间距 */
+    .comparison-grid {
+        gap: 4px !important;
+        margin-left: -4px !important;
+        /* 视觉补偿：稍微往两边撑一点 */
+        margin-right: -4px !important;
+    }
+
+    .tier-box {
+        padding: 16px 2px !important;
+        /* 极窄内边距 */
+    }
+
+    /* 6. 信任徽章 (Trust Badges) */
+    .trust-badges-row {
+        gap: 8px !important;
+    }
+
+    .trust-badge {
+        /* 允许徽章文字自然换行，避免撑开宽度 */
+        min-width: 0 !important;
+        width: 30% !important;
+    }
+
+    /* 7. 底部固定栏 (Sticky Footer) */
+    .sticky-footer {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    /* 按钮不要太宽，防止挤掉价格 */
+    .sticky-btn {
+        padding: 8px 16px !important;
+    }
+    /* 1. 针对 tier-box 内部的 price-value 进行调整 */
+    .price-value {
+        /* 稍微缩小字体 */
+        font-size: 0.9rem !important; 
+        /* 收紧字间距，让文字更紧凑 */
+        letter-spacing: -0.05em; 
+        /* 强制不换行 */
+        white-space: nowrap;
+        /* 超出部分隐藏 */
+        overflow: hidden;
+        /* 超出部分显示省略号 (...) */
+        text-overflow: ellipsis;
+    }
+
+    /* 2. 稍微缩小 tier-box 的内边距，腾出更多空间 */
+    .tier-box {
+        padding: 16px 4px !important;
+    }
+}
+
+/* ==========================================
+   [Ultra Small Fix] 针对 iPhone SE / 5S (宽度 < 360px)
+   极端情况下的保护措施
+   ========================================== */
+@media (max-width: 360px) {
+    /* 实在排不下时，将价格对比改为竖排，或者允许横向滚动 */
+    /* 这里选择保持横排但更加极限的压缩 */
+    .price-value {
+        /* 再次缩小字体 */
+        font-size: 0.8rem !important;
+    }
+
+    .mode-selector {
+        /* 如果文字实在太长，允许横向滚动，保持布局不乱 */
+        overflow-x: auto;
+        padding-bottom: 4px;
+        /* 留出滚动条空间 */
+        justify-content: flex-start;
+        /* 左对齐 */
+    }
+
+    .mode-btn {
+        /* 保持一个最小宽度，防止文字竖着排 */
+        min-width: 80px !important;
+        flex-shrink: 0;
+        /* 禁止压缩 */
+    }
+
+    /* 表单输入框优化 */
+    .input-group {
+        flex-direction: column !important;
+        /* 手机号和邮编在极小屏下换行排列 */
+        gap: 12px !important;
+    }
+}
+
+/* --- Brand Selection Grid (新品牌选择区) --- */
+.brand-selection-area {
+    margin-top: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    animation: fadeIn 0.5s ease;
+}
+
+.brand-section-title {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+}
+
+.brand-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* 默认3列 */
+    gap: 10px;
+}
+
+/* --- Brand Grid Card Styles (品牌卡片样式 - 毛玻璃版) --- */
+
+.brand-card {
+    /* 🟢 [修改点 1] 背景改为半透明白色，融入整体环境 */
+    background: rgba(255, 255, 255, 0.4);
+
+    /* 🟢 [新增] 增加毛玻璃模糊效果，提升质感 */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    /* 🟢 [新增] 加上淡淡的白色边框，让卡片轮廓更清晰 */
+    border: 1px solid rgba(255, 255, 255, 0.4);
+
+    border-radius: 12px;
+    padding: 8px 4px;
+    /* 上下8px，左右4px */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    /* 稍微调小一点高度，更紧凑 */
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    /* 阴影改淡一点 */
+}
+
+/* 选中状态 */
+.brand-card.active {
+    border-color: var(--accent);
+
+    /* 🟢 [修改点 2] 选中时背景稍微变亮，带一点点品牌绿色的 tint */
+    background: rgba(16, 185, 129, 0.15);
+
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    transform: translateY(-2px);
+}
+
+.brand-card:hover {
+    background: rgba(255, 255, 255, 0.6);
+    /* 悬停时稍微变白 */
+    transform: translateY(-2px);
+}
+
+/* 🟢 [黑科技] 如果你的 Logo 图片自带白色背景去不掉，加上这行代码 */
+.brand-logo-img {
+    /* mix-blend-mode: multiply; */
+    /* 如果你的Logo是白底JPG，把上面这行的注释去掉，白色背景就会神奇消失 */
+
+    max-width: 85%;
+    max-height: 36px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
+/* 模拟 Logo 文字样式 (替换图片后可移除) */
+.brand-name {
+    font-weight: 800;
+    color: #334155;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.brand-price-tag {
+    display: none !important;
+    /* 🟢 强制隐藏品牌卡片内的小价格 */
+}
+
+.brand-card.active .brand-price-tag {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* --- Solar Panel Brands (太阳能板展示区) --- */
+.panel-brands-row {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* --- Solar Panel Brands Styles (太阳能板区域样式) --- */
+
+.panel-list {
+    display: grid;
+    /* 🟢 核心修改：无论电脑还是手机，强制 4 列 */
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px;
+    /* 间距稍微改小一点点 */
+}
+
+.panel-item {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+
+    /* 🟢 调整内边距：为了在手机一行塞4个，padding要小 */
+    padding: 4px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    /* 🟢 细长条高度：设定一个较小的高度 */
+    height: 40px;
+
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+}
+
+.panel-item:hover {
+    background: rgba(255, 255, 255, 0.6);
+    transform: translateY(-2px);
+}
+
+.panel-logo-img {
+    /* 图片自适应，保证塞得进小格子 */
+    max-width: 95%;
+    max-height: 28px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* 覆盖之前的手机端设置，确保不变成2列 */
+@media (max-width: 500px) {
+    .panel-list {
+        /* 强制保持 4 列 */
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 4px !important;
+        /* 手机上间距更紧凑 */
+    }
+
+    .panel-item {
+        height: 36px !important;
+        /* 手机上高度再压扁一点，形成“细长条” */
+        border-radius: 8px;
+        /* 圆角稍微小一点 */
+        padding: 2px !important;
+    }
+
+    .panel-logo-img {
+        max-height: 22px !important;
+        /* 图标缩小适配 */
+    }
+}
+
+/* --- Brand Logo Styles (Logo 图片样式) --- */
+
+.brand-logo-img {
+    /* 限制最大宽高，防止 Logo 撑破卡片 */
+    max-width: 90%;
+    max-height: 40px;
+    width: auto;
+    height: auto;
+
+    /* 保持图片比例 */
+    object-fit: contain;
+
+    /* 稍微把图片往下居中一点 */
+    display: block;
+    margin: 0 auto;
+
+    /* 增加一点滤镜让深色Logo变清晰 (可选，如果你是深色背景模式) */
+    /* filter: brightness(0) invert(0.8); */
+}
+
+/* 兜底文字样式 (只有图片挂了才会显示这个) */
+.brand-name-fallback {
+    font-weight: 700;
+    color: #334155;
+    font-size: 0.8rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* 手机端适配 */
+@media (max-width: 500px) {
+    .brand-logo-img {
+        max-height: 30px;
+        /* 手机上 Logo稍微小一点 */
+    }
+
+    /* 调整卡片内边距，让 Logo 垂直居中 */
+    .brand-card {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* --- style.css --- */
+
+/* --- style.css (修改禁用状态样式) --- */
+
+/* 禁用状态的 Tier Box：仅变灰、透明、不可点 */
+.tier-box.disabled {
+    opacity: 0.3;
+    /* 透明度更低一点，显出禁用感 */
+    pointer-events: none;
+    /* 禁止点击 */
+    filter: grayscale(100%);
+    /* 黑白滤镜 */
+    background: rgba(0, 0, 0, 0.1);
+    border-color: transparent;
+    cursor: not-allowed;
+}
+
+/* 3. 🟢 核心新增：把里面的价格数字彻底模糊掉 */
+.tier-box.disabled .price-value {
+    filter: blur(10px);
+    /* 10px 模糊，完全看不清数字 */
+    opacity: 0.5;
+    /* 再次降低透明度 */
+    user-select: none;
+    /* 禁止用户选中复制文字 */
+    transform: scale(0.9);
+    /* 稍微缩小一点 */
+}
+
+/* ==========================================================================
+   [iPhone SE/Mini Balanced Fix] 
+   平衡版适配：字体放大 + 布局极致压缩
+   (放在 CSS 文件最底部)
+   ========================================================================== */
+
+@media (max-width: 410px) {
+
+    /* 1. 稍微调回基准字号，提升整体可读性 */
+    :root {
+        font-size: 15px;
+        /* 从之前的 14px 回调到 15px */
+    }
+
+    /* 2. 容器：压榨左右边距，把空间留给内容 */
+    .container {
+        padding: 24px 6px !important;
+        /* 左右仅留 6px */
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* 3. 价格对比栏 (最核心区域) */
+    .comparison-grid {
+        gap: 3px !important;
+        /* 间距压到最小 */
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .tier-box {
+        padding: 14px 2px !important;
+        /* 盒子内部几乎无边距 */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 70px;
+        /* 保证高度一致 */
+    }
+
+    .tier-label {
+        /* 字体调大，但在小屏上如果文字太长(Premium/Tesla)，允许它稍微压缩字间距 */
+        font-size: 0.7rem !important;
+        /* 约 10.5px，比之前大 */
+        margin-bottom: 4px;
+        letter-spacing: -0.05em;
+        /* 收紧字间距，防止换行 */
+        white-space: nowrap;
+    }
+
+    .price-value {
+        /* 价格数字调大，这是用户最关心的 */
+        font-size: 0.85rem !important;
+        /* 约 12.75px */
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        /* 紧凑排列 */
+    }
+
+    /* 针对 "Medium" 这种有 "~" 范围价格的长文字，特殊处理 */
+    .price-value {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: clip;
+        /* 不显示省略号，尽量展示数字 */
+    }
+
+    /* 4. 模式选择按钮 (Mode Selector) */
+    .mode-selector {
+        gap: 5px !important;
+    }
+
+    .mode-btn {
+        padding: 10px 4px !important;
+        min-width: 0 !important;
+        /* 允许按钮被压缩 */
+    }
+
+    .mode-btn span {
+        font-size: 0.7rem !important;
+        /* 约 10.5px */
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+
+    /* 5. 顶部标题和 Logo */
+    .brand-text {
+        font-size: 1.4rem !important;
+        /* Logo 稍微大一点 */
+    }
+
+    h2 {
+        font-size: 0.85rem !important;
+        /* 标题字号适中 (约12.75px) */
+        white-space: normal;
+        /* 允许标题换行，以免撑宽屏幕 */
+        line-height: 1.2;
+    }
+
+    /* 6. 底部悬浮栏 */
+    .sticky-footer {
+        padding: 8px 8px !important;
+    }
+
+    .sticky-label {
+        font-size: 0.65rem !important;
+    }
+
+    .sticky-price {
+        font-size: 1rem !important;
+    }
+
+    /* 价格放大 */
+    .sticky-btn {
+        font-size: 0.85rem !important;
+        padding: 8px 14px !important;
+    }
+}
+
+/* ==========================================================================
+   [极限情况] 针对 iPhone 5S/SE 1代 (宽度 <= 320px)
+   只有在极窄屏幕下，才强制允许横向滚动，保证不重叠
+   ========================================================================== */
+@media (max-width: 330px) {
+    .tier-label {
+        font-size: 0.65rem !important;
+    }
+
+    .price-value {
+        font-size: 0.8rem !important;
+    }
+
+    /* 允许价格栏左右滑动，防止数字重叠 */
+    .comparison-grid {
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding-bottom: 5px;
+        /* 留出滚动条位置 */
+    }
+
+    .tier-box {
+        min-width: 80px;
+        /* 保证最小宽度 */
+        flex-shrink: 0;
+    }
+}
+/* --- 悬浮按钮样式 --- */
+/* --- Top Brand 悬浮按钮 (精确对齐 CEC Logo 正上方) --- */
+.fixed-brand-badge {
+    position: fixed;
+    /* 层级与 CEC Logo 保持一致或略高 */
+    z-index: 9995; 
+
+    /* 1. 尺寸 (与 CEC Logo 一致) */
+    width: 50px;
+    height: 50px;
+
+    /* 2. 位置对齐 */
+    /* 水平：与 CEC Logo 的 right: 33px 保持一致，确保中心对齐 */
+    right: 33px; 
+    left: auto;
+    
+    /* 垂直：104px (CEC底) + 50px (CEC高) + 15px (间距) = 169px */
+    bottom: 169px; 
+
+    /* 3. 视觉样式 (参考您的 CEC 风格) */
+    background: white; /* 保持干净的白底 */
+    border-radius: 50%;
+    
+    /* 您的透明度要求 */
+    opacity: 0.65;
+    
+    /* 您的阴影要求 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 交互效果：鼠标悬停时变亮、上浮 */
+.fixed-brand-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    opacity: 1; /* 悬停时完全不透明 */
+}
+
+/* 图片大小控制 */
+.fixed-brand-badge img {
+    width: 45px; /* 50px 容器内放 32px 图片 */
+    height: auto;
+    display: block;
+}
+
+/* Tooltip 提示文字 (向左弹出) */
+.fixed-brand-badge .trust-tooltip {
+    position: absolute;
+    right: 60px; /* 按钮宽50px + 间距10px */
+    left: auto;
+    
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.fixed-brand-badge:hover .trust-tooltip {
+    opacity: 1;
+}
+
+/* 📱 手机端专属适配 (Max-Width: 500px) */
+/* ========================================= */
+@media (max-width: 500px) {
+    .fixed-brand-badge {
+        /* 1. 强制锁定位置 */
+        /* 水平：与 CEC Logo 对齐 */
+        right: 19px !important;
+        left: auto !important;
+
+        /* 垂直：CEC底部(175) + CEC高度(40) + 间距(12) = 227px */
+        bottom: 227px !important;
+
+        /* 2. 强制锁定尺寸 (与手机端 CEC 一致) */
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    /* 3. 调整内部图片大小 (按比例缩小) */
+    .fixed-brand-badge img {
+        width: 35px !important; /* 40px 容器放 26px 图片合适 */
+    }
+
+    /* 4. 调整 Tooltip 位置 (避免遮挡) */
+    .fixed-brand-badge .trust-tooltip {
+        right: 50px !important; /* 按钮宽40 + 间距10 */
+        font-size: 0.7rem !important;
+        padding: 4px 8px !important;
+    }
+}
+
+/* --- 品牌中心 (Hub) 样式 --- */
+.brand-hub-content {
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 25px;
+}
+
+.hub-title { margin-top: 0; margin-bottom: 5px; text-align: center; }
+.hub-subtitle { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 20px; }
+
+.brand-section-header {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin: 20px 0 10px 0;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 5px;
+}
+
+.brand-hub-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3列布局 */
+    gap: 15px;
+}
+
+.hub-brand-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 15px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 100px;
+}
+
+.hub-brand-item:hover {
+    border-color: #3b82f6;
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.hub-brand-img {
+    max-width: 80%;
+    max-height: 40px;
+    object-fit: contain;
+    margin-bottom: 8px;
+}
+
+.hub-brand-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #334155;
+    text-align: center;
+}
+
+/* --- 品牌详情页 (Detail) 样式 --- */
+.detail-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0;
+}
+
+.detail-header { text-align: center; margin-bottom: 20px; }
+
+/* 修改后：强制居中 */
+.detail-header img { 
+    height: 60px; 
+    width: auto; 
+    object-fit: contain; 
+    
+    /* 核心修改： */
+    display: block;       /* 1. 将图片设为块级元素 */
+    margin: 0 auto 10px;  /* 2. 上0 左右auto(居中) 下10px */
+}
+.detail-header h2 { margin: 0; font-size: 1.5rem; }
+
+.detail-tags { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+.d-tag { background: #e0f2fe; color: #0284c7; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+
+.detail-desc { color: #475569; line-height: 1.6; font-size: 0.95rem; margin-bottom: 25px; text-align: justify; }
+
+.detail-features h4 { margin-bottom: 10px; color: #1e293b; }
+.detail-features ul { padding-left: 20px; color: #475569; font-size: 0.9rem; }
+.detail-features li { margin-bottom: 6px; }
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+    .brand-hub-grid { grid-template-columns: repeat(2, 1fr); }
+    /*.fixed-brand-badge { left: 15px; bottom: 85px; width: 50px; height: 50px; }*/
+}
+/* 给最终按钮增加呼吸动画 */
+@keyframes pulse-btn {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+/* 👇 新增：底部悬浮小按钮的呼吸样式 👇 */
+.sticky-btn.highlight {
+    animation: pulse-btn 1s infinite; /* 复用呼吸动画 */
+    
+    /* 让它变绿，和主按钮保持一致 */
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border: 1px solid #34d399; /* 加个亮边框更显眼 */
+    
+    /* 稍微调整一下过渡，避免闪烁 */
+    transition: all 0.3s ease;
+}
+
+.btn-final-enquiry.highlight {
+    animation: pulse-btn 1s infinite;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%); /* 这里的颜色改成更加显眼的绿色，而不是深黑 */
+    border: 1px solid #34d399;
+}
+/* ==========================================
+   [FINAL TWEAK] Welcome Flash (Translucent Dark Glass)
+   ========================================== */
+.welcome-flash {
+    position: fixed;
+    /* 🟢 保持刚才调整的位置：避开 Logo */
+    top: -120px; 
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10002;
+    
+    /* 🟢 核心修改：
+       1. 使用 rgba 降低不透明度 (0.75)，让背景变浅且透明
+       2. 增加 blur 模糊，营造"若隐若现"的景深感
+    */
+    background: rgba(15, 23, 42, 0.75); 
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    
+    /* 🟢 边框也稍微调透一点点，更融合 */
+    border: 2px solid rgba(245, 158, 11, 0.6); 
+    
+    /* 投影稍微柔和一点，配合透明材质 */
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3), 
+        0 0 20px rgba(245, 158, 11, 0.2); 
+    
+    border-radius: 16px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 350px;
+    max-width: 92%;
+    
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 显示状态 - 保持下移位置 */
+.welcome-flash.show {
+    top: 70px; /* 电脑端位置 */
+}
+
+/* 图标动画 */
+.flash-icon {
+    font-size: 2.4rem;
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8));
+    animation: flashPulseStrong 1.5s infinite alternate;
+    opacity: 0.9; /* 图标微透 */
+}
+
+@keyframes flashPulseStrong {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+}
+
+.flash-content {
+    flex: 1;
+}
+
+.flash-title {
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    /* 稍微加深文字阴影，防止背景太透看不清字 */
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.flash-subtitle {
+    color: var(--solar-gold);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* 进度条 */
+.flash-timer-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--solar-gold), #fbbf24, #fff);
+    width: 0%;
+    box-shadow: 0 -2px 10px rgba(245, 158, 11, 0.4);
+    opacity: 0.9;
+}
+
+.welcome-flash.show .flash-timer-bar {
+    width: 100%;
+    transition: width 4.2s linear; 
+}
+
+/* 手机适配 */
+@media (max-width: 500px) {
+    .welcome-flash {
+        /* 🟢 核心修改：改为 90% (与 fomo-bar.apple-notify 的宽度完全一致) */
+        width: 90%;
+        
+        /* 增加 box-sizing 确保内边距不会把它撑得比 fomo-bar 宽 */
+        /*box-sizing: border-box; */
+        
+        min-width: auto;
+        padding: 12px 16px; /* 稍微调整内边距，保持紧凑 */
+    }
+    
+    .welcome-flash.show {
+        top: 56px; /* 手机端位置 */
+    }
+
+    .flash-icon { font-size: 1.8rem; }
+    .flash-title { font-size: 0.85rem; }
+    .flash-subtitle { font-size: 0.7rem; }
+}
+/* --- Budget Slider Special Styles (金色主题) --- */
+
+/* 1. 数值显示框变金 */
+.val-display.budget-display {
+    color: var(--solar-gold);
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* 2. 滑块拖动球变金 */
+input[type=range].gold-slider::-webkit-slider-thumb {
+    border-color: var(--solar-gold) !important;
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3) !important;
+}
+
+/* 3. 悬停时的金色光晕 */
+input[type=range].gold-slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.3) !important;
+}
+/* ==========================================
+   [NEW] Partner Hub Styles (Final)
+   ========================================== */
+
+/* 1. 行内入口按钮 */
+.label-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.partner-inline-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.partner-inline-btn:hover {
+    background: #f8fafc;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.p-icon-small { font-size: 0.9rem; line-height: 1; }
+.p-text-small {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* 2. 弹窗 & 卡片 */
+.partner-modal-card {
+    max-width: 500px !important;
+    background: #ffffff;
+    padding: 30px 25px;
+    text-align: left;
+    max-height: 90vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.partner-title { text-align: center; margin: 0 0 5px 0; color: var(--primary); font-size: 1.3rem; }
+.partner-subtitle { text-align: center; color: #64748b; margin-bottom: 25px; font-size: 0.9rem; }
+
+.role-list { display: flex; flex-direction: column; gap: 12px; }
+
+.role-card-wide {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;
+    padding: 16px; cursor: pointer; display: flex; align-items: flex-start; gap: 16px;
+    transition: all 0.2s ease; position: relative;
+}
+.role-card-wide:hover {
+    border-color: var(--primary); background: #f8fafc;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); transform: translateY(-2px);
+}
+
+.role-icon-box {
+    width: 48px; height: 48px; background: #f1f5f9; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+}
+.role-info { flex: 1; }
+.role-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.role-header h4 { margin: 0; font-size: 0.95rem; color: var(--primary); font-weight: 800; }
+.role-tag {
+    background: #dbeafe; color: #2563eb; font-size: 0.6rem; font-weight: 700;
+    padding: 2px 8px; border-radius: 10px; text-transform: uppercase;
+}
+.role-desc-detail { font-size: 0.8rem; color: #64748b; line-height: 1.5; margin: 0 0 8px 0; }
+.role-reqs { font-size: 0.7rem; color: #94a3b8; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.role-reqs::before { content: '•'; color: var(--solar-gold); font-weight: bold; }
+.role-arrow { color: #cbd5e1; font-size: 1.5rem; font-weight: 300; align-self: center; }
+
+/* 3. 表单组件 */
+.form-header { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; position: relative; }
+.back-link { position: absolute; left: 0; background: none; border: none; color: #64748b; cursor: pointer; font-weight: 600; font-size: 0.9rem; padding: 0; }
+.form-title-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+
+.form-section-title {
+    font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;
+    margin: 20px 0 10px 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; font-weight: 700;
+}
+
+.form-group-compact { margin-bottom: 12px; }
+.form-group-compact label { font-size: 0.8rem; color: #334155; margin-bottom: 4px; display: block; font-weight: 600; }
+.form-group-compact input, .form-group-compact select, .form-group-compact textarea {
+    width: 100%; height: 40px; font-size: 0.9rem; border-radius: 8px;
+    background: #f8fafc; border: 1px solid #e2e8f0; padding: 0 12px; box-sizing: border-box;
+    font-family: inherit; color: var(--primary);
+}
+.form-group-compact textarea { height: auto; padding: 8px 12px; }
+.grid-2-compact { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* 4. Business Type Grid */
+.radio-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 5px; }
+.radio-box-small span {
+    font-size: 0.8rem; padding: 8px 5px; border: 1px solid #e2e8f0; border-radius: 8px;
+    background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; color: #64748b; width: 100%; box-sizing: border-box; text-align: center;
+}
+.radio-box-small input { display: none; }
+.radio-box-small input:checked + span {
+    background: var(--primary); color: white; border-color: var(--primary); font-weight: 600;
+}
+
+/* 5. Tags & Pills */
+.checkbox-group-pills {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;
+    max-height: 220px; overflow-y: auto; padding: 2px;
+}
+.check-pill span {
+    display: inline-block; padding: 6px 12px; background: #f1f5f9;
+    border: 1px solid #e2e8f0; border-radius: 20px; font-size: 0.8rem;
+    color: #64748b; cursor: pointer; transition: all 0.2s ease; font-weight: 500;
+}
+.check-pill input { display: none; }
+.check-pill input:checked + span {
+    background: var(--primary); color: white; border-color: var(--primary);
+}
+
+.file-upload-wrapper input[type=file] { 
+    font-size: 0.8rem; padding: 6px; height: auto; border: 2px dashed #cbd5e1; background: #fff;
+}
+
+.btn-partner-submit {
+    width: 100%; background: linear-gradient(135deg, var(--primary) 0%, #334155 100%);
+    color: white; padding: 12px; border-radius: 10px; font-weight: 700; border: none;
+    margin-top: 20px; cursor: pointer; transition: transform 0.1s;
+}
+
+@media (max-width: 500px) {
+    .partner-modal-card { padding: 20px 15px; }
+    .partner-inline-btn { padding: 4px 10px; }
+    .role-card-wide { padding: 12px; gap: 12px; }
+}
+/* ==========================================
+   [FIX] Partner Hub 关闭按钮专用修正
+   ========================================== */
+
+/* 1. 针对 Partner 弹窗，调整关闭按钮位置 */
+.partner-modal-card .close-btn {
+    /* 调整垂直位置，让它跟 "Registration" 标题处于同一水平线 */
+    top: 25px;   
+    right: 20px; 
+
+    /* 2. 增大点击热区 (Hitbox) */
+    width: 40px;
+    height: 40px;
+    
+    /* 3. 强制居中符号 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* 4. 视觉优化 */
+    background: #f8fafc; /* 给一个极淡的背景，让用户看清按钮范围 */
+    border-radius: 50%;
+    color: #64748b;
+    z-index: 20; /* 确保层级最高，不被表单遮挡 */
+}
+
+/* 悬停效果 */
+.partner-modal-card .close-btn:hover {
+    background: #fee2e2; /* 淡红色背景 */
+    color: #ef4444;       /* 红色叉叉 */
+    transform: rotate(90deg); /* 旋转动效 */
+}
+
+/* 5. 针对手机端的微调 */
+@media (max-width: 500px) {
+    .partner-modal-card .close-btn {
+        top: 20px; /* 手机上稍微靠上一点 */
+        right: 15px;
+    }
+}
+
+/* ==========================================
+   LIVE MAP STYLES (悬浮二级页面版)
+   ========================================== */
+
+/* 1. 遮罩层 */
+.map-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6); /* 深色背景 */
+    backdrop-filter: blur(5px);      /* 背景模糊 */
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 20000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+/* 2. 悬浮卡片容器 */
+.map-container-card {
+    width: 90%;          /* 宽度占屏幕 90% */
+    max-width: 1000px;   /* 最大宽度限制 */
+    height: 85vh;        /* 高度占屏幕 85% */
+    background: #fff;
+    border-radius: 24px; /* 大圆角 */
+    overflow: hidden;    
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* 悬浮阴影 */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+#ecosystem-map { width: 100%; height: 100%; }
+
+/* 3. 地图内控件 */
+
+/* 关闭按钮 */
+.map-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background: white;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+.map-close-btn:hover { transform: scale(1.1); background: #fee2e2; color: #ef4444; }
+
+/* 模式切换器 */
+.map-switcher-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 6px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.map-switcher { display: flex; gap: 5px; }
+
+.map-switch-btn {
+    border: none;
+    background: transparent;
+    padding: 10px 20px;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Outfit', sans-serif;
+    white-space: nowrap;
+}
+
+.map-switch-btn.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
+}
+
+/* 定位按钮 */
+/* 定位按钮 (精确对齐 Google 原生缩放条上方) */
+.map-locate-btn {
+    position: absolute;
+    
+    /* 垂直位置：避开底部的 +/- 缩放条 + Google Logo */
+    /* 130px 大约刚好位于缩放条的正上方 */
+    bottom: 130px; 
+    
+    /* 水平位置：Google 默认控件距离右边通常是 10px */
+    right: 10px;
+    
+    /* 尺寸：40px 跟 Google 的方块按钮宽度一致，看起来更整齐 */
+    width: 40px;
+    height: 40px;
+    
+    background: white;
+    
+    /* 圆角：稍微小一点，跟地图控件风格融合 */
+    border-radius: 4px; 
+    
+    border: none;
+    /* 阴影：模仿 Google 地图原生控件的阴影 */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    
+    font-size: 1.4rem;
+    cursor: pointer;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.map-locate-btn:hover {
+    background: #f3f4f6; /* 悬停变灰 */
+    color: #3b82f6;      /* 图标变蓝 */
+}
+
+/* 底部过滤器 */
+.map-filters-container {
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    padding: 6px;
+    border-radius: 40px;
+    width: max-content;
+}
+
+.map-filter-pill {
+    padding: 10px 18px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.map-filter-pill.active {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Google Maps InfoWindow 美化 */
+.gm-style-iw { padding: 0 !important; border-radius: 12px !important; overflow: hidden !important; }
+.gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
+.gm-ui-hover-effect { display: none !important; } 
+
+/* 1. 卡片容器：从固定宽度改为最大宽度 */
+.info-card {
+    /* width: 260px;  <-- 删除这行，它是罪魁祸首 */
+    width: 100%;      /* 改为 100%，让它自适应地图弹窗的大小 */
+    min-width: 200px; /* 设置最小宽度，防止压得太扁 */
+    max-width: 260px; /* 保持最大宽度，电脑上不至于太宽 */
+    font-family: 'Outfit', sans-serif;
+    padding: 15px;
+    box-sizing: border-box; /* 🟢 关键：确保 padding 不会撑大盒子 */
+}
+.info-tag { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+.info-title { font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 4px; line-height: 1.2; }
+.info-desc { font-size: 0.85rem; color: #64748b; margin-bottom: 12px; }
+/* 2. 按钮样式：防止文字溢出 */
+.info-btn {
+    width: 100%;
+    padding: 10px 5px; /* 🟢 左右 padding 减小，给文字腾地方 */
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+    
+    /* 🟢 新增：防止文字换行导致按钮变高，或者允许换行但居中 */
+    white-space: nowrap; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+.info-btn.locked { background: #e2e8f0; color: #94a3b8; }
+
+/* 4. 针对极小屏幕 (iPhone SE/Mini) 的专项优化 */
+@media (max-width: 380px) {
+    .info-card {
+        padding: 10px 8px; /* 进一步减小内边距 */
+    }
+    
+    .info-title {
+        font-size: 1rem !important; /* 标题改小一点 */
+    }
+    
+    .info-btn {
+        font-size: 0.8rem !important; /* 按钮文字改小 */
+        padding: 8px 4px !important;
+    }
+
+    /* 调整标签大小 */
+    .info-tag {
+        font-size: 0.6rem !important;
+    }
+}
+/* ==========================================
+   [NEW] 补充样式 (关闭按钮 & 忘记密码)
+   ========================================== */
+
+/* 1. 地图弹窗内的右上角关闭按钮 (小叉号) */
+.info-close-btn {
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 20; /* 保证在最上层 */
+    padding: 0 5px;
+    transition: color 0.2s;
+}
+.info-close-btn:hover {
+    color: #ef4444; /* 悬停变红 */
+}
+
+/* 确保 info-card 支持绝对定位 */
+.info-card {
+    position: relative !important;
+}
+
+/* 2. 忘记密码链接样式 */
+.forgot-pwd-link {
+    display: block;
+    text-align: right;
+    font-size: 0.75rem;
+    color: #64748b;
+    text-decoration: underline;
+    margin-top: 8px;
+    margin-bottom: 15px;
+    cursor: pointer;
+}
+.forgot-pwd-link:hover {
+    color: var(--primary);
+}
+
+/* ==========================================
+   [FINAL LAYOUT] 手机端地图 UI (底部平行对齐版)
+   ========================================== */
+
+/* 1. 通用手机适配 (< 500px) */
+@media (max-width: 500px) {
+
+    /* --- 顶部切换栏 (保持置顶) --- */
+    .map-switcher-container {
+        top: 15px !important;         
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        
+        width: auto !important;
+        max-width: 85% !important;
+        padding: 3px !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(8px);
+        border-radius: 100px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    .map-switch-btn {
+        padding: 6px 14px !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        height: 32px !important;
+        line-height: 1 !important;
+        border-radius: 20px !important;
+        white-space: nowrap !important;
+    }
+
+    /* --- 关闭按钮 (保持置顶) --- */
+    .map-close-btn {
+        top: 15px !important;          
+        right: 12px !important;
+        
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 1rem !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    }
+
+    /* --- 底部过滤器 (中间) --- */
+    .map-filters-container {
+        bottom: 25px !important;      /* 距底高度 */
+        width: auto !important;
+        padding: 4px !important;
+        gap: 6px !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-radius: 100px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08) !important;
+        z-index: 10 !important;
+    }
+
+    .map-filter-pill {
+        height: 30px !important;
+        padding: 0 12px !important;
+        font-size: 0.75rem !important;
+        border-radius: 15px !important;
+    }
+    
+    .map-filter-pill .dot {
+        font-size: 0.6rem !important;
+        margin-right: 4px !important;
+    }
+
+    /* --- 定位按钮 (右下角，与过滤器平行) --- */
+    .map-locate-btn {
+        width: 38px !important;       /* 尺寸 */
+        height: 38px !important;
+        
+        /* 🟢 位置修改：下沉到底部，与左侧胶囊对齐 */
+        bottom: 25px !important;      
+        right: 15px !important;       /* 靠右留出一点距离 */
+        
+        font-size: 1.2rem !important;
+        border-radius: 50% !important; /* 改成圆形，更像功能按钮 */
+        background: white !important;
+        color: #3b82f6 !important;    /* 蓝色图标 */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        z-index: 20 !important;       /* 确保层级最高 */
+    }
+
+    /* 保持隐藏 Google 原生控件 */
+    .gmnoprint { display: none !important; }
+}
+
+/* 2. 针对极小屏微调 (iPhone SE/Mini) */
+@media (max-width: 375px) {
+    /* 顶部微调 */
+    .map-switcher-container, .map-close-btn {
+        top: 12px !important;
+    }
+    
+    /* 底部微调 */
+    .map-filters-container, .map-locate-btn {
+        bottom: 20px !important;
+    }
+    
+    /* 防止底部按钮撞车，稍微缩小间距 */
+    .map-filter-pill {
+        padding: 0 8px !important;
+    }
+    
+    .map-locate-btn {
+        right: 10px !important;
+        width: 34px !important;
+        height: 34px !important;
+    }
+}
+/* =========================================
+   Bottom Navigation Bar (App Style)
+   ========================================= */
+
+/* 1. 隐藏旧的顶部入口按钮 (Hide old top buttons) */
+.label-row-header .partner-inline-btn {
+    display: none !important;
+}
+
+/* 2. 底部导航栏容器 */
+.bottom-nav-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 65px; /* 导航栏高度 */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.03);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 19000; /* 极高层级，但低于 Modal (通常 Modal 是 20000+) */
+    padding-bottom: env(safe-area-inset-bottom); /* 适配 iPhone X 底部黑条 */
+}
+
+/* 3. 单个 Tab 样式 */
+.nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #94a3b8; /* 默认灰色 (Text Light) */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-tab .nav-icon svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 4px;
+    transition: transform 0.2s;
+}
+
+.nav-tab .nav-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* 4. 选中激活状态 (Active State) */
+.nav-tab.active {
+    color: var(--primary, #0f172a); /* 使用 style.css 里的主色 */
+}
+
+.nav-tab.active .nav-icon svg {
+    stroke: var(--accent, #10b981); /* 使用 style.css 里的强调色 (绿色) */
+    fill: rgba(16, 185, 129, 0.1); /* 淡淡的填充色 */
+    transform: translateY(-2px);
+}
+
+/* =========================================
+   Layout Adjustments (防止遮挡)
+   ========================================= */
+
+/* 1. 给页面底部留出空间，防止内容被导航栏挡住 */
+.footer-brand {
+    padding-bottom: 90px !important;
+}
+
+/* 2. 抬高 "悬浮价格条" (Sticky Footer) */
+/* 原本它是 bottom: 0，现在需要显示在导航栏上方 */
+.sticky-footer {
+    bottom: 0 !important;
+    transition: transform 0.3s ease;
+    z-index: 18000 !important; /* 低于导航栏 */
+}
+
+/* 当悬浮条显示时，把它抬高到导航栏上面 */
+.sticky-footer.visible {
+    /* 65px(Nav高度) + 10px(间距) + iPhone安全区 */
+    transform: translateY(calc(-65px - env(safe-area-inset-bottom))); 
+    bottom: 0 !important; /* 保持基准，用 transform 移动更流畅 */
+}
+
+/* 3. 抬高 "客服聊天按钮" (Chat Widget) */
+.chat-widget-container {
+    bottom: 90px !important; /* 抬高，避开导航栏 */
+    transition: bottom 0.3s;
+}
+
+/* 当价格条出现时，客服按钮再往上抬一点 */
+.sticky-footer.visible ~ .chat-widget-container {
+    bottom: 150px !important;
+}
+/* === SPA View System === */
+.app-view {
+    display: none; /* 默认隐藏所有视图 */
+    width: 100%;
+    min-height: 100vh;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.app-view.active {
+    display: block; /* 激活时显示 */
+}
+
+/* 定义淡入动画，让切换更丝滑 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Partner Hub 特有样式 (从刚才的独立文件移植过来) */
+.hub-tabs {
+    display: flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+.hub-tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    font-weight: 700;
+    color: #64748b;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.hub-tab-btn.active {
+    background: #fff;
+    color: #0f172a;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* --- 🟢 Partner 页面紧凑化修复 (Add to <style>) --- */
+
+/* 1. 创建一个容器，强制内容垂直居中 */
+.login-center-wrapper {
+    /* 计算高度：全屏 - 头部高度 - 底部导航高度，确保在可视区域正中间 */
+    min-height: calc(100vh - 240px); 
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* 垂直居中 */
+    padding-bottom: 20px;
+}
+
+/* 2. 移动端适配：减少卡片内部留白，看起来更精致 */
+@media (max-width: 768px) {
+    /* 针对登录卡片 (假设它有内联样式 padding: 40px，我们需要覆盖它) */
+    #hub-view-login .card-inner {
+        padding: 25px !important; /* 从 40px 减少到 25px */
+    }
+    
+    /* 调整标题大小，避免手机上太大 */
+    #hub-view-login h2 {
+        font-size: 1.5rem !important;
+    }
+    
+    /* 稍微减少输入框的间距 */
+    #hub-view-login .form-group-compact {
+        margin-bottom: 16px !important;
+    }
+}
+
+/* 移动端适配权益展示区 */
+@media (max-width: 600px) {
+    /* 强制把 grid 变成 1列 或者 2列，这里用 auto-fit 更智能 */
+    #hub-view-login .grid-3-cols { 
+        grid-template-columns: 1fr !important; /* 手机上垂直排列，占满宽度 */
+    }
+    /* 或者上面的代码里我已经写了 grid-template-columns: repeat(3, 1fr) */
+    /* 我们用这个覆盖它: */
+    #hub-view-login div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important; /* 手机上一行一个 */
+        gap: 12px !important;
     }
 }

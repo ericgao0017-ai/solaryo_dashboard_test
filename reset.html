@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password - Solaryo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #10b981;
+            --solar-gold: #f59e0b;
+            --text-light: #64748b;
+            --bg-gradient: linear-gradient(120deg, #f1f5f9 0%, #cbd5e1 100%);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: var(--primary);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        /* 品牌 Logo 样式 */
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.05em;
+            color: var(--primary);
+            display: inline-block;
+        }
+        .brand-yo { color: var(--solar-gold); position: relative; }
+        .brand-yo::after {
+            content: ''; position: absolute; width: 6px; height: 6px;
+            background: var(--accent); border-radius: 50%; top: 2px; right: -8px;
+        }
+
+        h2 { margin: 10px 0 5px 0; font-size: 1.5rem; }
+        .subtitle { color: var(--text-light); font-size: 0.95rem; margin-bottom: 30px; line-height: 1.5; }
+
+        .input-group { text-align: left; margin-bottom: 20px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--primary); }
+        
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: all 0.3s;
+            font-family: inherit;
+            background: #f8fafc;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+
+        /* 错误提示框 */
+        .msg-box {
+            min-height: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none; /* 默认隐藏 */
+        }
+        .msg-box.error { background: #fee2e2; color: #ef4444; display: flex; animation: shake 0.4s; }
+        .msg-box.success { background: #dcfce7; color: #166534; display: flex; }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, #334155 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+        }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(15, 23, 42, 0.3); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .back-link {
+            display: block; margin-top: 25px; color: var(--text-light); 
+            text-decoration: none; font-size: 0.9rem; font-weight: 500;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--primary); }
+
+        /* 密码要求提示列表 */
+        .requirements {
+            text-align: left; margin-bottom: 20px; padding-left: 5px;
+        }
+        .req-item { font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+        .req-item.valid { color: #10b981; }
+        .req-item::before { content: '○'; font-weight: bold; }
+        .req-item.valid::before { content: '✓'; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="brand-logo">Solar<span class="brand-yo">yo</span></div>
+        <h2>Reset Password</h2>
+        <div class="subtitle">Please choose a new secure password for your Partner account.</div>
+
+        <div id="msg-box" class="msg-box"></div>
+
+        <div id="form-content">
+            <div class="input-group">
+                <label>New Password</label>
+                <input type="password" id="new-pwd" placeholder="Enter new password" oninput="checkRequirements()">
+            </div>
+
+            <div class="requirements">
+                <div class="req-item" id="req-len">At least 8 characters</div>
+                <div class="req-item" id="req-cap">At least one uppercase letter (A-Z)</div>
+            </div>
+
+            <div class="input-group">
+                <label>Confirm Password</label>
+                <input type="password" id="confirm-pwd" placeholder="Re-enter password">
+            </div>
+
+            <button onclick="updatePassword()" id="btn-update">Update Password</button>
+        </div>
+
+        <div id="success-content" style="display:none;">
+            <div style="font-size:4rem; margin-bottom:10px;">🎉</div>
+            <h3 style="color:#10b981; margin:0;">Password Updated!</h3>
+            <p style="color:#64748b;">Your account has been secured with the new password.</p>
+            <a href="index.html" class="back-link" style="margin-top:10px; font-weight:bold; color:var(--accent);">
+                Go to Login →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 1. Supabase 配置 (和你主页的一样)
+        const SUPABASE_URL = 'https://iytxwgyhemetdkmqoxoa.supabase.co'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5dHh3Z3loZW1ldGRrbXFveG9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMzI3MDIsImV4cCI6MjA3OTkwODcwMn0.ZsiueMCjwm5FoPlC3IDEgmsPaabkhefw3uHFl6gBm7Q';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 实时检查密码复杂度
+        function checkRequirements() {
+            const pwd = document.getElementById('new-pwd').value;
+            const reqLen = document.getElementById('req-len');
+            const reqCap = document.getElementById('req-cap');
+
+            // 检查长度 > 8
+            if (pwd.length >= 8) reqLen.classList.add('valid');
+            else reqLen.classList.remove('valid');
+
+            // 检查是否有大写字母
+            if (/[A-Z]/.test(pwd)) reqCap.classList.add('valid');
+            else reqCap.classList.remove('valid');
+        }
+
+        // 提交更新
+        async function updatePassword() {
+            const pwd = document.getElementById('new-pwd').value;
+            const confirm = document.getElementById('confirm-pwd').value;
+            const btn = document.getElementById('btn-update');
+            const msgBox = document.getElementById('msg-box');
+
+            // 重置错误提示
+            msgBox.className = 'msg-box';
+            msgBox.style.display = 'none';
+
+            // 1. 验证逻辑
+            if (pwd.length < 8) {
+                return showError("Password is too short (min 8 chars).");
+            }
+            if (!/[A-Z]/.test(pwd)) {
+                return showError("Password needs at least 1 uppercase letter.");
+            }
+            if (pwd !== confirm) {
+                return showError("Passwords do not match.");
+            }
+
+            // 2. 开始提交
+            btn.disabled = true;
+            btn.innerText = "Updating...";
+
+            try {
+                // 调用 Supabase 更新密码接口
+                const { data, error } = await supabase.auth.updateUser({ 
+                    password: pwd 
+                });
+
+                if (error) throw error;
+
+                // 3. 成功逻辑
+                document.getElementById('form-content').style.display = 'none';
+                document.getElementById('success-content').style.display = 'block';
+
+            } catch (err) {
+                console.error(err);
+                showError(err.message);
+                btn.disabled = false;
+                btn.innerText = "Update Password";
+            }
+        }
+
+        function showError(text) {
+            const msgBox = document.getElementById('msg-box');
+            msgBox.innerText = "⚠️ " + text;
+            msgBox.className = 'msg-box error';
+            msgBox.style.display = 'flex';
+        }
+
+        // 处理 URL hash (Supabase 会自动处理，但为了保险起见保留 onload)
+        window.onload = function() {
+            // 简单的防呆：如果没带 token 进来，可能是误触
+            if (!window.location.hash) {
+                // 这里可以选择提示用户，或者什么都不做
+                console.log("No token detected in URL.");
+            }
+        };
+    </script>
+</body>
+</html>

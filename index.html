@@ -4,568 +4,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solaryo Quote Tool 2025</title>
+    <title>Solaryo - Smart Solar & Battery Quotes</title>
+    <meta name="description"
+        content="Instant solar & battery quotes for Australian homes. Compare Tier 1 brands, calculate savings & payback period.">
+
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="style.css">
+    
+    <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* 这里补充一些内联样式以确保 SPA 视图切换正常工作，
+           虽然你应该加到 style.css 里，但我为了保险起见放在这里 */
+        .app-view {
+            display: none;
+            width: 100%;
+            min-height: 100vh;
+            animation: fadeIn 0.3s ease-in-out;
+            padding-bottom: 80px; /* 防止被底部导航遮挡 */
+        }
+
+        .app-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Partner Hub Tabs Style */
+        .hub-tabs {
+            display: flex;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .hub-tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: #64748b;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .hub-tab-btn.active {
+            background: #fff;
+            color: #0f172a;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 隐藏 FOMO Bar 的辅助类 */
+        body.hide-fomo #fomo-bar { display: none !important; }
+
+       /* --- 🟢 悬浮标全平台统一修复 (Final Fix for Nav Bar) --- */
+        /* 核心逻辑：无论桌面还是手机，只要有底部导航栏，图标都要从 bottom: 90px 起步 */
+
+        /* 1. 聊天按钮 (最底层基准) */
+        .chat-toggle-btn {
+            position: fixed !important;
+            right: 20px !important;
+            z-index: 10000 !important;
+            /* 统一圆形外观 */
+            width: 50px !important;
+            height: 50px !important;
+            border-radius: 50% !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            
+            /* 🟢 修改点：默认高度抬高到 90px，避开底部导航栏 */
+            bottom: 90px !important; 
+        }
+
+        /* 2. CEC 认证标 (中间层) */
+        .fixed-trust-badge {
+            position: fixed !important;
+            right: 20px !important;
+            z-index: 9999 !important;
+            /* 统一圆形外观 */
+            width: 50px !important;
+            height: 50px !important;
+            background: #ffffff !important;
+            border-radius: 50% !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+            transition: transform 0.2s;
+            
+            /* 🟢 修改点：基准90 + 高度50 + 间距15 = 155px */
+            bottom: 155px !important;
+        }
+        .fixed-trust-badge img {
+            width: 80% !important;
+            height: auto !important;
+            object-fit: contain !important;
+        }
+
+        /* 3. Top Brand 标 (最上层) */
+        .fixed-brand-badge {
+            position: fixed !important;
+            right: 20px !important;
+            z-index: 9999 !important;
+            /* 统一圆形外观 */
+            width: 50px !important;
+            height: 50px !important;
+            background: #ffffff !important;
+            border-radius: 50% !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+            transition: transform 0.2s;
+            cursor: pointer;
+            
+            /* 🟢 修改点：基准155 + 高度50 + 间距15 = 220px */
+            bottom: 220px !important;
+        }
+        .fixed-brand-badge img {
+            width: 85% !important;
+            height: auto !important;
+            object-fit: contain !important;
+        }
+
+        /* 悬停微动效 */
+        .fixed-brand-badge:hover, .fixed-trust-badge:hover {
+            transform: scale(1.1);
+        }
+
+        /* --- 📱 移动端适配 (关键修复) --- */
+        @media (max-width: 768px) {
+            /* 统一调整大小，稍微小一点点适应手机 */
+            .chat-toggle-btn, .fixed-trust-badge, .fixed-brand-badge {
+                width: 48px !important;
+                height: 48px !important;
+                right: 15px !important; /* 靠边稍微近一点 */
+            }
+
+            /* 重新计算高度：
+               底部导航栏高度约 80px，所以基准线要从 90px 开始 
+               间距设为 12px
+            */
+
+            /* 1. 聊天按钮：抬高，避开 Navi Bar */
+            .chat-toggle-btn {
+                bottom: 90px !important; 
+            }
+
+            /* 2. CEC：基准90 + 高度48 + 间距12 = 150 */
+            .fixed-trust-badge {
+                bottom: 150px !important;
+            }
+
+            /* 3. Brand：基准150 + 高度48 + 间距12 = 210 */
+            .fixed-brand-badge {
+                bottom: 210px !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
+    <div id="fomo-bar" class="fomo-bar apple-notify" onclick="openFomoModal()">
+        <div class="fomo-content">
+            <span id="fomo-icon" class="fomo-icon">🔥</span>
+            <div class="fomo-text-inline">
+                <span class="fomo-label">NEW</span>
+                <span id="fomo-text" class="fomo-text">Loading...</span>
+            </div>
+        </div>
+        <span class="fomo-arrow">›</span>
+    </div>
+
+    <div id="welcome-flash" class="welcome-flash" style="display: none !important;">
+        <div class="flash-icon">🧾</div>
+        <div class="flash-content">
+            <div class="flash-title" data-i18n="flash_title">Get Your Quote in 60 Seconds</div>
+            <div class="flash-subtitle" data-i18n="flash_subtitle">Battery rebates are changing soon. Check eligibility now!</div>
+        </div>
+        <div class="flash-timer-bar"></div>
+    </div> 
+
+    <div class="fixed-brand-badge" onclick="openBrandHub()" title="View Top Brands">
+        <img src="topbrand.png" alt="Top Brands" />
+        <span class="trust-tooltip">Top Brands</span>
+    </div>
+
     <div class="fixed-trust-badge" title="CEC Accredited Installer">
         <img src="ceclogo.png" alt="CEC Logo" />
         <span class="trust-tooltip">CEC Accredited</span>
-    </div>
-    <div class="container">
-
-        <div class="brand-row">
-            <div class="brand-logo">
-                <span class="brand-text">Solar<span class="brand-yo">yo</span></span>
-            </div>
-
-            <div class="header-center">
-                <h2 data-i18n="title">Smart Solar & Battery Quote</h2>
-                <div class="subtitle" data-i18n="subtitle">Official Solaryo Engine</div>
-            </div>
-
-            <div class="lang-switch">
-                <button onclick="setLang('cn')">中</button>
-                <button class="active" onclick="setLang('en')">EN</button>
-            </div>
-        </div>
-
-        <label data-i18n="lbl_mode">Installation Type</label>
-
-        <div class="mode-selector">
-            <div class="mode-btn active" onclick="setMode('solar')" id="btn-solar">
-                <svg class="mode-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="50" cy="14" r="8" fill="#FFC107" />
-                    <g stroke="#FFC107" stroke-width="2">
-                        <path d="M50 2v4" />
-                        <path d="M50 22v4" />
-                        <path d="M62 14h-4" />
-                        <path d="M38 14h-4" />
-                        <path d="M58.5 5.5l-2.8 2.8" />
-                        <path d="M44.3 19.7l-2.8 2.8" />
-                        <path d="M58.5 22.5l-2.8-2.8" />
-                        <path d="M44.3 8.3l-2.8-2.8" />
-                    </g>
-                    <rect x="8" y="26" width="48" height="30" rx="2" fill="#42A5F5" stroke="#1E88E5" stroke-width="2" />
-                    <path d="M8 36h48M8 46h48M24 26v30M40 26v30" stroke="#BBDEFB" stroke-width="1" />
-                    <path d="M12 56v4M52 56v4" stroke="#546E7A" stroke-width="3" stroke-linecap="round" />
-                </svg>
-                <span data-i18n="mode_solar">Solar Only</span>
-            </div>
-
-            <div class="mode-btn" onclick="setMode('battery')" id="btn-battery">
-                <svg class="mode-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 6h16v6H24z" fill="#78909C" />
-                    <rect x="14" y="12" width="36" height="48" rx="4" fill="#66BB6A" stroke="#43A047"
-                        stroke-width="2" />
-                    <path d="M36 20l-10 14h6v14l10-14h-6z" fill="#FFF176" stroke="#FDD835" stroke-width="1" />
-                    <circle cx="32" cy="54" r="2" fill="#1B5E20" />
-                </svg>
-                <span data-i18n="mode_bat">Battery Only</span>
-            </div>
-
-            <div class="mode-btn" onclick="setMode('both')" id="btn-both">
-                <div class="combo-icon">
-                    <svg class="mode-icon" style="width:32px; height:32px; margin-right:-10px;" viewBox="0 0 64 64"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <rect x="8" y="20" width="48" height="30" rx="2" fill="#42A5F5" stroke="#1E88E5"
-                            stroke-width="2" />
-                        <path d="M8 30h48M8 40h48M24 20v30M40 20v30" stroke="#BBDEFB" stroke-width="1" />
-                    </svg>
-                    <svg class="mode-icon" style="width:28px; height:28px; z-index:2; margin-bottom:-4px;"
-                        viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="14" y="12" width="36" height="48" rx="4" fill="#66BB6A" stroke="#ffffff"
-                            stroke-width="4" />
-                        <path d="M36 22l-10 12h6v12l10-12h-6z" fill="#FFF176" />
-                    </svg>
-                </div>
-                <span data-i18n="mode_both">Solar + Battery</span>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label data-i18n="lbl_state">State / Territory</label>
-            <select id="state-select" onchange="checkRebates()">
-                <option value="NSW">NSW - New South Wales (Zone 3)</option>
-                <option value="VIC">VIC - Victoria (Zone 4)</option>
-                <option value="QLD">QLD - Queensland (Zone 3)</option>
-                <option value="SA">SA - South Australia (Zone 3)</option>
-                <option value="WA">WA - Western Australia (Zone 3)</option>
-                <option value="ACT">ACT - Canberra (Zone 3)</option>
-                <option value="TAS">TAS - Tasmania (Zone 4)</option>
-                <option value="NT">NT - Northern Territory (Zone 1)</option>
-            </select>
-        </div>
-
-        <div class="section-title" data-i18n="sec_house">Property Details</div>
-
-        <div class="grid-2" id="solar-property-fields">
-            <div class="form-group">
-                <label data-i18n="lbl_storeys">Storeys</label>
-                <select id="storey-select" onchange="calculate()">
-                    <option value="0" data-i18n="storey_1">Single Storey</option>
-                    <option value="300" data-i18n="storey_2">Double Storey</option>
-                    <option value="500" data-i18n="storey_3">Triple Storey</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label data-i18n="lbl_roof">Roof Type</label>
-                <select id="roof-select" onchange="calculate()">
-                    <option value="0" data-i18n="roof_tin">Tin/Metal</option>
-                    <option value="0" data-i18n="roof_tile">Tile</option>
-                    <option value="800" data-i18n="roof_terra">Terracotta / Slate</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="grid-2" id="battery-property-fields" style="display:none;">
-            <div class="form-group">
-                <label data-i18n="lbl_property_type">Property Type</label>
-                <select id="property-type-select">
-                    <option value="house" data-i18n="property_house">House</option>
-                    <option value="duplex" data-i18n="property_duplex">Duplex</option>
-                    <option value="townhouse" data-i18n="property_townhouse">Townhouse</option>
-                    <option value="villa" data-i18n="property_villa">Villa</option>
-                    <option value="land" data-i18n="property_land">Land</option>
-                    <option value="unknown" data-i18n="property_unknown">Unknown</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label data-i18n="lbl_phase">Phase Type</label>
-                <select id="phase-select">
-                    <option value="single" data-i18n="phase_single">Single Phase</option>
-                    <option value="three" data-i18n="phase_three">Three Phase</option>
-                    <option value="unknown" data-i18n="phase_unknown">Unknown</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="form-group" id="group-shade">
-            <label data-i18n="lbl_shade">Shading Issue</label>
-            <select id="shade-select" onchange="calculate()">
-                <option value="0" data-i18n="shade_no">No Shade</option>
-                <option value="1500" data-i18n="shade_yes">Partial Shade</option>
-            </select>
-        </div>
-
-        <div class="section-title" data-i18n="sec_usage">Energy Usage (ROI Analysis)</div>
-        <div class="grid-2">
-            <div class="form-group">
-                <label>
-                    <span data-i18n="lbl_bill">Quarterly Bill</span>:
-                    <span class="val-display">$<span id="bill-val">100</span></span>
-                </label>
-                <input type="range" id="bill-input" min="100" max="2500" step="50" value="100"
-                    oninput="updateVal('bill')">
-                <div
-                    style="position: relative; width: 100%; height: 1.2rem; font-size:0.75rem; color:#888; margin-top:8px;">
-                    <span style="position: absolute; left: 0;">$100</span>
-                    <span style="position: absolute; left: 16.7%; transform: translateX(-50%);">$500</span>
-                    <span style="position: absolute; left: 37.5%; transform: translateX(-50%);">$1000</span>
-                    <span style="position: absolute; left: 58.3%; transform: translateX(-50%);">$1500</span>
-                    <span style="position: absolute; right: 0;">$2500+</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label data-i18n="lbl_appliance_trigger">Energy Profile & Needs</label>
-                <div class="custom-select-trigger" onclick="openApplianceModal()">
-                    <span id="appliance-summary" style="color:#64748b;">Select appliances...</span>
-                    <span class="trigger-icon">⚙️</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="form-group" id="group-solar">
-            <label>
-                <span data-i18n="lbl_solar_size">System Size</span>:
-                <span id="badge-solar" class="rec-badge" data-i18n="badge_rec">🌟 Our Rec</span>
-                <span class="val-display"><span id="solar-val">6.6</span> kW</span>
-            </label>
-            <input type="range" id="solar-input" min="0" max="5" step="1" value="0" oninput="updateVal('solar')">
-            <div style="font-size:0.75rem; color:#888; margin-top:5px; display:flex; justify-content:space-between;">
-                <span>6.6</span><span>8</span><span>10</span><span>13</span><span>15</span><span>20</span>
-            </div>
-        </div>
-
-        <div class="form-group" id="group-exist-solar" style="display:none;">
-            <label style="color: #e65100;">
-                <span data-i18n="lbl_exist_solar">Existing Solar System</span>:
-                <span class="val-display"><span id="exist-solar-val">6.6</span> kW</span>
-            </label>
-            <input type="range" id="exist-solar-input" min="0" max="5" step="1" value="0"
-                oninput="updateVal('exist-solar')">
-            <div style="font-size:0.75rem; color:#888; margin-top:5px; display:flex; justify-content:space-between;">
-                <span>6.6</span><span>8</span><span>10</span><span>13</span><span>15</span><span>20</span>
-            </div>
-            <div class="note-text" data-i18n="note_exist_solar">* Used to calculate battery charging efficiency.</div>
-        </div>
-
-        <div class="form-group" id="group-battery">
-            <label>
-                <span data-i18n="lbl_bat_size">Battery Storage Capacity</span>:
-                <span id="badge-bat" class="rec-badge" data-i18n="badge_rec">🌟 Our Rec</span>
-                <span class="val-display"><span id="bat-val">10</span> kWh</span>
-            </label>
-            <input type="range" id="bat-input" min="5" max="100" step="1" value="10" oninput="updateVal('battery')">
-            <div style="font-size:0.75rem; color:#888; margin-top:5px; display:flex; justify-content:space-between;">
-                <span>5 kWh</span><span>27 kWh</span><span>50 kWh</span><span>72 kWh</span><span>100 kWh</span>
-            </div>
-        </div>
-
-        <div class="rebate-section" id="rebate-section">
-            <div style="font-weight:bold; margin-bottom:8px;" data-i18n="lbl_eligible">Incentives & Rebates</div>
-            <div class="checkbox-wrapper hidden-opt" id="check-vic-solar"><input type="checkbox"
-                    id="cb-vic-solar"><label for="cb-vic-solar" data-i18n="reb_vic">VIC Solar Homes Rebate</label></div>
-            <div class="checkbox-wrapper hidden-opt" id="check-qld-bat"><input type="checkbox" id="cb-qld-bat"><label
-                    for="cb-qld-bat" data-i18n="reb_qld">QLD Battery Booster</label></div>
-            <div class="checkbox-wrapper hidden-opt" id="check-nsw-prds"><input type="checkbox" id="cb-nsw-prds"
-                    checked><label for="cb-nsw-prds" data-i18n="nsw_vpp_label">NSW VPP Connection Incentive</label>
-            </div>
-            <div class="checkbox-wrapper hidden-opt" id="check-act-loan"><span class="badge-loan">i</span> <span
-                    style="font-size:0.85rem; color:#e65100;" data-i18n="reb_act">Eligible for ACT $15k Interest-Free
-                    Loan</span></div>
-            <div class="checkbox-wrapper hidden-opt" id="check-tas-loan"><span class="badge-loan">i</span> <span
-                    style="font-size:0.85rem; color:#e65100;" data-i18n="reb_tas">Eligible for TAS Energy Saver
-                    Loan</span></div>
-            <div class="checkbox-wrapper hidden-opt" id="check-nt-stc"><span class="badge-stc">✓</span> <span
-                    style="font-size:0.85rem; color:#2e7d32;" data-i18n="reb_nt">Eligible for Zone 1 High
-                    Subsidy!</span></div>
-        </div>
-
-        <button class="btn-calc" onclick="calculate(true)" data-i18n="btn_calc">Calculate Quote</button>
-
-        <div class="result-card" id="result-card">
-
-
-            <div class="rec-box">
-                <strong data-i18n="rec_title">Recommendation:</strong>
-                <p id="rec-text">...</p>
-            </div>
-            <div id="roof-preview-box" class="roof-preview-box hidden">
-                <div class="scan-overlay">
-                    <div class="scan-line"></div>
-                    <div class="scan-crosshair"></div>
-                </div>
-                <img id="sat-image" src="" alt="Roof Preview" />
-                <div class="roof-label">
-                    <span class="dot-live"></span> <span data-i18n="roof_found">Roof Detected</span>
-                </div>
-            </div>
-
-            <div class="unlock-overlay" id="unlock-overlay">
-
-                <div id="analysis-loader" style="display: none; width: 100%; text-align: center; padding: 20px 0;">
-                    <div class="loader-icon">⚙️</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" id="progress-bar"></div>
-                    </div>
-                    <p id="progress-text" class="progress-text" style="color: #cbd5e1; font-weight: 500;">
-                        Initializing...</p>
-                </div>
-
-                <div id="unlock-form-content">
-                    <div class="unlock-title" data-i18n="unlock_title">UNLOCK FULL QUOTE</div>
-                    <div class="unlock-desc" data-i18n="unlock_desc">Enter your details to see the net price breakdown.
-                    </div>
-
-                    <div class="trust-badges-row">
-                        <div class="trust-badge">
-                            <img src="ceclogo.png" alt="CEC" class="badge-img" onerror="this.style.display='none'">
-                            <span style="font-size:0.7rem; color:#cbd5e1;">CEC Accredited<br>Installer</span>
-                        </div>
-                        <div class="trust-badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M6 9l6-6 6 6" stroke="var(--solar-gold)" />
-                                <path d="M6 15l6-6 6 6" stroke="var(--solar-gold)" />
-                                <path d="M6 21l6-6 6 6" stroke="var(--solar-gold)" />
-                            </svg>
-                            <span>Tier 1<br>Solar Panels</span>
-                        </div>
-                        <div class="trust-badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10" stroke="#64748b" />
-                                <path d="M12 6v6l4 2" stroke="#64748b" />
-                            </svg>
-                            <span>10-Year<br>Warranty</span>
-                        </div>
-                    </div>
-
-                    <input type="text" id="lead-name" data-i18n-ph="ph_name" placeholder="Name*">
-                    <input type="email" id="lead-email" data-i18n-ph="ph_email" placeholder="Email*">
-                    <div id="err-lead-email" class="inline-error-msg"></div>
-                    <input type="tel" id="lead-phone" data-i18n-ph="ph_phone" placeholder="Phone*">
-                    <div id="err-lead-phone" class="inline-error-msg"></div>
-                    <input type="text" id="lead-address" data-i18n-ph="ph_address" placeholder="Installation Address">
-
-                    <button type="button" class="btn-submit" onclick="submitLead()" id="btn-submit"
-                        data-i18n="btn_unlock">Reveal Price & Get Quote</button>
-
-                    <div class="social-proof-text">
-                        <span id="proof-icon">🔥</span>
-                        <span id="proof-content">...</span>
-                    </div>
-                    <div id="submit-msg" style="margin-top:10px; font-size:0.9rem; color:#d84315; font-weight:bold;">
-                    </div>
-                </div>
-            </div>
-
-            <div id="price-details" class="blur-content">
-
-                <div class="row">
-                    <span id="lbl-gross-title">Gross System Price (Entry inc. GST)</span>
-                    <span id="out-gross" class="price-number">$0</span>
-                </div>
-
-                <div class="row highlight" id="row-stc-solar">
-                    <span data-i18n="res_stc_solar">Federal Solar STC</span>
-                    <span id="out-stc-solar" class="price-number">$0</span>
-                </div>
-                <div class="row highlight" id="row-stc-battery">
-                    <span data-i18n="res_stc_battery">Federal Battery STC</span>
-                    <span id="out-stc-battery" class="price-number">$0</span>
-                </div>
-                <div class="row highlight" id="row-state">
-                    <span data-i18n="res_state">State Incentive</span>
-                    <span id="out-state" class="price-number">$0</span>
-                </div>
-
-                <div class="section-title" style="margin-top: 25px; text-align: left;" data-i18n="res_final_comparison">
-                    Final Net Price Comparison</div>
-                <div class="comparison-grid">
-                    <div class="tier-box entry active" onclick="selectTier('entry')" id="box-entry">
-                        <span class="tier-label" data-i18n="tier_entry">Entry</span>
-                        <span class="price-value price-number" id="net-entry">$0</span>
-                    </div>
-                    <div class="tier-box medium" onclick="selectTier('medium')" id="box-medium">
-                        <span class="tier-label" data-i18n="tier_medium">Medium</span>
-                        <span class="price-value price-number" id="net-medium">$0</span>
-                    </div>
-                    <div class="tier-box premium" onclick="selectTier('premium')" id="box-premium">
-                        <span class="tier-label" data-i18n="tier_premium">Premium</span>
-                        <span class="price-value price-number" id="net-premium">$0</span>
-                    </div>
-                </div>
-
-                <div class="row total" style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #555;">
-                    <span data-i18n="res_net">Total Net Price (Inc. GST)</span>
-                    <span id="out-net" class="price-number">$0</span>
-                </div>
-
-                <div class="roi-dashboard">
-                    <h4 class="roi-title" data-i18n="roi_title">Estimated Annual Savings</h4>
-
-                    <div id="vpp-banner" class="vpp-banner" style="display: none;">
-                        <div class="vpp-icon">⚡</div>
-                        <div class="vpp-text">
-                            <strong data-i18n="vpp_title">Join VPP & Earn Extra!</strong>
-                            <p>
-                                <span data-i18n="vpp_desc">Connect battery to earn an extra up to $800+/year.</span>
-                                <span class="vpp-info-link" onclick="openVPPModal()" data-i18n="vpp_what_is">(What is
-                                    VPP?)</span>
-                            </p>
-                        </div>
-                        <div class="vpp-badge">+$800</div>
-                    </div>
-
-                    <div class="roi-flex-container">
-                        <div class="chart-container"><canvas id="roiChart"></canvas></div>
-                        <div class="roi-data">
-                            <div class="data-box">
-                                <span class="data-label" data-i18n="chart_saved">Savings / Year</span>
-                                <span class="data-value save price-number" id="savings-val">$0</span>
-                            </div>
-                            <div class="data-box">
-                                <span class="data-label" data-i18n="payback_label">Payback Period</span>
-                                <span class="data-value time price-number" id="payback-years">0 Years</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button class="btn-final-enquiry" id="btn-final-enquiry" onclick="openConfirmModal()"
-                    data-i18n="btn_final_enquiry" style="display: none;">
-                    Book Consultation & Finalise Quote
-                </button>
-
-            </div>
-
-            <div class="disclaimer" data-i18n="disclaimer">* Disclaimer: Estimates only.</div>
-        </div>
-
-        <div class="footer-brand">
-            Powered by <strong>Solaryo</strong> &copy; 2025
-            <br>
-            <a href="#"
-                style="color:#94a3b8; font-size:0.7rem; text-decoration:none; margin-top:5px; display:inline-block;">Privacy
-                Policy</a>
-        </div>
-
-    </div>
-
-    <div id="appliance-modal" class="modal-overlay" onclick="closeApplianceModal(event)">
-        <div class="modal-content profile-modal">
-            <span class="close-btn" onclick="closeApplianceModal(event)">&times;</span>
-            <h3 data-i18n="modal_profile_title">Select Energy Profile</h3>
-            <p class="modal-subtitle" data-i18n="modal_profile_desc">Select all that apply to improve quote
-                accuracy.</p>
-
-            <div class="profile-tags-grid">
-                <div class="profile-tag" onclick="toggleUsage('ev_now')" id="btn-use-ev_now">
-                    <span class="tag-icon">🚗</span> <span data-i18n="use_ev_now">EV (Existing)</span>
-                </div>
-                <div class="profile-tag" onclick="toggleUsage('ev_plan')" id="btn-use-ev_plan">
-                    <span class="tag-icon">🔜</span> <span data-i18n="use_ev_plan">EV (Planned)</span>
-                </div>
-                <div class="profile-tag" onclick="toggleUsage('pool')" id="btn-use-pool">
-                    <span class="tag-icon">🏊</span> <span data-i18n="use_pool">Pool / Spa</span>
-                </div>
-
-                <div class="profile-tag" onclick="toggleUsage('ac')" id="btn-use-ac">
-                    <span class="tag-icon">❄️</span> <span data-i18n="use_ac">Central A/C</span>
-                </div>
-                <div class="profile-tag" onclick="toggleUsage('wfh')" id="btn-use-wfh">
-                    <span class="tag-icon">💻</span> <span data-i18n="use_wfh">Home Office</span>
-                </div>
-                <div class="profile-tag" onclick="toggleUsage('general')" id="btn-use-general">
-                    <span class="tag-icon">📺</span> <span data-i18n="use_general">Large Appliances</span>
-                </div>
-
-                <div class="profile-tag" onclick="toggleUsage('hws')" id="btn-use-hws">
-                    <span class="tag-icon">🚿</span> <span data-i18n="use_hws">Elec Hot Water</span>
-                </div>
-                <div class="profile-tag" onclick="toggleUsage('gas2elec')" id="btn-use-gas2elec">
-                    <span class="tag-icon">⚡</span> <span data-i18n="use_gas2elec">Gas to Electric</span>
-                </div>
-                <div class="profile-tag" onclick="toggleUsage('backup')" id="btn-use-backup">
-                    <span class="tag-icon">🔦</span> <span data-i18n="use_backup">Backup Power</span>
-                </div>
-                <div class="profile-tag" onclick="toggleUsage('others')" id="btn-use-others">
-                    <span class="tag-icon">➕</span> <span data-i18n="use_others">Others</span>
-                </div>
-            </div>
-
-            <button class="btn-modal-ok" onclick="closeApplianceModal(event)" data-i18n="btn_done">Done</button>
-        </div>
-    </div>
-
-    <div id="vpp-modal" class="modal-overlay" onclick="closeVPPModal(event)">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeVPPModal(event)">&times;</span>
-            <h3 data-i18n="modal_vpp_title">What is a Virtual Power Plant (VPP)?</h3>
-            <div class="modal-body">
-                <p data-i18n="modal_vpp_text">
-                    A VPP connects your home battery to a network of other batteries.
-                    During times of high electricity demand, the network automatically sells your stored energy back to
-                    the grid at premium rates.
-                    <br><br>
-                    <strong>Benefit:</strong> You earn passive income credits without lifting a finger, helping the grid
-                    while reducing your own payback period.
-                </p>
-            </div>
-            <button class="btn-modal-ok" onclick="closeVPPModal(event)">OK, Got it</button>
-        </div>
-    </div>
-
-    <div id="confirm-modal" class="modal-overlay" onclick="closeConfirmModal(event)">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeConfirmModal(event)">&times;</span>
-            <h3 data-i18n="modal_conf_title">Final Confirmation</h3>
-            <p style="color:#64748b; font-size:0.9rem; margin-bottom:20px;" data-i18n="modal_conf_desc">
-                Please verify your details. Our engineer will contact you to finalize this quote.
-            </p>
-
-            <div class="form-group" style="margin-bottom:15px;">
-                <label style="font-size:0.85rem;" data-i18n="ph_name">Name</label>
-                <input type="text" id="conf-name">
-            </div>
-
-            <div class="input-group" style="margin-bottom: 15px;">
-                <div style="flex:1;">
-                    <label style="font-size:0.85rem;" data-i18n="ph_phone">Phone</label>
-                    <input type="tel" id="conf-phone">
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:0.85rem;" data-i18n="ph_postcode">Postcode</label>
-                    <input type="tel" id="conf-postcode" inputmode="numeric" maxlength="4" placeholder="2000">
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom:15px;">
-                <label style="font-size:0.85rem;" data-i18n="ph_email">Email</label>
-                <input type="email" id="conf-email">
-            </div>
-
-            <div class="form-group" style="margin-bottom:15px;">
-                <label style="font-size:0.85rem;" data-i18n="lbl_timeframe">Preferred Installation Time</label>
-                <select id="conf-timeframe">
-                    <option value="immediately" data-i18n="tf_imm">Immediately</option>
-                    <option value="4weeks" data-i18n="tf_4w">In the next 4 weeks</option>
-                    <option value="3months" data-i18n="tf_3m">In the next 3 months</option>
-                    <option value="later" data-i18n="tf_later">Over 3 months / Ballpark price</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin-bottom:15px;">
-                <label style="font-size:0.85rem;" data-i18n="lbl_notes">
-                    Notes / Special Requirements (Optional)
-                </label>
-
-                <textarea id="conf-notes" rows="3" data-i18n-ph="ph_notes"
-                    placeholder="Tip: Uploading your electricity bill or a photo of your switchboard helps us provide the most accurate quote possible."></textarea>
-            </div>
-
-            <div class="form-group" style="margin-bottom:20px;">
-                <label style="font-size:0.85rem; display:flex; justify-content:space-between; align-items:center;">
-                    <span data-i18n="lbl_file">Upload Bill or Photo (Optional)</span>
-                    <span style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">Max 5MB</span>
-                </label>
-                <input type="file" id="conf-file" accept="image/*,.pdf">
-                <div id="file-name-display" style="font-size:0.75rem; color:#64748b; margin-top:4px; display:none;">
-                </div>
-            </div>
-            <div class="form-group" style="margin-bottom:20px;">
-                <label style="font-size:0.85rem; margin-bottom:10px; display:block;"
-                    data-i18n="lbl_contact_method">Preferred Contact Method</label>
-                <div class="radio-group">
-                    <label class="radio-box">
-                        <input type="radio" name="contact-method" value="phone" checked>
-                        <span data-i18n="contact_phone">Phone</span>
-                    </label>
-                    <label class="radio-box">
-                        <input type="radio" name="contact-method" value="email">
-                        <span data-i18n="contact_email">Email</span>
-                    </label>
-                    <label class="radio-box">
-                        <input type="radio" name="contact-method" value="sms">
-                        <span data-i18n="contact_sms">SMS</span>
-                    </label>
-                </div>
-            </div>
-
-            <button class="btn-modal-ok" style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%);"
-                onclick="sendFinalEnquiry()" id="btn-final-submit" data-i18n="btn_confirm_send">
-                Confirm & Send Enquiry
-            </button>
-            <div id="final-msg" style="margin-top:10px; font-size:0.9rem; text-align:center; font-weight:bold;"></div>
-        </div>
-    </div>
-    <div id="sticky-footer" class="sticky-footer">
-        <div class="sticky-content">
-            <div class="sticky-info">
-                <span class="sticky-label" data-i18n="sticky_net">Total Net Price</span>
-                <span id="sticky-net-price" class="sticky-price">$0</span>
-            </div>
-            <button class="sticky-btn" onclick="openConfirmModal()" data-i18n="btn_book_now">
-                Book Now
-            </button>
-        </div>
     </div>
 
     <div class="chat-widget-container">
@@ -575,12 +218,15 @@
                     <div class="agent-avatar">S</div>
                     <div>
                         <span class="agent-name" data-i18n="chat_agent">Solaryo Expert</span>
-                        <span class="agent-status" data-i18n="chat_online">Online</span>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                            <span class="agent-status" data-i18n="chat_online">Online</span>
+                            <span style="color: rgba(255,255,255,0.4); font-size: 0.85rem; line-height: 1; margin-bottom: 1px;">|</span>
+                            <a href="mailto:info@solaryo.com.au" class="agent-email-link">info@solaryo.com.au</a>
+                        </div>
                     </div>
                 </div>
                 <span class="close-chat" onclick="toggleChat()">&times;</span>
             </div>
-
             <div class="chat-body" id="chat-body">
                 <div class="message bot">
                     <div class="msg-content" data-i18n="chat_welcome">
@@ -590,7 +236,6 @@
                     <div class="msg-time" data-i18n="chat_just_now">Just now</div>
                 </div>
             </div>
-
             <div class="chat-footer">
                 <input type="text" id="chat-input" data-i18n-ph="chat_placeholder" placeholder="Type a message..."
                     onkeypress="handleChatKey(event)">
@@ -603,7 +248,6 @@
                 </button>
             </div>
         </div>
-
         <button class="chat-toggle-btn" onclick="toggleChat()" id="chat-toggle-btn">
             <svg class="chat-icon-svg" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor"
                 stroke-width="2">
@@ -612,14 +256,902 @@
             <span class="chat-badge">1</span>
         </button>
     </div>
+
+    <div id="view-home" class="app-view active">
+        <div class="container">
+            <div class="brand-row">
+                <div class="brand-logo">
+                    <span class="brand-text">Solar<span class="brand-yo">yo</span></span>
+                </div>
+                <div class="header-center">
+                    <h2 data-i18n="title">Smart Solar & Battery Quote</h2>
+                    <div class="subtitle" data-i18n="subtitle">Official Solaryo Engine</div>
+                </div>
+                <div class="lang-switch">
+                    <button onclick="setLang('cn')">中</button>
+                    <button class="active" onclick="setLang('en')">EN</button>
+                </div>
+            </div>
+
+            <div class="label-row-header">
+                <label data-i18n="lbl_mode" style="margin-bottom: 0;">Installation Type</label>
+                <div style="display:flex; gap:10px;">
+                    <div class="partner-inline-btn" onclick="openLiveMap()" style="border-color: var(--accent);">
+                        <span class="p-icon-small">🗺️</span>
+                        <span class="p-text-small" data-i18n="btn_live_map">Live Map</span>
+                    </div>
+                    <div class="partner-inline-btn" onclick="switchTab('partner')">
+                        <span class="p-icon-small">🤝</span>
+                        <span class="p-text-small" data-i18n="btn_partner_hub">Partner Hub</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mode-selector">
+                <div class="mode-btn active" onclick="setMode('solar')" id="btn-solar">
+                    <svg class="mode-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="14" r="8" fill="#FFC107" />
+                        <g stroke="#FFC107" stroke-width="2">
+                            <path d="M50 2v4" />
+                            <path d="M50 22v4" />
+                            <path d="M62 14h-4" />
+                            <path d="M38 14h-4" />
+                            <path d="M58.5 5.5l-2.8 2.8" />
+                            <path d="M44.3 19.7l-2.8 2.8" />
+                            <path d="M58.5 22.5l-2.8-2.8" />
+                            <path d="M44.3 8.3l-2.8-2.8" />
+                        </g>
+                        <rect x="8" y="26" width="48" height="30" rx="2" fill="#42A5F5" stroke="#1E88E5" stroke-width="2" />
+                        <path d="M8 36h48M8 46h48M24 26v30M40 26v30" stroke="#BBDEFB" stroke-width="1" />
+                        <path d="M12 56v4M52 56v4" stroke="#546E7A" stroke-width="3" stroke-linecap="round" />
+                    </svg>
+                    <span data-i18n="mode_solar">Solar Only</span>
+                </div>
+                <div class="mode-btn" onclick="setMode('battery')" id="btn-battery">
+                    <svg class="mode-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M24 6h16v6H24z" fill="#78909C" />
+                        <rect x="14" y="12" width="36" height="48" rx="4" fill="#66BB6A" stroke="#43A047"
+                            stroke-width="2" />
+                        <path d="M36 20l-10 14h6v14l10-14h-6z" fill="#FFF176" stroke="#FDD835" stroke-width="1" />
+                        <circle cx="32" cy="54" r="2" fill="#1B5E20" />
+                    </svg>
+                    <span data-i18n="mode_bat">Battery Only</span>
+                </div>
+                <div class="mode-btn" onclick="setMode('both')" id="btn-both">
+                    <div class="combo-icon">
+                        <svg class="mode-icon" style="width:32px; height:32px; margin-right:-10px;" viewBox="0 0 64 64"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <rect x="8" y="20" width="48" height="30" rx="2" fill="#42A5F5" stroke="#1E88E5"
+                                stroke-width="2" />
+                            <path d="M8 30h48M8 40h48M24 20v30M40 20v30" stroke="#BBDEFB" stroke-width="1" />
+                        </svg>
+                        <svg class="mode-icon" style="width:28px; height:28px; z-index:2; margin-bottom:-4px;"
+                            viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="14" y="12" width="36" height="48" rx="4" fill="#66BB6A" stroke="#ffffff"
+                                stroke-width="4" />
+                            <path d="M36 22l-10 12h6v12l10-12h-6z" fill="#FFF176" />
+                        </svg>
+                    </div>
+                    <span data-i18n="mode_both">Solar + Battery</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label data-i18n="lbl_state">State / Territory</label>
+                <select id="state-select" onchange="checkRebates()">
+                    <option value="NSW">NSW - New South Wales (Zone 3)</option>
+                    <option value="VIC">VIC - Victoria (Zone 4)</option>
+                    <option value="QLD">QLD - Queensland (Zone 3)</option>
+                    <option value="SA">SA - South Australia (Zone 3)</option>
+                    <option value="WA">WA - Western Australia (Zone 3)</option>
+                    <option value="ACT">ACT - Canberra (Zone 3)</option>
+                    <option value="TAS">TAS - Tasmania (Zone 4)</option>
+                    <option value="NT">NT - Northern Territory (Zone 1)</option>
+                </select>
+            </div>
+
+            <div class="section-title" data-i18n="sec_house">Property Details</div>
+            <div class="grid-2" id="solar-property-fields">
+                <div class="form-group">
+                    <label data-i18n="lbl_storeys">Storeys</label>
+                    <select id="storey-select" onchange="calculate()">
+                        <option value="0" data-i18n="storey_1">Single Storey</option>
+                        <option value="300" data-i18n="storey_2">Double Storey</option>
+                        <option value="500" data-i18n="storey_3">Triple Storey</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="lbl_roof">Roof Type</label>
+                    <select id="roof-select" onchange="calculate()">
+                        <option value="0" data-i18n="roof_tin">Tin/Metal</option>
+                        <option value="0" data-i18n="roof_tile">Tile</option>
+                        <option value="800" data-i18n="roof_terra">Terracotta / Slate</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid-2" id="battery-property-fields" style="display:none;">
+                <div class="form-group">
+                    <label data-i18n="lbl_property_type">Property Type</label>
+                    <select id="property-type-select">
+                        <option value="house" data-i18n="property_house">House</option>
+                        <option value="duplex" data-i18n="property_duplex">Duplex</option>
+                        <option value="townhouse" data-i18n="property_townhouse">Townhouse</option>
+                        <option value="villa" data-i18n="property_villa">Villa</option>
+                        <option value="land" data-i18n="property_land">Land</option>
+                        <option value="unknown" data-i18n="property_unknown">Unknown</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="lbl_phase">Phase Type</label>
+                    <select id="phase-select" onchange="calculate()">
+                        <option value="0" data-i18n="phase_single">Single Phase</option>
+                        <option value="1000" data-i18n="phase_three">Three Phase</option>
+                        <option value="0" data-i18n="phase_unknown">Unknown</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" id="group-shade">
+                <label data-i18n="lbl_shade">Shading Issue</label>
+                <select id="shade-select" onchange="calculate()">
+                    <option value="0" data-i18n="shade_no">No Shade</option>
+                    <option value="1500" data-i18n="shade_yes">Partial Shade</option>
+                </select>
+            </div>
+
+            <div class="section-title" data-i18n="sec_usage">Energy Usage (ROI Analysis)</div>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>
+                        <span data-i18n="lbl_bill">Quarterly Bill</span>:
+                        <span class="val-display">$<span id="bill-val">100</span></span>
+                    </label>
+                    <input type="range" id="bill-input" min="100" max="2500" step="50" value="100"
+                        oninput="updateVal('bill')">
+                    <div style="position: relative; width: 100%; height: 1.2rem; font-size:0.75rem; color:#888; margin-top:8px;">
+                        <span style="position: absolute; left: 0;">$100</span>
+                        <span style="position: absolute; left: 16.7%; transform: translateX(-50%);">$500</span>
+                        <span style="position: absolute; left: 37.5%; transform: translateX(-50%);">$1000</span>
+                        <span style="position: absolute; left: 58.3%; transform: translateX(-50%);">$1500</span>
+                        <span style="position: absolute; right: 0;">$2500+</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="lbl_appliance_trigger">Energy Profile & Needs</label>
+                    <div class="custom-select-trigger" onclick="openApplianceModal()">
+                        <span id="appliance-summary" style="color:#64748b;">Select appliances...</span>
+                        <span class="trigger-icon">⚙️</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group" id="group-solar">
+                <label>
+                    <span data-i18n="lbl_solar_size">System Size</span>:
+                    <span id="badge-solar" class="rec-badge" data-i18n="badge_rec">🌟 Our Rec</span>
+                    <span class="val-display"><span id="solar-val">6.6</span> kW</span>
+                </label>
+                <input type="range" id="solar-input" min="0" max="5" step="1" value="0" oninput="updateVal('solar')">
+                <div style="font-size:0.75rem; color:#888; margin-top:5px; display:flex; justify-content:space-between;">
+                    <span>6.6</span><span>8</span><span>10</span><span>13</span><span>15</span><span>20</span>
+                </div>
+            </div>
+
+            <div class="form-group" id="group-exist-solar" style="display:none;">
+                <label style="color: #e65100;">
+                    <span data-i18n="lbl_exist_solar">Existing Solar System</span>:
+                    <span class="val-display"><span id="exist-solar-val">6.6</span> kW</span>
+                </label>
+                <input type="range" id="exist-solar-input" min="0" max="5" step="1" value="0"
+                    oninput="updateVal('exist-solar')">
+                <div style="font-size:0.75rem; color:#888; margin-top:5px; display:flex; justify-content:space-between;">
+                    <span>6.6</span><span>8</span><span>10</span><span>13</span><span>15</span><span>20</span>
+                </div>
+                <div class="note-text" data-i18n="note_exist_solar">* Used to calculate battery charging efficiency.</div>
+            </div>
+
+            <div class="form-group" id="group-battery">
+                <label>
+                    <span data-i18n="lbl_bat_size">Battery Storage Capacity</span>:
+                    <span id="badge-bat" class="rec-badge" data-i18n="badge_rec">🌟 Our Rec</span>
+                    <span class="val-display"><span id="bat-val">10</span> kWh</span>
+                </label>
+                <input type="range" id="bat-input" min="5" max="100" step="1" value="10" oninput="updateVal('battery')">
+                <div style="font-size:0.75rem; color:#888; margin-top:5px; display:flex; justify-content:space-between;">
+                    <span>5 kWh</span><span>27 kWh</span><span>50 kWh</span><span>72 kWh</span><span>100 kWh</span>
+                </div>
+            </div>
+
+            <div class="rebate-section" id="rebate-section">
+                <div style="font-weight:bold; margin-bottom:8px;" data-i18n="lbl_eligible">Incentives & Rebates</div>
+                <div class="checkbox-wrapper hidden-opt" id="check-vic-solar"><input type="checkbox" id="cb-vic-solar"><label for="cb-vic-solar" data-i18n="reb_vic">VIC Solar Homes Rebate</label></div>
+                <div class="checkbox-wrapper hidden-opt" id="check-qld-bat"><input type="checkbox" id="cb-qld-bat"><label for="cb-qld-bat" data-i18n="reb_qld">QLD Battery Booster</label></div>
+                <div class="checkbox-wrapper hidden-opt" id="check-sa-vpp"><input type="checkbox" id="cb-sa-vpp" checked disabled><label for="cb-sa-vpp" data-i18n="reb_sa">SA VPP Join Bonus ($350)</label></div>
+                <div class="checkbox-wrapper hidden-opt" id="check-nsw-prds"><input type="checkbox" id="cb-nsw-prds" checked><label for="cb-nsw-prds" data-i18n="nsw_vpp_label">NSW VPP Connection Incentive</label></div>
+                <div class="checkbox-wrapper hidden-opt" id="check-act-loan"><span class="badge-loan">i</span> <span style="font-size:0.85rem; color:#e65100;" data-i18n="reb_act">Eligible for ACT $15k Interest-Free Loan</span></div>
+                <div class="checkbox-wrapper hidden-opt" id="check-tas-loan"><span class="badge-loan">i</span> <span style="font-size:0.85rem; color:#e65100;" data-i18n="reb_tas">Eligible for TAS Energy Saver Loan</span></div>
+                <div class="checkbox-wrapper hidden-opt" id="check-nt-stc"><span class="badge-stc">✓</span> <span style="font-size:0.85rem; color:#2e7d32;" data-i18n="reb_nt">Eligible for Zone 1 High Subsidy!</span></div>
+            </div>
+
+            <div class="form-group" style="margin-top: 24px; margin-bottom: 24px;">
+                <label style="display: flex; justify-content: space-between; align-items: center;">
+                    <span data-i18n="lbl_budget" style="font-weight: 800; color: #f59e0b;">Target Budget</span>
+                    <span class="val-display budget-display">$<span id="budget-val">8,000</span></span>
+                </label>
+                <input type="range" id="budget-input" class="gold-slider" min="3000" max="30000" step="500" value="8000" oninput="updateVal('budget')">
+                <div style="position: relative; width: 100%; height: 1.2rem; font-size:0.7rem; color:#94a3b8; margin-top:8px; font-weight: 500;">
+                    <span style="position: absolute; left: 0;">$3000</span>
+                    <span style="position: absolute; left: 20%; transform: translateX(-50%);">$8000</span>
+                    <span style="position: absolute; left: 40.7%; transform: translateX(-50%);">$14000</span>
+                    <span style="position: absolute; left: 63%; transform: translateX(-50%);">$20000</span>
+                    <span style="position: absolute; right: 0;">$30000+</span>
+                </div>
+            </div>
+
+            <button class="btn-calc" onclick="calculate(true)" data-i18n="btn_calc">Calculate Quote</button>
+
+            <div class="result-card" id="result-card">
+                <div class="rec-box">
+                    <strong data-i18n="rec_title">Recommendation:</strong>
+                    <p id="rec-text">...</p>
+                </div>
+                
+                <div id="roof-preview-box" class="roof-preview-box hidden">
+                    <div class="scan-overlay">
+                        <div class="scan-line"></div>
+                        <div class="scan-crosshair"></div>
+                    </div>
+                    <img id="sat-image" src="" alt="Roof Preview" />
+                    <div class="roof-label"><span class="dot-live"></span> <span data-i18n="roof_found">Roof Detected</span></div>
+                </div>
+
+                <div class="unlock-overlay" id="unlock-overlay">
+                    <div id="analysis-loader" style="display: none; width: 100%; text-align: center; padding: 20px 0;">
+                        <div class="loader-icon">⚙️</div>
+                        <div class="progress-container"><div class="progress-bar" id="progress-bar"></div></div>
+                        <p id="progress-text" class="progress-text" style="color: #cbd5e1; font-weight: 500;">Initializing...</p>
+                    </div>
+
+                    <div id="unlock-form-content">
+                        <div class="unlock-title" data-i18n="unlock_title">UNLOCK FULL QUOTE</div>
+                        <div class="unlock-desc" data-i18n="unlock_desc">Enter your details to see the net price breakdown.</div>
+                        <div class="trust-badges-row">
+                            <div class="trust-badge">
+                                <img src="ceclogo.png" alt="CEC" class="badge-img" onerror="this.style.display='none'">
+                                <span style="font-size:0.7rem; color:#cbd5e1;">CEC Accredited<br>Installer</span>
+                            </div>
+                            <div class="trust-badge">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6 9l6-6 6 6" stroke="var(--solar-gold)" /><path d="M6 15l6-6 6 6" stroke="var(--solar-gold)" /><path d="M6 21l6-6 6 6" stroke="var(--solar-gold)" />
+                                </svg>
+                                <span>Tier 1<br>Solar Panels</span>
+                            </div>
+                            <div class="trust-badge">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" stroke="#64748b" /><path d="M12 6v6l4 2" stroke="#64748b" />
+                                </svg>
+                                <span>10-Year<br>Warranty</span>
+                            </div>
+                        </div>
+
+                        <input type="text" id="lead-name" data-i18n-ph="ph_name" placeholder="Name*">
+                        <input type="email" id="lead-email" data-i18n-ph="ph_email" placeholder="Email*">
+                        <div id="err-lead-email" class="inline-error-msg"></div>
+                        <input type="tel" id="lead-phone" data-i18n-ph="ph_phone" placeholder="Phone*">
+                        <div id="err-lead-phone" class="inline-error-msg"></div>
+                        <input type="text" id="lead-address" data-i18n-ph="ph_address" placeholder="Installation Address">
+
+                        <button type="button" class="btn-submit" onclick="submitLead()" id="btn-submit" data-i18n="btn_unlock">Reveal Price & Get Quote</button>
+
+                        <div class="social-proof-text">
+                            <span id="proof-icon">🔥</span>
+                            <span id="proof-content">...</span>
+                        </div>
+                        <div id="submit-msg" style="margin-top:10px; font-size:0.9rem; color:#d84315; font-weight:bold;"></div>
+                    </div>
+                </div>
+
+                <div id="price-details" class="blur-content">
+                    <div class="row">
+                        <span id="lbl-gross-title">Gross System Price (Entry inc. GST)</span>
+                        <span id="out-gross" class="price-number">$0</span>
+                    </div>
+                    <div class="row highlight" id="row-stc-solar">
+                        <span data-i18n="res_stc_solar">Federal Solar STC</span>
+                        <span id="out-stc-solar" class="price-number">$0</span>
+                    </div>
+                    <div class="row highlight" id="row-stc-battery">
+                        <span data-i18n="res_stc_battery">Federal Battery STC</span>
+                        <span id="out-stc-battery" class="price-number">$0</span>
+                    </div>
+                    <div class="row highlight" id="row-state">
+                        <span data-i18n="res_state">State Incentive</span>
+                        <span id="out-state" class="price-number">$0</span>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 25px; text-align: left;" data-i18n="res_final_comparison">Final Net Price Comparison</div>
+                    <div class="comparison-grid">
+                        <div class="tier-box entry" onclick="selectTier('entry')" id="box-entry">
+                            <span class="tier-label" data-i18n="tier_entry">Entry</span>
+                            <span class="price-value price-number" id="net-entry">$0</span>
+                        </div>
+                        <div class="tier-box medium active" onclick="selectTier('medium')" id="box-medium">
+                            <span class="tier-label" data-i18n="tier_medium">Medium</span>
+                            <span class="price-value price-number" id="net-medium">$0</span>
+                        </div>
+                        <div class="tier-box premium" onclick="selectTier('premium')" id="box-premium">
+                            <span class="tier-label" data-i18n="tier_premium">Premium</span>
+                            <span class="price-value price-number" id="net-premium">$0</span>
+                        </div>
+                    </div>
+
+                    <div id="brand-selection-container" class="brand-selection-area" style="display:none;">
+                        <div class="brand-section-title" id="brand-area-title">Select Inverter/Battery Brand</div>
+                        <div class="brand-grid" id="brand-list"></div>
+                    </div>
+
+                    <div id="panel-brand-container" class="panel-brands-row" style="display:none;">
+                        <div class="brand-section-title">SOLAR PANELS RECOMMENDED</div>
+                        <div class="panel-list">
+                            <div class="panel-item">
+                                <img src="longi.png" class="panel-logo-img" alt="Longi" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span class="panel-name-fallback" style="display:none;">Longi Solar</span>
+                            </div>
+                            <div class="panel-item">
+                                <img src="jinko.png" class="panel-logo-img" alt="Jinko" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span class="panel-name-fallback" style="display:none;">Jinko Solar</span>
+                            </div>
+                            <div class="panel-item">
+                                <img src="trina.png" class="panel-logo-img" alt="Trina" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span class="panel-name-fallback" style="display:none;">Trina Solar</span>
+                            </div>
+                            <div class="panel-item">
+                                <img src="tongwei.png" class="panel-logo-img" alt="Tongwei" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span class="panel-name-fallback" style="display:none;">Tongwei</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row total" style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #555;">
+                        <span data-i18n="res_net">Total Net Price (Inc. GST)</span>
+                        <span id="out-net" class="price-number">$0</span>
+                    </div>
+
+                    <div class="roi-dashboard">
+                        <h4 class="roi-title" data-i18n="roi_title">Estimated Annual Savings</h4>
+                        <div id="vpp-banner" class="vpp-banner" style="display: none;">
+                            <div class="vpp-icon">⚡</div>
+                            <div class="vpp-text">
+                                <strong data-i18n="vpp_title">Join VPP & Earn Extra!</strong>
+                                <p>
+                                    <span data-i18n="vpp_desc">Connect battery to earn an extra up to $800+/year.</span>
+                                    <span class="vpp-info-link" onclick="openVPPModal()" data-i18n="vpp_what_is">(What is VPP?)</span>
+                                </p>
+                            </div>
+                            <div class="vpp-badge">+$800</div>
+                        </div>
+                        <div class="roi-flex-container">
+                            <div class="chart-container"><canvas id="roiChart"></canvas></div>
+                            <div class="roi-data">
+                                <div class="data-box">
+                                    <span class="data-label" data-i18n="chart_saved">Savings / Year</span>
+                                    <span class="data-value save price-number" id="savings-val">$0</span>
+                                </div>
+                                <div class="data-box">
+                                    <span class="data-label" data-i18n="payback_label">Payback Period</span>
+                                    <span class="data-value time price-number" id="payback-years">0 Years</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-final-enquiry" id="btn-final-enquiry" onclick="openConfirmModal()" data-i18n="btn_final_enquiry" style="display: none;">
+                        Book Consultation & Finalise Quote
+                    </button>
+                    <div style="text-align:center; font-size:0.75rem; color:#10b981; margin-top:8px; font-weight:600;">
+                        <span data-i18n="no_obligation">✓ No deposit required today • Risk-free</span>
+                    </div>
+                </div>
+
+                <div class="disclaimer" data-i18n="disclaimer">* Disclaimer: Estimates only.</div>
+            </div>
+
+            <div class="footer-brand" style="margin-top: 50px; padding-top: 0;">
+                <div style="margin-bottom: 30px; padding-top: 30px; border-top: 1px dashed #cbd5e1;">
+                    <a href="mailto:info@solaryo.com.au" style="display:flex; align-items:center; justify-content:center; gap:8px; color:#475569; text-decoration:none; font-weight:700; margin-bottom:24px; font-size:1rem; transition:color 0.2s;" onmouseover="this.style.color='#0f172a'" onmouseout="this.style.color='#475569'">
+                        ✉️ info@solaryo.com.au
+                    </a>
+                    <div style="display: flex; justify-content: center; gap: 40px;">
+                        <div style="display:flex; flex-direction:column; align-items:center;">
+                            <img src="wechat-qr.png" alt="WeChat" style="width: 100px; height: 100px; border-radius: 12px; border: 1px solid #e2e8f0; padding: 5px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                            <div style="display:flex; align-items:center; gap:4px; margin-top:8px; font-size:0.75rem; font-weight:600; color:#64748b;">
+                                <span>WeChat</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:center;">
+                            <img src="whatsapp-qr.png" alt="WhatsApp" style="width: 100px; height: 100px; border-radius: 12px; border: 1px solid #e2e8f0; padding: 5px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                            <div style="display:flex; align-items:center; gap:4px; margin-top:8px; font-size:0.75rem; font-weight:600; color:#64748b;">
+                                <span>WhatsApp</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="opacity: 0.7;">
+                    Powered by <strong>Solaryo</strong> &copy; 2025
+                    <br>
+                    <a href="#" style="color:#94a3b8; font-size:0.7rem; text-decoration:none; margin-top:5px; display:inline-block;">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div id="view-partner" class="app-view">
+            <div class="container">
+            <div class="brand-row" style="margin-bottom: 20px;">
+                <div class="brand-logo" onclick="switchTab('quote')" style="cursor:pointer;">
+             <span class="brand-text">Solar<span class="brand-yo">yo</span></span>
+                 <span style="
+                 font-size: 0.75rem; 
+                  background: #0f172a; 
+                     color: #fff; 
+                     padding: 4px 8px; 
+                     border-radius: 6px; 
+                     margin-left: 12px; 
+                     vertical-align: middle; 
+                     font-weight: 600; 
+                    letter-spacing: 0.5px;
+                    transform: translateY(-2px); 
+                    display: inline-block;
+                    ">PARTNER</span>
+        </div>
+                <div class="lang-switch">
+                    <button onclick="setLang('cn')">中</button>
+                    <button class="active" onclick="setLang('en')">EN</button>
+                </div>
+            </div>
+
+            <div class="hub-tabs">
+                <button class="hub-tab-btn active" onclick="switchHubInnerTab('join')" id="tab-join">
+                    <span data-i18n="tab_join">Join Network</span>
+                </button>
+                <button class="hub-tab-btn" onclick="switchHubInnerTab('login')" id="tab-login">
+                    <span data-i18n="tab_login">Partner Login</span>
+                </button>
+            </div>
+
+            <div id="hub-view-join">
+                <div id="partner-step-1">
+                    <div style="margin-bottom: 20px;">
+                        <h2 style="margin: 0 0 5px 0;" data-i18n="p_title">Partner Hub</h2>
+                        <p style="color: #64748b; margin: 0; font-size: 0.95rem;" data-i18n="p_sub">Join Australia's fastest-growing energy network.</p>
+                    </div>
+
+                    <div class="role-list">
+                        <div class="role-card-wide" onclick="showPartnerForm('solar_pro')">
+                            <div class="role-icon-box">🛠️</div>
+                            <div class="role-info">
+                                <div class="role-header">
+                                    <h4 data-i18n="role_inst">Solar Retailer & Installer</h4>
+                                    <span class="role-tag" data-i18n="role_inst_tag">Leads & Supply</span>
+                                </div>
+                                <p class="role-desc-detail" data-i18n="role_inst_desc">
+                                    Retailers: Buy high-intent leads. Installers: Pick up ready-to-go jobs.
+                                </p>
+                            </div>
+                            <div class="role-arrow">›</div>
+                        </div>
+                        
+                        <div class="role-card-wide" onclick="showPartnerForm('electrician')">
+                            <div class="role-icon-box">⚡</div>
+                            <div class="role-info">
+                                <div class="role-header">
+                                    <h4 data-i18n="role_elec">Electrician</h4>
+                                    <span class="role-tag" data-i18n="role_elec_tag">Solar & ESS</span>
+                                </div>
+                                <p class="role-desc-detail" data-i18n="role_elec_desc">
+                                    Specialized jobs for Solar, Battery Storage, and EV Charger installations.
+                                </p>
+                            </div>
+                            <div class="role-arrow">›</div>
+                        </div>
+                        
+                        <div class="role-card-wide" onclick="showPartnerForm('brand')">
+                            <div class="role-icon-box">🏢</div>
+                            <div class="role-info">
+                                <div class="role-header">
+                                    <h4 data-i18n="role_brand">Vendor & Supplier</h4>
+                                </div>
+                                <p class="role-desc-detail" data-i18n="role_brand_desc">
+                                    List products in our engine. Connect with 500+ installers.
+                                </p>
+                            </div>
+                            <div class="role-arrow">›</div>
+                        </div>
+                    </div>
+
+                   <div style="margin: 25px 0 15px 0; border-top: 1px dashed #cbd5e1;"></div>
+                    <p style="color: #94a3b8; font-size: 0.8rem; font-weight: 600; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="lbl_individual">For Individuals</p>
+
+                    <div class="role-card-wide" onclick="showPartnerForm('referral')">
+                        <div class="role-icon-box">📢</div>
+                            <div class="role-info">
+                            <div class="role-header">
+                                <h4 data-i18n="role_ref">Referral Partner</h4>
+                                    <span class="role-tag" style="background:#fff7ed; color:#c2410c;" data-i18n="role_ref_tag">Commission Rewards</span>
+                             </div>
+                                 <p class="role-desc-detail" data-i18n="role_ref_desc">
+                                    Become our energy ambassador. Earn cash for every successful connection.
+                                 </p>
+                            </div>
+                        <div class="role-arrow">›</div>
+                    </div>
+
+                    <div style="margin-top: 30px; text-align: center; border-top: 1px dashed #e2e8f0; padding-top: 20px;">
+                        <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 15px;" data-i18n="p_contact_text">Partner Support</p>
+        
+                        <div style="display: flex; justify-content: center; gap: 20px;">
+                            <img src="wechat-qr.png" alt="WeChat" style="width: 80px; height: 80px; border-radius: 8px; border: 1px solid #e2e8f0; padding: 4px; background: #fff;">
+                            <img src="whatsapp-qr.png" alt="WhatsApp" style="width: 80px; height: 80px; border-radius: 8px; border: 1px solid #e2e8f0; padding: 4px; background: #fff;">
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="partner-step-2" style="display:none;">
+                    <div class="form-header">
+                        <button class="back-link" type="button" onclick="backToRoles()" data-i18n="p_back">‹ Back to Roles</button>
+                        <span id="form-role-title" class="form-title-badge">Registration</span>
+                    </div>
+
+                    <form id="partner-form" onsubmit="submitPartner(event)">
+                        <input type="hidden" id="p-role">
+                        <div class="form-section-title" data-i18n="lbl_biz_details">Details</div>
+                        <div class="form-group-compact">
+                            <label data-i18n="lbl_biz_type">Business Type</label>
+                            <div class="radio-group-grid">
+                                <label class="radio-box-small"><input type="radio" name="biz_type" value="company" checked> <span data-i18n="opt_company">Company</span></label>
+                                <label class="radio-box-small"><input type="radio" name="biz_type" value="sole_trader"> <span data-i18n="opt_sole">Sole Trader</span></label>
+                            </div>
+                        </div>
+                        <div class="form-group-compact"><label for="p-company" data-i18n="lbl_company_name">Company Name</label><input type="text" id="p-company"></div>
+                        <div class="form-group-compact"><label for="p-address" data-i18n="lbl_address">Address</label><input type="text" id="p-address"></div>
+                        <div class="grid-2-compact">
+                            <div class="form-group-compact"><label for="p-abn" data-i18n="lbl_abn">ABN</label><input type="text" id="p-abn"></div>
+                            <div class="form-group-compact"><label for="p-contact" data-i18n="lbl_contact">Contact</label><input type="text" id="p-contact" required></div>
+                        </div>
+                        <div class="grid-2-compact">
+                            <div class="form-group-compact"><label for="p-phone" data-i18n="lbl_phone">Phone</label><input type="tel" id="p-phone" required oninput="formatPhone(this)"></div>
+                            <div class="form-group-compact"><label for="p-email" data-i18n="lbl_email">Email</label><input type="email" id="p-email" required></div>
+                        </div>
+                        <div id="dynamic-fields-area"></div>
+                        <button type="submit" class="btn-partner-submit" style="width:100%; margin-top:20px; padding:15px; border-radius:12px; background:#0f172a; color:white; border:none; font-weight:700;" data-i18n="btn_submit_app">Submit Application</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="hub-view-login" style="display:none; padding-top: 10px; padding-bottom: 40px;">
+                <div style="max-width: 680px; margin: 0 auto; width: 100%;">
+                    
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 8px;">
+                            <div style="
+                                width: 48px; height: 48px; 
+                                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); 
+                                border-radius: 12px; 
+                                display: flex; align-items: center; justify-content: center; 
+                                box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+                                border: 1px solid #bfdbfe;
+                                flex-shrink: 0;
+                            ">
+                                <span style="font-size: 22px;">🔐</span>
+                            </div>
+                            <h2 style="font-size: 2rem; margin: 0; color: #0f172a; letter-spacing: -0.02em; line-height: 1;" data-i18n="paa_title">Partner Access</h2>
+                        </div>
+                        <p style="color: #64748b; margin: 0; font-size: 0.95rem;" data-i18n="pa_desc">Enter credentials to unlock lead details.</p>
+                    </div>
+
+                    <div class="card-inner" style="background: #fff; padding: 40px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.08); position: relative; z-index: 2;">
+                        
+                        <div class="form-group-compact" style="margin-bottom: 20px;">
+                            <label data-i18n="lbl_email" style="display:block; margin-bottom:8px; font-weight:700; font-size:0.9rem; color:#334155;">Email Address</label>
+                            <input type="email" id="login-email-page" class="input-styled" 
+                                   placeholder="name@company.com"
+                                   style="width:100%; padding:14px 16px; border:2px solid #e2e8f0; border-radius: 10px; font-size:1rem; transition:all 0.2s; box-sizing: border-box;"
+                                   onfocus="this.style.borderColor='#3b82f6'; this.style.background='#fff'; this.style.boxShadow='0 0 0 4px rgba(59, 130, 246, 0.1)'" 
+                                   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'; this.style.boxShadow='none'">
+                        </div>
+
+                        <div class="form-group-compact" style="margin-bottom: 12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <label data-i18n="ph_password" style="font-weight:700; font-size:0.9rem; color:#334155;">Password</label>
+                                <a href="#" onclick="handleForgotPassword()" style="color: #10b981; font-size: 0.9rem; text-decoration: none; font-weight: 600;" data-i18n="pa_forgot">Forgot Password?</a>
+                            </div>
+                            <input type="password" id="login-password-page" class="input-styled" 
+                                   placeholder="Enter your password"
+                                   style="width:100%; padding:14px 16px; border:2px solid #e2e8f0; border-radius: 10px; font-size:1rem; transition:all 0.2s; box-sizing: border-box;"
+                                   onfocus="this.style.borderColor='#3b82f6'; this.style.background='#fff'; this.style.boxShadow='0 0 0 4px rgba(59, 130, 246, 0.1)'" 
+                                   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'; this.style.boxShadow='none'">
+                        </div>
+
+                        <button onclick="attemptLoginFromPage()" class="btn-calc" style="width:100%; margin-top:20px; padding:16px; font-size:1.05rem; border-radius: 12px;" data-i18n="pa_login_btn">
+                            Login to Dashboard
+                        </button>
+
+                        <div style="margin-top: 25px; border-top: 1px dashed #cbd5e1; padding-top: 20px; text-align: center;">
+                            <p style="color: #64748b; font-size: 0.85rem; margin: 0 0 10px 0; line-height: 1.5;" data-i18n="partner_note">
+                                Note: Partnership is <strong>invite-only</strong>. Accounts are issued after application & verification.
+                            </p>
+                            <a href="#" onclick="switchHubInnerTab('join')" style="color: #10b981; font-weight: 700; text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#ecfdf5'" onmouseout="this.style.background='transparent'">
+                                <span data-i18n="btn_apply">Apply for Access</span> <span>→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 40px; text-align: center; color: #64748b;">
+                        <p style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.8; margin-bottom: 20px;" data-i18n="pa_benefits_title">WHY JOIN SOLARYO PARTNER HUB?</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; text-align: left;">
+                            
+                            <div style="background: rgba(248, 250, 252, 0.8); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                <div style="font-size: 1.5rem; margin-bottom: 10px;">📊</div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #334155; font-weight: 700;" data-i18n="ben_1_title">Track Progress</h4>
+                                <p style="margin: 0; font-size: 0.8rem; line-height: 1.4; color: #64748b;" data-i18n="ben_1_desc">Check referral status & payouts.</p>
+                            </div>
+                            
+                            <div style="background: rgba(248, 250, 252, 0.8); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                <div style="font-size: 1.5rem; margin-bottom: 10px;">🎯</div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #334155; font-weight: 700;" data-i18n="ben_2_title">Verified Leads</h4>
+                                <p style="margin: 0; font-size: 0.8rem; line-height: 1.4; color: #64748b;" data-i18n="ben_2_desc">Access high-intent local jobs.</p>
+                            </div>
+
+                            <div style="background: rgba(248, 250, 252, 0.8); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                <div style="font-size: 1.5rem; margin-bottom: 10px;">💬</div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #334155; font-weight: 700;" data-i18n="ben_3_title">Community</h4>
+                                <p style="margin: 0; font-size: 0.8rem; line-height: 1.4; color: #64748b;" data-i18n="ben_3_desc">Share insights & install tips.</p>
+                            </div>
+
+                            <div style="background: rgba(248, 250, 252, 0.8); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
+                                <div style="font-size: 1.5rem; margin-bottom: 10px;">🤝</div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 0.9rem; color: #334155; font-weight: 700;" data-i18n="ben_4_title">Network</h4>
+                                <p style="margin: 0; font-size: 0.8rem; line-height: 1.4; color: #64748b;" data-i18n="ben_4_desc">Find quality energy partners.</p>
+                            </div>
+
+                        </div>
+
+                        <div style="margin-top: 30px; font-size: 0.8rem; opacity: 0.6; display: flex; justify-content: center; gap: 20px; align-items: center;">
+                            <span style="display: flex; align-items: center; gap: 6px;">🔒 256-bit SSL Secured</span>
+                            <span style="width: 4px; height: 4px; background: #cbd5e1; border-radius: 50%;"></span>
+                            <span style="display: flex; align-items: center; gap: 6px;">🇦🇺 Australian Support</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="brand-hub-modal" class="modal-overlay" onclick="closeBrandHub(event)">
+        <div class="modal-content brand-hub-content">
+            <span class="close-btn" onclick="closeBrandHub(event)">&times;</span>
+            <h3 class="hub-title">TRUSTED PARTNERS</h3>
+            <p class="hub-subtitle">Select a brand to view details</p>
+            <div class="brand-section-header">🔋 Energy Storage (Battery)</div>
+            <div class="brand-hub-grid" id="hub-grid-battery"></div>
+            <div class="brand-section-header">☀️ Solar Panels</div>
+            <div class="brand-hub-grid" id="hub-grid-solar"></div>
+        </div>
+    </div>
+
+    <div id="brand-detail-modal" class="modal-overlay" onclick="closeBrandDetail(event)">
+        <div class="modal-content brand-detail-content">
+            <div class="detail-nav">
+                <button class="back-btn" onclick="backToHub()">‹ Back</button>
+                <span class="close-btn" onclick="closeBrandDetail(event)">&times;</span>
+            </div>
+            <div id="detail-dynamic-container">
+                <div class="detail-header">
+                    <img id="detail-logo" src="" alt="Brand Logo">
+                    <h2 id="detail-name">Brand Name</h2>
+                </div>
+                <div class="detail-tags" id="detail-tags"></div>
+                <div class="detail-desc" id="detail-desc"></div>
+                <div class="detail-features">
+                    <h4>Key Features</h4>
+                    <ul id="detail-features-list"></ul>
+                </div>
+            </div>
+            <button class="btn-modal-ok" onclick="closeBrandDetail(event)">Got it</button>
+        </div>
+    </div>
+
+    <div id="appliance-modal" class="modal-overlay" onclick="closeApplianceModal(event)">
+        <div class="modal-content profile-modal">
+            <span class="close-btn" onclick="closeApplianceModal(event)">&times;</span>
+            <h3 data-i18n="modal_profile_title">Select Energy Profile</h3>
+            <p class="modal-subtitle" data-i18n="modal_profile_desc">Select all that apply to improve quote accuracy.</p>
+            <div class="profile-tags-grid">
+                <div class="profile-tag" onclick="toggleUsage('ev_now')" id="btn-use-ev_now"><span class="tag-icon">🚗</span> <span data-i18n="use_ev_now">EV (Existing)</span></div>
+                <div class="profile-tag" onclick="toggleUsage('ev_plan')" id="btn-use-ev_plan"><span class="tag-icon">🔜</span> <span data-i18n="use_ev_plan">EV (Planned)</span></div>
+                <div class="profile-tag" onclick="toggleUsage('pool')" id="btn-use-pool"><span class="tag-icon">🏊</span> <span data-i18n="use_pool">Pool / Spa</span></div>
+                <div class="profile-tag" onclick="toggleUsage('ac')" id="btn-use-ac"><span class="tag-icon">❄️</span> <span data-i18n="use_ac">Central A/C</span></div>
+                <div class="profile-tag" onclick="toggleUsage('wfh')" id="btn-use-wfh"><span class="tag-icon">💻</span> <span data-i18n="use_wfh">Home Office</span></div>
+                <div class="profile-tag" onclick="toggleUsage('general')" id="btn-use-general"><span class="tag-icon">📺</span> <span data-i18n="use_general">Large Appliances</span></div>
+                <div class="profile-tag" onclick="toggleUsage('hws')" id="btn-use-hws"><span class="tag-icon">🚿</span> <span data-i18n="use_hws">Elec Hot Water</span></div>
+                <div class="profile-tag" onclick="toggleUsage('gas2elec')" id="btn-use-gas2elec"><span class="tag-icon">⚡</span> <span data-i18n="use_gas2elec">Gas to Electric</span></div>
+                <div class="profile-tag" onclick="toggleUsage('backup')" id="btn-use-backup"><span class="tag-icon">🔦</span> <span data-i18n="use_backup">Backup Power</span></div>
+                <div class="profile-tag" onclick="toggleUsage('others')" id="btn-use-others"><span class="tag-icon">➕</span> <span data-i18n="use_others">Others</span></div>
+            </div>
+            <button class="btn-modal-ok" onclick="closeApplianceModal(event)" data-i18n="btn_done">Done</button>
+        </div>
+    </div>
+
+    <div id="vpp-modal" class="modal-overlay" onclick="closeVPPModal(event)">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeVPPModal(event)">&times;</span>
+            <h3 data-i18n="modal_vpp_title">What is a Virtual Power Plant (VPP)?</h3>
+            <div class="modal-body">
+                <p data-i18n="modal_vpp_text">
+                    A VPP connects your home battery to a network of other batteries.
+                    During times of high electricity demand, the network automatically sells your stored energy back to the grid at premium rates.
+                    <br><br><strong>Benefit:</strong> You earn passive income credits without lifting a finger.
+                </p>
+            </div>
+            <button class="btn-modal-ok" onclick="closeVPPModal(event)">OK, Got it</button>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay" onclick="closeConfirmModal(event)">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeConfirmModal(event)">&times;</span>
+            <h3 data-i18n="modal_conf_title">Final Confirmation</h3>
+            <p style="color:#64748b; font-size:0.9rem; margin-bottom:20px;" data-i18n="modal_conf_desc">Please verify your details.</p>
+            <div class="form-group" style="margin-bottom:15px;"><label style="font-size:0.85rem;" data-i18n="ph_name">Name</label><input type="text" id="conf-name"></div>
+            <div class="input-group" style="margin-bottom: 15px;">
+                <div style="flex:1;"><label style="font-size:0.85rem;" data-i18n="ph_phone">Phone</label><input type="tel" id="conf-phone"></div>
+                <div style="flex:1;"><label style="font-size:0.85rem;" data-i18n="ph_postcode">Postcode</label><input type="tel" id="conf-postcode" maxlength="4"></div>
+            </div>
+            <div class="form-group" style="margin-bottom:15px;"><label style="font-size:0.85rem;" data-i18n="ph_email">Email</label><input type="email" id="conf-email"></div>
+            <div class="form-group" style="margin-bottom:15px;">
+                <label style="font-size:0.85rem;" data-i18n="lbl_timeframe">Preferred Installation Time</label>
+                <select id="conf-timeframe">
+                    <option value="immediately" data-i18n="tf_imm">Immediately</option>
+                    <option value="4weeks" data-i18n="tf_4w">In the next 4 weeks</option>
+                    <option value="3months" data-i18n="tf_3m">In the next 3 months</option>
+                    <option value="later" data-i18n="tf_later">Over 3 months / Ballpark price</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:15px;">
+                <label style="font-size:0.85rem;" data-i18n="lbl_notes">Notes / Special Requirements (Optional)</label>
+                <textarea id="conf-notes" rows="3" data-i18n-ph="ph_notes"></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:20px;">
+                <label style="font-size:0.85rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span data-i18n="lbl_file">Upload Bill or Photo (Optional)</span>
+                    <span style="font-size:0.7rem; color:#94a3b8;">Max 5MB / file</span>
+                </label>
+                <input type="file" id="conf-file" accept="image/*,.pdf" multiple>
+            </div>
+            <div class="form-group" style="margin-bottom:20px;">
+                <label style="font-size:0.85rem; margin-bottom:10px; display:block;" data-i18n="lbl_contact_method">Preferred Contact Method</label>
+                <div class="radio-group">
+                    <label class="radio-box"><input type="radio" name="contact-method" value="phone" checked> <span data-i18n="contact_phone">Phone</span></label>
+                    <label class="radio-box"><input type="radio" name="contact-method" value="email"> <span data-i18n="contact_email">Email</span></label>
+                    <label class="radio-box"><input type="radio" name="contact-method" value="sms"> <span data-i18n="contact_sms">SMS</span></label>
+                </div>
+            </div>
+            <button class="btn-modal-ok" style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%);" onclick="sendFinalEnquiry()" id="btn-final-submit" data-i18n="btn_confirm_send">Confirm & Send Enquiry</button>
+            <div id="final-msg" style="margin-top:10px; font-size:0.9rem; text-align:center; font-weight:bold;"></div>
+        </div>
+    </div>
+
+    <div id="sticky-footer" class="sticky-footer">
+        <div class="sticky-content">
+            <div class="sticky-info">
+                <span class="sticky-label" data-i18n="sticky_net">Total Net Price</span>
+                <span id="sticky-net-price" class="sticky-price">$0</span>
+            </div>
+            <button class="sticky-btn" onclick="openConfirmModal()" data-i18n="btn_book_now">Book Now</button>
+        </div>
+    </div>
+
+    <div id="map-modal" class="map-modal-overlay">
+        <div class="map-container-card">
+            <button class="map-close-btn" onclick="closeLiveMap()">✕</button>
+            <div class="map-switcher-container">
+                <div class="map-switcher">
+                    <button class="map-switch-btn active" id="btn-map-consumer" onclick="switchMapMode('consumer')">🏠 <span data-i18n="map_mode_consumer">I'm a Homeowner</span></button>
+                    <button class="map-switch-btn" id="btn-map-provider" onclick="switchMapMode('provider')">💼 <span data-i18n="map_mode_provider">I'm an Installer</span></button>
+                </div>
+            </div>
+            <div id="ecosystem-map"></div>
+            <button class="map-locate-btn" onclick="handleUserLocation()">🎯</button>
+            <div class="map-filters-container" id="map-filters"></div>
+        </div>
+    </div>
+
+    <div id="lead-login-modal" class="modal-overlay" style="z-index: 20005;">
+        <div class="modal-content" style="max-width: 350px;">
+            <span class="close-btn" onclick="document.getElementById('lead-login-modal').style.display='none'">&times;</span>
+            <h3 style="text-align:center;" data-i18n="pa_title">🔒 Partner Access</h3>
+            <p style="text-align:center; color:#64748b; font-size:0.9rem; margin-bottom:20px;" data-i18n="pa_desc">Enter credentials to unlock lead details.</p>
+            <div class="form-group-compact"><input type="email" id="login-email" data-i18n-ph="ph_email_simple" placeholder="Email"></div>
+            <div class="form-group-compact" style="margin-bottom: 5px;"><input type="password" id="login-password" data-i18n-ph="ph_password" placeholder="Password"></div>
+            <a href="#" class="forgot-pwd-link" onclick="handleForgotPassword()" data-i18n="pa_forgot">Forgot Password?</a>
+            <button class="btn-calc" onclick="attemptLeadLogin()" style="margin-top:5px; padding:12px;" data-i18n="pa_login_btn">Login</button>
+            <div style="text-align:center; margin-top:20px; padding-top:15px; border-top:1px dashed #e2e8f0;">
+                <p style="font-size:0.75rem; color:#64748b; margin:0 0 10px 0; line-height:1.5; padding:0 5px;"><span data-i18n="partner_note">Note: Partnership is invite-only.</span></p>
+                <a href="#" onclick="redirectToPartnerReg()" style="color:var(--accent); font-weight:800; font-size:0.9rem; text-decoration:none; border-bottom:1px solid var(--accent);"><span data-i18n="btn_apply">Apply for Access</span> →</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="case-detail-modal" class="modal-overlay" style="z-index: 20005;">
+        <div class="modal-content" style="padding:0; overflow-y:auto; max-height:85vh; border-radius:24px;">
+            <div style="position:relative; height:200px; background:#eee;">
+                <img id="case-img-hero" src="" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://placehold.co/400x200?text=No+Image'">
+                <button class="map-close-btn" style="top:10px; right:10px; background:rgba(0,0,0,0.5); color:white;" onclick="document.getElementById('case-detail-modal').style.display='none'">✕</button>
+            </div>
+            <div style="padding:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                    <h3 id="case-title" style="margin:0; font-size:1.4rem;">Case Title</h3>
+                    <span id="case-saving-tag" style="background:#dcfce7; color:#166534; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:0.8rem;">Savings</span>
+                </div>
+                <p id="case-story" style="color:#475569; font-size:0.95rem; line-height:1.6; margin-bottom:20px;">Story...</p>
+                <div style="background:#f8fafc; padding:15px; border-radius:12px; margin-bottom:20px;">
+                    <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:700; margin-bottom:8px;">System Config</div>
+                    <div style="font-weight:700; color:#1e293b;" id="case-config-display">Config...</div>
+                </div>
+                <button class="btn-calc" id="btn-copy-setup" style="margin-top:0; padding:16px;">⚡ Copy This Setup</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fomo-detail-modal" class="fomo-modal-overlay" onclick="closeFomoModal(event)">
+        <div class="fomo-card">
+            <button class="fomo-close-btn" onclick="closeFomoModal(event)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </button>
+            <div class="fomo-card-image">
+                <img id="fomo-modal-img" src="" alt="News Image">
+                <div id="fomo-modal-badge" class="fomo-card-badge">NEWS</div>
+            </div>
+            <div class="fomo-card-body">
+                <div class="fomo-meta-row">
+                    <span id="fomo-modal-date" class="fomo-date">Today</span>
+                    <span class="fomo-source">Solaryo Official</span>
+                </div>
+                <h3 id="fomo-modal-title">...</h3>
+                <div class="fomo-divider"></div>
+                <p id="fomo-modal-desc">...</p>
+                <button class="fomo-action-btn" onclick="closeFomoModal(event)">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav-container">
+        <div class="nav-tab active" onclick="switchTab('quote')">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </div>
+            <span class="nav-label" data-i18n="nav_quote">Quote</span>
+        </div>
+        <div class="nav-tab" onclick="openLiveMap()">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+            </div>
+            <span class="nav-label" data-i18n="nav_map">Map</span>
+        </div>
+        <div class="nav-tab" onclick="switchTab('partner')">
+            <div class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <span class="nav-label" data-i18n="nav_partner">Partner</span>
+        </div>
+    </div>
+
     <script src="script.js"></script>
-
-
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPGUUSb3VX0CGsUgwENW0djTyl6morWTY&libraries=places&callback=initAutocomplete"
-        async defer></script>
-
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPGUUSb3VX0CGsUgwENW0djTyl6morWTY&libraries=places&callback=initAutocomplete" async defer></script>
 </body>
-
-
 </html>

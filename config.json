@@ -21,7 +21,8 @@
             "storey_3": 500,
             "shade_no": 0,
             "shade_yes": 1500,
-            "backup_protection": 600
+            "backup_protection": 600,
+            "phase_three": 1000
         }
     },
     "subsidy_logic": {
