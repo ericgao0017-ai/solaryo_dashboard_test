@@ -11,32 +11,187 @@
 
     <style>
         /* =========================================
-           🎨 核心样式 (V6.0 UI/UX Optimized)
+           🎨 核心样式
            ========================================= */
         :root {
-            --primary: #0f172a; --accent: #10b981; --orange: #f59e0b; --red: #ef4444; --blue: #3b82f6;
+            --primary: #0f172a; --accent: #10b981; --orange: #f59e0b; --red: #ef4444; --blue: #3b82f6; --dark-blue: #1e40af;
             --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text-main: #334155; --text-light: #64748b;
         }
-        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; min-height: 100vh; }
-        .container { max-width: 1100px; margin: 0 auto; padding-bottom: 50px; }
         
-        /* 导航 & 头部 */
+        * { box-sizing: border-box; }
+
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; min-height: 100vh; overflow-x: hidden; }
+        .container { max-width: 1100px; margin: 0 auto; padding-bottom: 50px; width: 100%; }
+        
+        /* 导航 */
         .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 5px; }
         .logo { font-weight: 800; font-size: 1.5rem; color: var(--primary); }
         .logo span { color: var(--orange); }
         .user-pill { display: flex; align-items: center; gap: 10px; background: white; padding: 6px 16px; border-radius: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+
+        /* =========================================
+           ✨ 欢迎卡片 (Welcome Card)
+           ========================================= */
+        .welcome-card {
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .welcome-card::before {
+            content: ''; position: absolute; top: -50px; right: -50px; width: 150px; height: 150px;
+            border-radius: 50%; z-index: 0;
+        }
+        .welcome-left { display: flex; align-items: center; z-index: 1; }
+        .welcome-info h1 { margin: 0; font-size: 1.8rem; color: var(--primary); font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
+        .welcome-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #fff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 20px;
+            font-size: 0.7rem; color: #64748b; font-weight: 600; margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .welcome-sub { margin: 8px 0 0 0; font-size: 0.95rem; color: #94a3b8; font-weight: 700; opacity: 0.8; letter-spacing: 0.5px; }
         
-        /* 卡片 & 布局 */
-        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; }
-        .dash-header { border-left-width: 5px; border-left-style: solid; padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .welcome-right { 
+            text-align: right; 
+            z-index: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end; /* 右对齐 */
+            gap: 5px;
+        }
+
+        /* 🟠 Orange Theme (Referrer) */
+        .welcome-card.orange-theme {
+            background: linear-gradient(120deg, #ffffff 0%, #fff7ed 100%);
+            border: 1px solid #fed7aa;
+        }
+        .welcome-card.orange-theme::before {
+            background: radial-gradient(circle, rgba(251,146,60,0.1) 0%, rgba(255,255,255,0) 70%);
+        }
+        .welcome-card.orange-theme .text-highlight {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0px 2px 10px rgba(251, 191, 36, 0.2);
+        }
+        .welcome-card.orange-theme .right-box {
+            background: rgba(255, 255, 255, 0.6); padding: 10px 15px; border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.8); backdrop-filter: blur(4px);
+        }
+
+        /* 🔵 Blue Theme (Installer) */
+        .welcome-card.blue-theme {
+            background: linear-gradient(120deg, #ffffff 0%, #eff6ff 100%);
+            border: 1px solid #bfdbfe;
+        }
+        .welcome-card.blue-theme::before {
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(255,255,255,0) 70%);
+        }
+        .welcome-card.blue-theme .text-highlight {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0px 2px 10px rgba(59, 130, 246, 0.2);
+        }
         
-        /* 统计看板 (优化版) */
+        /* 🔥 [UI Update] Installer Switch Button (Larger) */
+        .switch-guide-text {
+            font-size: 0.75rem; color: #64748b; margin-bottom: 2px;
+        }
+        .btn-switch-large {
+            background: white; 
+            border: 2px solid #bfdbfe; 
+            color: var(--dark-blue);
+            padding: 10px 20px; 
+            border-radius: 12px; 
+            font-size: 0.85rem; 
+            font-weight: 700;
+            cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.1);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-switch-large:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.2); 
+            border-color: var(--blue);
+        }
+
+        /* =========================================
+           🗺️ Map Banner
+           ========================================= */
+        .map-banner {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white; border-radius: 16px; padding: 25px 30px; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3); border: 1px solid #1e40af;
+        }
+        .map-info h2 { margin: 0 0 5px 0; font-size: 1.3rem; font-weight: 700; color: white; }
+        .map-info p { margin: 0; font-size: 0.9rem; color: #bfdbfe; font-weight: 500; }
+        
+        .btn-map {
+            background: white; color: #1d4ed8; border: none;
+            padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-map:hover { background: #eff6ff; }
+
+        /* =========================================
+           📊 统计卡片 (UI Update)
+           ========================================= */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); width: 100%; }
+        
         .stat-card { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 110px; }
         .stat-main { font-size: 2.2rem; font-weight: 700; margin: 5px 0; line-height: 1; }
         .stat-sub { font-size: 0.75rem; opacity: 0.8; margin-top: auto; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.1); display: flex; justify-content: space-between; }
 
-        /* 进度条样式 */
+        /* 🔥 [UI Update] Card Footer for Total Invested */
+        .stat-footer {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .stat-footer-label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+        .stat-footer-value { font-size: 1rem; color: var(--primary); font-weight: 800; }
+
+        /* =========================================
+           其他通用组件
+           ========================================= */
+        .code-label { font-size: 0.65rem; font-weight: 700; color: #f59e0b; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+        .code-box {
+            font-family: 'Courier New', monospace; font-weight: 800; font-size: 1.4rem; color: var(--primary);
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 1px;
+        }
+
+        #ref-link-box {
+            display: flex; align-items: center; gap: 15px;
+            background: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; width: 100%; margin-bottom: 20px; border-radius: 16px;
+        }
+        #ref-link-box .link-text { flex: 0 0 auto; white-space: nowrap; }
+        #ref-link-box h3 { margin: 0; font-size: 1rem; }
+        #ref-link-box span { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+        #ref-link-box input {
+            flex: 1; min-width: 0; width: 100%; padding: 12px;
+            border: 1px solid #cbd5e1; border-radius: 8px;
+            color: var(--text-light); font-family: monospace; background: white;
+        }
+        #ref-link-box button {
+            flex: 0 0 auto; background: var(--primary); color: white; border: none;
+            padding: 12px 25px; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+
         .step-container { display: flex; flex-direction: column; gap: 4px; width: 100%; min-width: 100px; }
         .step-bar { display: flex; gap: 3px; width: 100%; }
         .step-segment { flex: 1; height: 6px; background: #e2e8f0; border-radius: 2px; transition: all 0.3s ease; }
@@ -45,48 +200,127 @@
         .step-segment.active-red { background: var(--red); opacity: 0.6; }
         .progress-label { font-size: 0.65rem; color: var(--text-light); font-weight: 600; display: flex; justify-content: space-between; margin-top: 2px; }
 
-        /* 表格优化 */
-        .table-container { overflow-x: auto; padding-bottom: 60px; -webkit-overflow-scrolling: touch; } /* 增加底部padding防遮挡 */
-        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
+        .table-container { overflow-x: auto; padding-bottom: 20px; -webkit-overflow-scrolling: touch; width: 100%; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 800px; }
         th { text-align: left; padding: 12px 15px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-light); border-bottom: 2px solid #f1f5f9; background: #fff; position: sticky; top: 0; z-index: 10; }
         td { padding: 16px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: top; background: #fff; }
         tr:last-child td { border-bottom: none; }
         
-        /* 交互元素 */
-        .clickable-name { color: var(--primary); font-weight: 600; cursor: pointer; transition: color 0.2s; text-decoration: underline; text-decoration-color: #cbd5e1; text-underline-offset: 4px; }
-        .clickable-name:hover { color: var(--blue); text-decoration-color: var(--blue); }
-        
-        .installer-select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff; cursor: pointer; transition: all 0.2s; }
-        .installer-select:hover { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-
-        .btn-action { width: 100%; padding: 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: transform 0.1s; border: 1px solid transparent; }
-        .btn-action:active { transform: scale(0.98); }
+        .clickable-name { color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: underline; text-decoration-color: #cbd5e1; text-underline-offset: 4px; }
+        .installer-select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.8rem; background: #fff; cursor: pointer; }
+        .btn-action { width: 100%; padding: 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
         .btn-nudge { background: #fff7ed; color: #c2410c; border-color: #ffedd5; }
         .btn-confirm { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(15, 23, 42, 0.15); }
-        
-        /* 🔵 Modal 弹窗样式 */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 999; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; }
-        .modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); transform: translateY(20px); transition: transform 0.3s; position: relative; max-height: 90vh; overflow-y: auto; }
+        .btn-report { background: #fff; border-color: #fecaca; color: #ef4444; }
+        .btn-report-light { background: #fff; border-color: #e2e8f0; color: #64748b; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 999; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); transform: translateY(20px); transition: transform 0.3s; position: relative; max-height: 85vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
         .modal-close { background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; color: #64748b; display: flex; align-items: center; justify-content: center; }
         .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.9rem; }
         .detail-label { color: #64748b; }
-        .detail-value { font-weight: 600; color: var(--primary); text-align: right; max-width: 60%; }
-        .system-badge { background: #eff6ff; color: var(--blue); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; display: inline-block; margin-top: 5px; }
+        .detail-value { font-weight: 600; color: var(--primary); text-align: right; max-width: 60%; word-break: break-word; }
 
-        /* 手机适配辅助 */
+        /* 📱 手机端适配 */
+        /* =========================================
+           📱 手机端适配 (精准控制)
+           ========================================= */
         @media (max-width: 600px) {
-            .dash-header { flex-direction: column; align-items: flex-start; }
-            .dash-header button { width: 100%; margin-top: 10px; }
-            .stats-grid { grid-template-columns: 1fr; }
+            body { padding: 15px; }
+            .container { padding-bottom: 30px; }
+            .nav-bar { margin-bottom: 20px; }
+            .user-pill { padding: 4px 12px; }
+            #nav-user-name { max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+            /* 1️⃣ Welcome Card & Map Banner: 保持上下垂直排列 (Column) */
+            .welcome-card { 
+                flex-direction: column !important; 
+                align-items: flex-start !important; 
+                padding: 20px; 
+                gap: 20px; 
+            }
+            .welcome-right { 
+                width: 100%; 
+                text-align: center; 
+                align-items: center; 
+            }
+            .welcome-card.orange-theme .right-box { width: 100%; border: 1px solid #fed7aa; }
+            .btn-switch-large { width: 100%; justify-content: center; }
+            
+            .map-banner { 
+                flex-direction: column !important; 
+                align-items: flex-start !important; 
+                gap: 15px; 
+                padding: 20px; 
+            }
+            .map-banner button { width: 100%; }
+
+            /* 2️⃣ Stats Grid: 卡片本身单列，但内部保持左右并排 (Row) */
+            .stats-grid { 
+                grid-template-columns: 1fr !important; /* 卡片占满一行 */
+                gap: 15px; 
+            }
+
+            /* 关键修改：强制卡片内部为左右横向布局 */
+            .stat-body {
+                display: flex !important;
+                flex-direction: row !important; /* 🔥 保持左右排列 */
+                justify-content: space-between !important;
+                align-items: center !important; /* 垂直居中对齐 */
+                padding: 18px !important;
+            }
+
+            /* 恢复垂直分割线显示 */
+            .stat-divider-v { 
+                display: block !important; 
+                width: 1px; 
+                background: #e2e8f0; 
+                margin: 0 15px; 
+                height: 40px; /* 给定高度 */
+            }
+
+            /* 左右两侧对齐修正 */
+            .stat-group { 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: center; 
+                flex: 1; /* 均分空间 */
+            }
+            
+            /* 右侧内容强制靠右 */
+            .right-align-mobile { 
+                text-align: right !important; 
+                align-items: flex-end !important; 
+            }
+
+            /* 字体微调适配 */
+            .stat-main { font-size: 1.8rem !important; margin: 2px 0 !important; }
+            .stat-title { font-size: 0.8rem !important; }
+
+            /* 3️⃣ 其他组件适配 */
+            #ref-link-box { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; padding: 20px !important; }
+            #ref-link-box .link-text { text-align: center; margin-bottom: 5px; white-space: normal; }
+            #ref-link-box input { width: 100% !important; text-align: center; }
+            #ref-link-box button { width: 100% !important; }
+            
+            .card > div:first-child { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+            #default-installer-box { width: 100%; justify-content: space-between; }
         }
+        
+
+        
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="nav-bar">
-        <div class="logo">Solar<span>yo</span> <span style="font-size:0.7rem; background:var(--primary); color:white; padding:2px 6px; border-radius:4px; vertical-align:middle; margin-left:5px;">PARTNER</span></div>
+        <div class="logo">
+            Solar<span style="color:var(--orange)">y<span style="position:relative; display:inline-block;">o<span style="position:absolute; top: 0px; right: -6px; width: 5px; height: 5px; background:var(--accent); border-radius:50%;"></span></span></span> 
+            <span style="font-size:0.7rem; background:var(--primary); color:white; padding:2px 6px; border-radius:4px; vertical-align:middle; margin-left:5px;">PARTNER</span>
+        </div>
+        
         <div class="user-pill">
             <div style="text-align:right; line-height:1.2;">
                 <div id="nav-user-name" style="font-weight:700; font-size:0.85rem;">Loading...</div>
@@ -102,52 +336,43 @@
     </div>
 
     <div id="view-referral" style="display:none;">
-        <div class="card dash-header" style="border-left-color: var(--orange); background: linear-gradient(to right, #fff7ed 0%, #ffffff 30%);">
-            <div style="flex:1;">
-                <h1 style="margin:0; font-size:1.4rem; color:var(--primary);">Hi, <span id="ref-welcome-name" style="color:var(--orange);">Partner</span>!</h1>
-                <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-light);">Here is your performance overview.</p>
-                <button id="btn-back-installer" onclick="appBackToInstaller()" style="display:none; margin-top:10px; background:white; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:0.75rem; color:var(--text-light); cursor:pointer;">⬅ Back to Installer View</button>
+        <div class="welcome-card orange-theme">
+            <div class="welcome-left">
+                <div class="welcome-info">
+                    <div class="welcome-badge"><span style="color:#f59e0b">✨</span> Energy Partner</div>
+                    <h1>Hi, <span id="ref-welcome-name" class="text-highlight">Partner</span>!</h1>
+                    <p class="welcome-sub">Welcome to your dashboard.</p>
+                </div>
             </div>
-            <div style="text-align:right;">
-                <div style="font-size:0.65rem; font-weight:700; color:#94a3b8; margin-bottom:4px;">REFERRAL CODE</div>
-                <div id="ref-code-display" style="background:linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color:white; padding:8px 16px; border-radius:10px; font-family:'Courier New'; font-weight:800; font-size:1.2rem; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">...</div>
+            <div class="welcome-right right-box">
+                <div class="code-label">YOUR REFERRAL CODE</div>
+                <div id="ref-code-display" class="code-box">...</div>
             </div>
+        </div>
+        
+        <div style="text-align:right; margin-top:-15px; margin-bottom:15px;">
+             <button id="btn-back-installer" onclick="appBackToInstaller()" style="display:none; background:transparent; border:none; color:#64748b; font-size:0.75rem; cursor:pointer; text-decoration:underline;">⬅ Return to Installer Dashboard</button>
         </div>
 
         <div class="stats-grid">
             <div class="card stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border:none;">
-                <div>
-                    <h3 style="margin:0; font-size:0.9rem; opacity:0.9;">Wallet Balance</h3>
-                    <p id="stat-earned" class="stat-main">$0.00</p>
-                </div>
+                <div><h3 style="margin:0; font-size:0.9rem; opacity:0.9;">Wallet Balance</h3><p id="stat-earned" class="stat-main">$0.00</p></div>
                 <button onclick="handleWithdraw()" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.4); padding:6px 14px; border-radius:20px; font-weight:600; font-size:0.75rem; align-self:flex-start; backdrop-filter:blur(4px);">Withdraw ➜</button>
             </div>
             <div class="card stat-card">
-                <div>
-                    <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Processing Payouts</h3>
-                    <p id="stat-pending" class="stat-main" style="color:var(--orange);">$0.00</p>
-                </div>
-                <div class="stat-sub">
-                    <span>Total Paid Out:</span>
-                    <strong id="stat-total-paid" style="color:#10b981;">$0.00</strong>
-                </div>
+                <div><h3 style="margin:0; font-size:0.9rem; color:#64748b;">Processing Payouts</h3><p id="stat-pending" class="stat-main" style="color:var(--orange);">$0.00</p></div>
+                <div class="stat-sub"><span>Total Paid Out:</span><strong id="stat-total-paid" style="color:#10b981;">$0.00</strong></div>
             </div>
             <div class="card stat-card">
-                <div>
-                    <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Total Leads</h3>
-                    <p id="stat-referrals" class="stat-main" style="color:var(--primary);">0</p>
-                </div>
-                <div class="stat-sub">
-                    <span id="stat-contacted-count" style="color:#3b82f6;">0 Contacted</span>
-                    <span id="stat-installed-count" style="color:#10b981;">0 Installed</span>
-                </div>
+                <div><h3 style="margin:0; font-size:0.9rem; color:#64748b;">Total Leads</h3><p id="stat-referrals" class="stat-main" style="color:var(--primary);">0</p></div>
+                <div class="stat-sub"><span id="stat-contacted-count" style="color:#3b82f6;">0 Contacted</span><span id="stat-installed-count" style="color:#10b981;">0 Installed</span></div>
             </div>
         </div>
 
-        <div class="card" id="ref-link-box" style="display:flex; align-items:center; gap:10px; background:#f8fafc; border:2px dashed #cbd5e1;">
-            <div style="flex:1; min-width:180px;"><h3 style="margin:0; font-size:1rem;">🚀 Share Link</h3><span style="font-size:0.75rem; color:var(--accent); font-weight:600;">$200 Lead Unlock + Commission</span></div>
-            <input type="text" readonly style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:8px; color:var(--text-light); font-family:monospace;">
-            <button onclick="document.querySelector('#ref-link-box input').select(); document.execCommand('copy'); alert('Copied!');" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;">Copy</button>
+        <div class="card" id="ref-link-box">
+            <div class="link-text"><h3 style="margin:0; font-size:1rem;">🚀 Share Link</h3><span style="font-size:0.75rem; color:var(--accent); font-weight:600;">$200 Lead Unlock + Commission</span></div>
+            <input type="text" readonly>
+            <button onclick="document.querySelector('#ref-link-box input').select(); document.execCommand('copy'); alert('Copied!');">Copy</button>
         </div>
 
         <div class="card" style="padding-bottom:5px;">
@@ -157,15 +382,7 @@
             </div>
             <div class="table-container">
                 <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 20%;">Client Info</th>
-                            <th style="width: 25%;">Progress Steps</th> 
-                            <th style="width: 20%;">Earned Detail</th>
-                            <th style="width: 20%;">Assigned Installer</th>
-                            <th style="width: 15%; text-align: right;">Action</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th style="width: 25%;">Client Info</th><th style="width: 25%;">Progress Steps</th><th style="width: 20%;">Earned Detail</th><th style="width: 20%;">Assigned Installer</th><th style="width: 10%; text-align: right;">Action</th></tr></thead>
                     <tbody id="referrer-leads-body"></tbody>
                 </table>
             </div>
@@ -173,102 +390,109 @@
     </div> 
     
     <div id="view-installer" style="display:none;">
-        <div class="card dash-header" style="border-left-color: var(--blue); background: linear-gradient(to right, #eff6ff 0%, #ffffff 30%);">
-            <div style="flex:1;">
-                <h1 style="margin:0; font-size:1.4rem; color:var(--primary);">Installer Hub: <span id="inst-company-name" style="color:var(--blue);">...</span></h1>
-                <div style="display:flex; gap:10px; margin-top:10px;">
-                    <button onclick="alert('Map View Feature coming soon!')" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px;">
-                        🗺️ Browse Map
-                    </button>
-                    <button onclick="appSwitchToReferral()" style="background:white; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:0.75rem; color:#64748b; font-weight:600; cursor:pointer;">
-                        Switch View ➜
-                    </button>
+        
+        <div class="welcome-card blue-theme">
+            <div class="welcome-left">
+                <div class="welcome-info">
+                    <div class="welcome-badge"><span style="color:#3b82f6">⚡</span> Certified Installer</div>
+                    <h1>Hi, <span id="inst-welcome-name" class="text-highlight">...</span>!</h1>
+                    <p class="welcome-sub">Manage your leads & installations here.</p>
+                </div>
+            </div>
+            <div class="welcome-right">
+    
+                <button onclick="appSwitchToReferral()" class="btn-switch-large">
+                    Switch to Partner View ➜
+                </button>
+                <div class="switch-guide-text">Manage Wallet & Referrals</div>
+            </div>
+        </div>
+
+        <div class="map-banner">
+            <div class="map-info"><h2>Need more jobs?</h2><p>Browse the Live Map to unlock new leads in your area.</p></div>
+            <button class="btn-map" onclick="alert('Map View Feature coming soon!')">Browse Map →</button>
+        </div>
+
+       <div class="stats-grid">
+    
+    <div class="card stat-card" style="border-top: 4px solid var(--primary); min-height: 115px;">
+        <div style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; justify-content:space-between; align-items:flex-start; padding: 0px 15px 15px 15px; overflow:hidden;">
+            
+            <div style="display:flex; flex-direction:column; justify-content:space-between; min-width: 100px; gap: 5px;"> 
+                <div>
+                    <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Total Leads</h3>
+                    <p id="inst-stat-total" class="stat-main" style="color:var(--primary); font-size:2.2rem; line-height: 1;">0</p>
+                </div>
+                <div style="font-size:0.75rem; color:#64748b;">Active (New): <strong id="inst-stat-new" style="color:var(--orange);">0</strong></div>
+            </div>
+
+            <div style="width:1px; background:#e2e8f0; margin:0 10px; min-height:60px; align-self: stretch; flex-shrink: 0;"></div>
+
+            <div style="display:flex; flex-direction:column; justify-content:center; gap:8px; text-align:right; min-width: 80px;">
+                <div>
+                    <h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Valid</h3>
+                    <p id="inst-stat-valid" style="margin:0; font-size:1.2rem; font-weight:700; color:#10b981; line-height:1.1;">0</p>
+                </div>
+                <div>
+                    <h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Cancelled</h3>
+                    <p id="inst-stat-cancelled" style="margin:0; font-size:1.2rem; font-weight:700; color:#ef4444; line-height:1.1;">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="stat-footer" style="padding: 8px 15px;">
+            <span class="stat-footer-label">Pipeline Health</span>
+            <span class="stat-footer-value" style="color:#10b981; font-size:0.8rem;">Stable 📊</span>
+        </div>
+    </div>
+    
+    <div class="card stat-card" style="border-top: 4px solid var(--accent); min-height: 115px;">
+        <div style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; justify-content:space-between; align-items:flex-start; padding: 0px 15px 15px 15px;">
+            
+            <div style="display:flex; flex-direction:column; gap:2px; min-width: 80px;">
+                <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Installed</h3>
+                <p id="inst-stat-completed" class="stat-main" style="color:var(--accent); font-size:1.8rem; line-height: 1;">0</p>
+                <div style="font-size:0.65rem; color:#94a3b8;">
+                    Comm: <span id="inst-stat-comm-paid" style="font-weight:700; color:#334155;">$0</span>
+                </div>
+            </div>
+
+            <div style="width:1px; background:#e2e8f0; margin:0 12px; height:40px; flex-shrink: 0;"></div>
+
+            <div style="display:flex; flex-direction:column; gap:2px; text-align:right; min-width: 80px;">
+                <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Contacted</h3>
+                <p id="inst-stat-contacted" class="stat-main" style="color:#3b82f6; font-size:1.8rem; line-height: 1;">0</p>
+                <div style="font-size:0.65rem; color:#94a3b8;">
+                    Fees: <span id="inst-stat-unlock-paid" style="font-weight:700; color:#334155;">$0</span>
                 </div>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="card stat-card" style="border-top: 4px solid var(--primary); min-height: 140px;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; height: 100%;">
-                    
-                    <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
-                        <div>
-                            <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Total Leads</h3>
-                            <p id="inst-stat-total" class="stat-main" style="color:var(--primary); font-size:2.2rem;">0</p>
-                        </div>
-                        <div style="font-size:0.75rem; color:#64748b;">
-                            Active (New): <strong id="inst-stat-new" style="color:var(--orange);">0</strong>
-                        </div>
-                    </div>
-
-                    <div style="width:1px; background:#e2e8f0; margin:0 10px; height:80%;"></div>
-
-                    <div style="display:flex; flex-direction:column; justify-content:center; gap:12px; height:100%; text-align:right;">
-                        <div>
-                            <h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Valid</h3>
-                            <p id="inst-stat-valid" style="margin:0; font-size:1.2rem; font-weight:700; color:#10b981;">0</p>
-                        </div>
-                        <div>
-                            <h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Cancelled</h3>
-                            <p id="inst-stat-cancelled" style="margin:0; font-size:1.2rem; font-weight:700; color:#ef4444;">0</p>
-                        </div>
-                    </div>
-
-                </div>
-                
-                <div class="stat-sub" style="margin-top:10px; padding-top:8px; border-top:1px dashed #e2e8f0;">
-                    <span>Pipeline Health</span>
-                    <span>📊</span>
-                </div>
-            </div>
-            <div class="card stat-card" style="border-top: 4px solid var(--accent); min-height: 140px;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; height: 100%;">
-                    
-                    <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%;">
-                        <div>
-                            <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Installed</h3>
-                            <p id="inst-stat-completed" class="stat-main" style="color:var(--accent); font-size:1.8rem;">0</p>
-                        </div>
-                        <div style="font-size:0.7rem; color:#94a3b8;">
-                            Comm Paid:<br>
-                            <span id="inst-stat-comm-paid" style="color:#ef4444; font-weight:600;">$0</span>
-                        </div>
-                    </div>
-
-                    <div style="width:1px; background:#e2e8f0; margin:0 10px; height:80%;"></div>
-
-                    <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%; text-align:right;">
-                        <div>
-                            <h3 style="margin:0; font-size:0.85rem; color:#64748b;">Contacted</h3>
-                            <p id="inst-stat-contacted" class="stat-main" style="color:#3b82f6; font-size:1.8rem;">0</p>
-                        </div>
-                        <div style="font-size:0.7rem; color:#94a3b8;">
-                            Unlock Fees:<br>
-                            <span id="inst-stat-unlock-paid" style="color:#ef4444; font-weight:600;">$0</span>
-                        </div>
-                    </div>
-
-                </div>
-                
-                <div class="stat-sub" style="margin-top:10px; padding-top:8px; border-top:1px dashed #e2e8f0;">
-                    <span>Total Invested</span>
-                    <strong id="inst-stat-total-spent" style="color:#334155;">$0.00</strong>
-                </div>
-            </div>
-            <div class="card stat-card" style="border-top: 4px solid var(--blue);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
-                        <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Wallet Credit</h3>
-                        <p id="inst-stat-credit" class="stat-main" style="color:var(--blue);">$0</p>
-                    </div>
-                    <button onclick="alert('Top-up feature coming soon')" style="background:#eff6ff; color:#1e40af; border:none; padding:6px 10px; border-radius:6px; font-size:0.7rem; font-weight:700; cursor:pointer;">+ Top Up</button>
-                </div>
-                <div class="stat-sub">
-                    <span>Pre-paid Balance</span>
-                    <span>💳</span>
-                </div>
-            </div>
+        <div class="stat-footer" style="padding: 8px 15px;">
+            <span class="stat-footer-label">Total Invested</span>
+            <span id="inst-stat-total-spent" class="stat-footer-value">$0.00</span>
         </div>
+    </div>
+
+    <div class="card stat-card" style="border-top: 4px solid var(--blue);">
+        <div style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; justify-content:space-between; align-items:flex-start; padding: 0px 15px 15px 15px;">
+            
+            <div style="min-width: 100px;">
+                <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Wallet Credit</h3>
+                <p id="inst-stat-credit" class="stat-main" style="color:var(--blue); line-height: 1.2;">$0</p>
+            </div>
+
+            <button onclick="alert('Top-up feature coming soon')" style="background:#eff6ff; color:#1e40af; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; white-space:nowrap;">
+                + Top Up
+            </button>
+        </div>
+
+        <div class="stat-footer" style="padding: 8px 15px;">
+            <span class="stat-footer-label">Pre-paid Balance</span>
+            <span class="stat-footer-value" style="font-size:1.2rem;">💳</span>
+        </div>
+    </div>
+
+</div>
 
         <div class="card" style="padding-bottom:5px;">
             <h3 style="margin-top:0; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
@@ -277,13 +501,7 @@
             </h3>
             <div class="table-container">
                 <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 20%;">Customer Details</th>
-                            <th style="width: 15%;">Referrer</th> <th style="width: 20%;">Financials</th> 
-                            <th style="width: 25%;">Workflow Control</th>
-                            <th style="width: 20%;">Current Status</th> </tr>
-                    </thead>
+                    <thead><tr><th style="width: 20%;">Customer Details</th><th style="width: 15%;">Referrer</th><th style="width: 20%;">Financials</th><th style="width: 25%;">Workflow Control</th><th style="width: 20%;">Current Status</th></tr></thead>
                     <tbody id="installer-leads-body"></tbody>
                 </table>
             </div>
@@ -297,8 +515,7 @@
             <h2 id="modal-lead-name" style="margin:0; font-size:1.4rem; color:var(--primary);">Customer Details</h2>
             <button class="modal-close" onclick="closeLeadModal()">×</button>
         </div>
-        <div id="modal-body">
-            </div>
+        <div id="modal-body"></div>
         <div style="margin-top:25px; text-align:right;">
             <button onclick="closeLeadModal()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer;">Close</button>
         </div>

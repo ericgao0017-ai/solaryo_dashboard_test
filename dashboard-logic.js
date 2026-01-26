@@ -1,5 +1,5 @@
 // ============================================================
-// 🛠️ Installer & Referrer Logic (V16.0 - UI/UX Overhaul)
+// 🛠️ Installer & Referrer Logic (V20.0 - UI Polished)
 // ============================================================
 
 const SUPABASE_URL = 'https://iytxwgyhemetdkmqoxoa.supabase.co';
@@ -86,13 +86,10 @@ function renderDefaultInstallerBox(allInstallers) {
     }
 }
 
-// 🟢 [Logic Updated] Enhanced Stats for Referrer
 async function updateReferrerStats(leads) {
-    // 1. Wallet Balance
     const { data: freshProfile } = await sbClient.from('partners').select('wallet_balance').eq('id', currentProfile.id).single();
     const wallet = freshProfile ? Number(freshProfile.wallet_balance) : 0;
     
-    // 2. Processing Payouts
     let pendingPayout = 0;
     let totalPaidOut = 0;
     const { data: payouts } = await sbClient.from('payouts').select('amount, status').eq('partner_id', currentProfile.id);
@@ -102,7 +99,6 @@ async function updateReferrerStats(leads) {
         totalPaidOut = payouts.filter(p => p.status === 'paid').reduce((sum, i) => sum + Number(i.amount), 0);
     }
 
-    // 3. Lead Breakdown
     let contactedCount = 0;
     let installedCount = 0;
     if (leads) {
@@ -110,14 +106,13 @@ async function updateReferrerStats(leads) {
         installedCount = leads.filter(l => l.status === 'installed').length;
     }
 
-    // Update UI
     const fmt = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' });
     document.getElementById('stat-earned').innerText = fmt.format(wallet);
     document.getElementById('stat-pending').innerText = fmt.format(pendingPayout);
-    document.getElementById('stat-total-paid').innerText = fmt.format(totalPaidOut); // New
+    document.getElementById('stat-total-paid').innerText = fmt.format(totalPaidOut);
     document.getElementById('stat-referrals').innerText = leads ? leads.length : 0;
-    document.getElementById('stat-contacted-count').innerText = `${contactedCount} Contacted`; // New
-    document.getElementById('stat-installed-count').innerText = `${installedCount} Installed`; // New
+    document.getElementById('stat-contacted-count').innerText = `${contactedCount} Contacted`;
+    document.getElementById('stat-installed-count').innerText = `${installedCount} Installed`;
 }
 
 function renderReferrerTable(leads, installers) {
@@ -137,10 +132,8 @@ function renderReferrerTable(leads, installers) {
         const cancelledList = lead.cancelled_by_ids || [];
         const isActuallyAssigned = !!lead.assigned_partner_id && status !== 'pending';
 
-        // 1. Progress HTML
         let progressHTML = getSegmentedProgressHTML(status, isActuallyAssigned);
 
-        // 2. Earned Detail
         let earnedDisplay = '';
         if (status === 'fraud') earnedDisplay = `<div style="color:#ef4444; font-size:0.8rem;">Fraud / Invalid</div>`;
         else if (status === 'cancelled') earnedDisplay = `<div style="color:#f59e0b; font-size:0.8rem; font-weight:700;">Cancelled</div><div style="font-size:0.65rem; color:#64748b;">(Fee Retained)</div>`;
@@ -148,7 +141,6 @@ function renderReferrerTable(leads, installers) {
         else if (['contacted', 'site_visit', 'deposit'].includes(status)) earnedDisplay = `<div style="font-size:0.75rem; color:#10b981;">Unlock: +$${unlockFee}</div><div style="font-weight:700; color:#059669;">Net: $${unlockFee}</div>`;
         else earnedDisplay = `<div style="color:#10b981; font-weight:700; font-size:0.8rem; line-height:1.2;">Wait to contact<br>to earn $20</div>`;
 
-        // 3. Dropdown Logic
         const isLocked = isActuallyAssigned && !['cancelled', 'fraud', 'pending'].includes(status);
         const selectedId = lead.assigned_partner_id || currentProfile.default_installer_id;
         
@@ -169,7 +161,6 @@ function renderReferrerTable(leads, installers) {
         }
         assignSelect += `</select>`;
 
-        // 4. Buttons
         let actionBtn = '';
         const btnId = `btn-action-${lead.id}`;
         if (status === 'fraud') actionBtn = `<button class="btn-action btn-report" disabled style="opacity:0.5">⛔ Invalid</button>`;
@@ -181,9 +172,7 @@ function renderReferrerTable(leads, installers) {
         else if (isActuallyAssigned && status === 'new') actionBtn = `<button id="${btnId}" onclick="handleNudge(${lead.id})" class="btn-action btn-nudge">🔔 Nudge</button>`;
         else actionBtn = `<button id="${btnId}" onclick="handleReport(${lead.id}, '${status}')" class="btn-action btn-report-light">🚩 Report</button>`;
 
-        // 🟢 Name Clickable
         const dateStr = new Date(lead.created_at).toLocaleDateString('en-AU', {month:'short', day:'numeric'});
-        // Escape JSON for onclick safely
         const leadSafe = encodeURIComponent(JSON.stringify(lead));
 
         const tr = document.createElement('tr');
@@ -204,30 +193,20 @@ function renderReferrerTable(leads, installers) {
 }
 
 // ============================================================
-// 🛠️ Installer Dashboard Logic (V16.0)
-// ============================================================
-// ============================================================
-// 🛠️ Installer Dashboard Logic (V17.0 - Persistent Cancellation History)
-// ============================================================
-// ============================================================
-// 🛠️ Installer Dashboard Logic (V18.0 - Advanced Stats)
-// ============================================================
-// ============================================================
-// 🛠️ Installer Dashboard Logic (V19.0 - Detailed Leads Stats)
+// 🛠️ Installer Dashboard Logic
 // ============================================================
 async function loadInstallerDashboard() {
     const view = document.getElementById('view-installer');
     if(view) view.style.display = 'block';
     
-    document.getElementById('inst-company-name').innerText = currentProfile.company_name || "Solar Pro";
+    // 🟢 [Fix] Updated ID target for new UI
+    document.getElementById('inst-welcome-name').innerText = currentProfile.company_name || "Solar Pro";
 
-    // 1. Refresh Balance
     const { data: partnerData } = await sbClient.from('partners').select('wallet_balance').eq('id', currentProfile.id).single();
     const currentBalance = partnerData ? Number(partnerData.wallet_balance) : 0;
     const fmt = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 });
     document.getElementById('inst-stat-credit').innerText = fmt.format(currentBalance);
 
-    // 2. Fetch Leads
     const { data: leads } = await sbClient
         .from('leads')
         .select('*')
@@ -235,7 +214,6 @@ async function loadInstallerDashboard() {
         .or(`assigned_partner_id.eq.${currentProfile.id},cancelled_by_ids.cs.{${currentProfile.id}}`)
         .order('created_at', { ascending: false });
 
-    // Prefetch Names
     let refMap = {};
     const { data: allPartners } = await sbClient.from('partners').select('ref_code, contact_name, company_name');
     if (allPartners) {
@@ -246,19 +224,18 @@ async function loadInstallerDashboard() {
     if(!tbody) return;
     tbody.innerHTML = '';
 
-    // 🟢 [New Stats Variables]
     let countTotal = 0;
-    let countNew = 0;       // "Active" (No action yet)
-    let countCancelled = 0; // Cancelled + Fraud
-    let countValid = 0;     // Not cancelled
+    let countNew = 0;
+    let countCancelled = 0;
+    let countValid = 0;
     let countInstalled = 0;
-    let countContacted = 0; // For Card 2
+    let countContacted = 0;
     let totalUnlockPaid = 0;
     let totalCommPaid = 0;
 
     if (!leads || leads.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No jobs assigned yet.</td></tr>`;
-        updateInstallerStatsUI(0, 0, 0, 0, 0, 0, 0, 0); // Reset all
+        updateInstallerStatsUI(0, 0, 0, 0, 0, 0, 0, 0); 
         return;
     }
 
@@ -267,18 +244,15 @@ async function loadInstallerDashboard() {
         const isPastCancelled = lead.cancelled_by_ids && lead.cancelled_by_ids.includes(currentProfile.id);
         const displayStatus = isPastCancelled && !isMyLead ? 'cancelled' : lead.status;
 
-        // 🟢 [Stats Calculation]
-        countTotal++; // 总数
-        
-        if (displayStatus === 'new') countNew++; // Active = New Only
+        countTotal++;
+        if (displayStatus === 'new') countNew++;
         
         if (['cancelled', 'fraud'].includes(displayStatus)) {
             countCancelled++;
         } else {
-            countValid++; // Valid = Not Cancelled
+            countValid++;
         }
 
-        // Logic for Card 2 (Performance) - Only count financials for MY leads
         if (isMyLead) {
             if (lead.fee_paid) {
                 countContacted++;
@@ -292,7 +266,6 @@ async function loadInstallerDashboard() {
             }
         }
 
-        // --- Render Row (Standard) ---
         let financialHtml = `<span style="color:#cbd5e1;">-</span>`;
         let items = [];
         if (isMyLead) {
@@ -353,21 +326,15 @@ async function loadInstallerDashboard() {
         tbody.appendChild(tr);
     });
 
-    // 🟢 Update UI with expanded stats
     updateInstallerStatsUI(countTotal, countNew, countValid, countCancelled, countInstalled, countContacted, totalUnlockPaid, totalCommPaid);
 }
 
-// 🟢 [Updated Helper] Now handles 8 parameters
 function updateInstallerStatsUI(total, activeNew, valid, cancelled, installed, contacted, unlockPaid, commPaid) {
     const fmt = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 });
-    
-    // Card 1: Leads Overview
     document.getElementById('inst-stat-total').innerText = total;
-    document.getElementById('inst-stat-new').innerText = activeNew; // "Active"
+    document.getElementById('inst-stat-new').innerText = activeNew;
     document.getElementById('inst-stat-valid').innerText = valid;
     document.getElementById('inst-stat-cancelled').innerText = cancelled;
-
-    // Card 2: Performance & Cost
     document.getElementById('inst-stat-completed').innerText = installed;
     document.getElementById('inst-stat-comm-paid').innerText = fmt.format(commPaid);
     document.getElementById('inst-stat-contacted').innerText = contacted;
@@ -375,22 +342,15 @@ function updateInstallerStatsUI(total, activeNew, valid, cancelled, installed, c
     document.getElementById('inst-stat-total-spent').innerText = fmt.format(unlockPaid + commPaid);
 }
 
-function updateInstallerStats(active, completed) {
-    document.getElementById('inst-stat-active').innerText = active;
-    document.getElementById('inst-stat-completed').innerText = completed;
-}
-
 // ==========================================
-// 🔵 Modal & Detail Logic
+// 🔵 Core Actions & Helpers
 // ==========================================
 window.showLeadDetails = function(leadEncoded) {
     const lead = JSON.parse(decodeURIComponent(leadEncoded));
     const modal = document.getElementById('lead-details-modal');
     const content = document.getElementById('modal-body');
-    
     document.getElementById('modal-lead-name').innerText = lead.name;
     
-    // Simulate Details (In real app, fetch from DB if columns exist)
     content.innerHTML = `
         <div class="detail-row"><span class="detail-label">Phone:</span> <span class="detail-value"><a href="tel:${lead.phone}">${lead.phone || 'N/A'}</a></span></div>
         <div class="detail-row"><span class="detail-label">Email:</span> <span class="detail-value">${lead.email || 'customer@email.com'}</span></div>
@@ -408,7 +368,6 @@ window.showLeadDetails = function(leadEncoded) {
             </div>
         </div>
     `;
-    
     modal.style.display = 'flex';
     setTimeout(() => modal.style.opacity = '1', 10);
 }
@@ -419,11 +378,6 @@ window.closeLeadModal = function(e) {
     modal.style.opacity = '0';
     setTimeout(() => modal.style.display = 'none', 300);
 }
-
-// ... (Existing Helpers: getSegmentedProgressHTML, handleStatusChange, handleConfirmAllocation, etc.) ...
-// 请保留之前 V14/V15 中的所有交互逻辑函数 (handleStatusChange, rpcUpdateBalance, handleConfirmAllocation, 等)，
-// 仅仅替换 loadReferrerDashboard 和 loadInstallerDashboard 及其辅助函数即可。
-// 为保证完整性，以下是必要的辅助函数：
 
 function getSegmentedProgressHTML(status, isAssigned) {
     let activeLevel = 0; 
@@ -451,52 +405,76 @@ function getSegmentedProgressHTML(status, isAssigned) {
     return `<div class="step-container"><div class="step-bar">${segments}</div><div class="progress-label"><span>${currentLabel}</span><span>Step ${activeLevel}/5</span></div></div>`;
 }
 
-// 🟢 Re-include Core Interaction Logic (Unchanged from V14/V15 but vital)
 window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid) {
     if (!confirm(`⚠️ Confirm Status Change?\n\nTo: ${newStatus.toUpperCase()}`)) { loadInstallerDashboard(); return; }
+
     const { data: partner } = await sbClient.from('partners').select('wallet_balance').eq('id', currentProfile.id).single();
     let currentBalance = partner ? Number(partner.wallet_balance) : 0;
+
     const unlockTriggers = ['contacted', 'site_visit', 'deposit'];
     let shouldPayUnlock = unlockTriggers.includes(newStatus) && !feePaid; 
+    
     if (shouldPayUnlock) {
         if (currentBalance < 50) { alert("❌ Insufficient Credit! Need $50.00."); loadInstallerDashboard(); return; }
         if (!confirm(`💰 PAYMENT REQUIRED\n\nLead Unlock Fee: $50.00\n\nProceed?`)) { loadInstallerDashboard(); return; }
     }
+
     let commissionAmount = 0, totalDeduction = 0, shouldPayComm = (newStatus === 'installed');
     if (shouldPayComm) {
         const input = prompt("🎉 INSTALLATION COMPLETE!\n\nEnter Net Commission for Referrer:", "200");
         if (!input) { loadInstallerDashboard(); return; }
         commissionAmount = Number(input);
         totalDeduction = commissionAmount * 1.05;
+
         if (currentBalance < totalDeduction) { alert(`❌ Insufficient Credit! Need $${totalDeduction.toFixed(2)}.`); loadInstallerDashboard(); return; }
         if (!confirm(`💰 CONFIRM PAYOUT\n\nReferrer: $${commissionAmount}\nPlatform: $${(commissionAmount*0.05).toFixed(2)}\nTotal: $${totalDeduction.toFixed(2)}`)) { loadInstallerDashboard(); return; }
     }
+
     try {
         const updateData = { status: newStatus };
         if (shouldPayUnlock) updateData.fee_paid = true;
         if (shouldPayComm) updateData.final_commission = commissionAmount;
+
+        if (newStatus === 'cancelled' || newStatus === 'fraud') {
+            const { data: currentLeadData } = await sbClient.from('leads').select('cancelled_by_ids').eq('id', leadId).single();
+            let currentBlacklist = currentLeadData?.cancelled_by_ids || [];
+            if (!currentBlacklist.includes(currentProfile.id)) currentBlacklist.push(currentProfile.id);
+            updateData.cancelled_by_ids = currentBlacklist;
+        }
+
         const { error: leadErr } = await sbClient.from('leads').update(updateData).eq('id', leadId);
         if (leadErr) throw leadErr;
+
         if (shouldPayUnlock) {
             await rpcUpdateBalance(currentProfile.id, -50);
             await recordTransaction(currentProfile.id, -50, 'lead_unlock', `Unlock Lead #${leadId}`);
             const { data: leadInfo } = await sbClient.from('leads').select('referral_code').eq('id', leadId).single();
             if (leadInfo?.referral_code) {
                 const { data: refPartner } = await sbClient.from('partners').select('id').eq('ref_code', leadInfo.referral_code).single();
-                if (refPartner) { await rpcUpdateBalance(refPartner.id, 20); await recordTransaction(refPartner.id, 20, 'commission_unlock', `Lead #${leadId} Unlocked`); }
+                if (refPartner) { 
+                    await rpcUpdateBalance(refPartner.id, 20); 
+                    await recordTransaction(refPartner.id, 20, 'commission_unlock', `Lead #${leadId} Unlocked`); 
+                }
             }
         }
+
         if (shouldPayComm) {
             await rpcUpdateBalance(currentProfile.id, -totalDeduction);
             await recordTransaction(currentProfile.id, -totalDeduction, 'commission_paid', `Lead #${leadId} Installed`);
             const { data: leadInfo } = await sbClient.from('leads').select('referral_code').eq('id', leadId).single();
             if (leadInfo?.referral_code) {
                 const { data: refPartner } = await sbClient.from('partners').select('id').eq('ref_code', leadInfo.referral_code).single();
-                if (refPartner) { await rpcUpdateBalance(refPartner.id, commissionAmount); await recordTransaction(refPartner.id, commissionAmount, 'commission_final', `Lead #${leadId} Installed`); }
+                if (refPartner) { 
+                    await rpcUpdateBalance(refPartner.id, commissionAmount); 
+                    await recordTransaction(refPartner.id, commissionAmount, 'commission_final', `Lead #${leadId} Installed`); 
+                }
             }
         }
-        alert("Processed Successfully! ✅"); loadInstallerDashboard();
-    } catch (err) { alert("Error: " + err.message); loadInstallerDashboard(); }
+
+        alert("Processed Successfully! ✅");
+        loadInstallerDashboard();
+
+    } catch (err) { console.error(err); alert("Error: " + err.message); loadInstallerDashboard(); }
 }
 
 async function rpcUpdateBalance(partnerId, amount) {
