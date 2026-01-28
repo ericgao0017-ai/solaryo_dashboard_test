@@ -1,5 +1,5 @@
 // ============================================================
-// 🛠️ Installer & Referrer Logic (V20.0 - UI Polished)
+// 🛠️ Installer & Referrer Logic (V21.2 - Yellow Steps & Inline Comm)
 // ============================================================
 
 const SUPABASE_URL = 'https://iytxwgyhemetdkmqoxoa.supabase.co';
@@ -62,11 +62,9 @@ async function loadReferrerDashboard() {
     const linkInput = document.querySelector('#ref-link-box input');
     if (linkInput && myCode !== "NO_CODE") linkInput.value = `${window.location.origin}/index.html?ref=${myCode}`;
 
-    // Get Installers for dropdown
     const { data: allInstallers } = await sbClient.from('partners').select('id, company_name').eq('role', 'solar_pro').order('company_name');
     renderDefaultInstallerBox(allInstallers);
 
-    // Get Leads
     const { data: leads } = await sbClient.from('leads').select('*').eq('referral_code', myCode).order('created_at', { ascending: false });
     
     await updateReferrerStats(leads);
@@ -132,14 +130,17 @@ function renderReferrerTable(leads, installers) {
         const cancelledList = lead.cancelled_by_ids || [];
         const isActuallyAssigned = !!lead.assigned_partner_id && status !== 'pending';
 
-        let progressHTML = getSegmentedProgressHTML(status, isActuallyAssigned);
-
+        // 🔥 [Updated] 将 commission_reward 传入函数
+        let progressHTML = getSegmentedProgressHTML(status, isActuallyAssigned, lead.commission_reward);
+        
         let earnedDisplay = '';
         if (status === 'fraud') earnedDisplay = `<div style="color:#ef4444; font-size:0.8rem;">Fraud / Invalid</div>`;
         else if (status === 'cancelled') earnedDisplay = `<div style="color:#f59e0b; font-size:0.8rem; font-weight:700;">Cancelled</div><div style="font-size:0.65rem; color:#64748b;">(Fee Retained)</div>`;
         else if (status === 'installed') earnedDisplay = `<div style="font-size:0.75rem; color:#10b981;">Unlock: +$${unlockFee}</div><div style="font-size:0.75rem; color:#10b981;">Comm: +$${commVal}</div><div style="font-weight:700; color:#059669; border-top:1px dashed #bbf7d0;">Net: $${unlockFee + commVal}</div>`;
         else if (['contacted', 'site_visit', 'deposit'].includes(status)) earnedDisplay = `<div style="font-size:0.75rem; color:#10b981;">Unlock: +$${unlockFee}</div><div style="font-weight:700; color:#059669;">Net: $${unlockFee}</div>`;
-        else earnedDisplay = `<div style="color:#10b981; font-weight:700; font-size:0.8rem; line-height:1.2;">Wait to contact<br>to earn $20</div>`;
+        // 🔥 修改：使用蓝色呼吸徽章样式
+        // 🔥 优化：强制换行，使宽度变窄，对齐数字列
+        else earnedDisplay = `<div class="waiting-badge" style="white-space:nowrap;">⏳ Wait for<br>Contact ($20) </div>`;
 
         const isLocked = isActuallyAssigned && !['cancelled', 'fraud', 'pending'].includes(status);
         const selectedId = lead.assigned_partner_id || currentProfile.default_installer_id;
@@ -183,8 +184,8 @@ function renderReferrerTable(leads, installers) {
                 <div class="clickable-name" onclick="showLeadDetails('${leadSafe}')">${lead.name}</div>
                 <div class="user-sub">${dateStr}</div>
             </td>
-            <td style="vertical-align: middle;">${progressHTML}</td>
             <td style="vertical-align: middle;">${earnedDisplay}</td>
+            <td style="vertical-align: middle;">${progressHTML}</td>
             <td style="vertical-align: middle;">${assignSelect}</td>
             <td style="vertical-align: middle; text-align: right;">${actionBtn}</td>
         `;
@@ -199,7 +200,6 @@ async function loadInstallerDashboard() {
     const view = document.getElementById('view-installer');
     if(view) view.style.display = 'block';
     
-    // 🟢 [Fix] Updated ID target for new UI
     document.getElementById('inst-welcome-name').innerText = currentProfile.company_name || "Solar Pro";
 
     const { data: partnerData } = await sbClient.from('partners').select('wallet_balance').eq('id', currentProfile.id).single();
@@ -270,12 +270,20 @@ async function loadInstallerDashboard() {
         let items = [];
         if (isMyLead) {
             if (lead.fee_paid) items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
+            
             if (lead.status === 'installed' && lead.final_commission) {
+                // 1. 如果已安装，显示最终佣金 (Final Comm)
                 const comm = Number(lead.final_commission);
                 const fee = comm * 0.05;
                 const total = comm + fee;
                 items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${total.toFixed(0)}</span></div><div style="font-size:0.65rem; color:#94a3b8; text-align:right; margin-top:-2px;">(Net: $${comm} | Fee: $${fee.toFixed(0)})</div>`);
+            } 
+            else if (lead.commission_reward && lead.commission_reward > 0) {
+                // 2. 🔥 新增：如果还没安装，但输入过预估值，显示 Est. Comm
+                // 这里的 commission_reward 存的是预估值 (V21.1逻辑)
+                items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
             }
+
             if (items.length > 0) financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
         } else if (isPastCancelled) {
             financialHtml = `<div style="font-size:0.7rem; color:#94a3b8; font-style:italic;">Connection Ended</div>`;
@@ -379,7 +387,8 @@ window.closeLeadModal = function(e) {
     setTimeout(() => modal.style.display = 'none', 300);
 }
 
-function getSegmentedProgressHTML(status, isAssigned) {
+// 🔥 [Updated] Progress Bar Logic: Yellow Steps & Inline Comm
+function getSegmentedProgressHTML(status, isAssigned, commissionReward) {
     let activeLevel = 0; 
     if (status === 'installed') activeLevel = 5;
     else if (status === 'deposit') activeLevel = 4;
@@ -397,15 +406,36 @@ function getSegmentedProgressHTML(status, isAssigned) {
 
     for (let i = 1; i <= 5; i++) {
         let activeClass = '';
-        if (activeLevel >= i) activeClass = (i === 5) ? 'active-green' : 'active';
+        if (activeLevel >= i) {
+            if (i === 5) activeClass = 'active-green';
+            else if (i === 3 || i === 4) activeClass = 'active-orange'; // 3(Quote) and 4(Deposit) are yellow
+            else activeClass = 'active';
+        }
         segments += `<div class="step-segment ${activeClass}"></div>`;
     }
 
-    const currentLabel = activeLevel > 0 ? labels[activeLevel - 1] : 'Pending Allocation';
+    let currentLabel = activeLevel > 0 ? labels[activeLevel - 1] : 'Pending Allocation';
+    
+    // 🔥 Inline Est. Comm Display
+    if ((status === 'site_visit' || status === 'deposit') && commissionReward) {
+        const est = Number(commissionReward);
+        if (est > 0) {
+            const low = (est * 0.8).toFixed(0);
+            const high = (est * 1.2).toFixed(0);
+            currentLabel += ` <span style="font-size:0.65rem; color:#f59e0b; font-weight:700; background:#fff7ed; padding:1px 4px; border-radius:4px; border:1px solid #ffedd5; margin-left:5px;">Est.Comm: $${low}-$${high}</span>`;
+        }
+    }
+
     return `<div class="step-container"><div class="step-bar">${segments}</div><div class="progress-label"><span>${currentLabel}</span><span>Step ${activeLevel}/5</span></div></div>`;
 }
 
+// 🔥 [Updated] Handle Status Change with Estimated Commission Logic
+// Now reading and saving to 'commission_reward' column
 window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid) {
+    // 1. Fetch current lead data, using 'commission_reward' as the storage for estimate
+    const { data: currentLeadData } = await sbClient.from('leads').select('commission_reward, cancelled_by_ids').eq('id', leadId).single();
+    const savedEst = currentLeadData?.commission_reward;
+
     if (!confirm(`⚠️ Confirm Status Change?\n\nTo: ${newStatus.toUpperCase()}`)) { loadInstallerDashboard(); return; }
 
     const { data: partner } = await sbClient.from('partners').select('wallet_balance').eq('id', currentProfile.id).single();
@@ -419,24 +449,48 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         if (!confirm(`💰 PAYMENT REQUIRED\n\nLead Unlock Fee: $50.00\n\nProceed?`)) { loadInstallerDashboard(); return; }
     }
 
+    // 🌟 Trigger: Estimated Commission Input at Quote/Site Visit
+    let newEstComm = null;
+    if (newStatus === 'site_visit') {
+        const promptMsg = savedEst && savedEst > 0
+            ? `🚚 Site Visit / Quote\n\nExisting Estimate: $${savedEst}\nUpdate Estimated Referrer Commission ($):` 
+            : `🚚 Site Visit / Quote\n\nPlease enter ESTIMATED Referrer Commission ($):`;
+            
+        const input = prompt(promptMsg, savedEst || "200");
+        if (input === null) { loadInstallerDashboard(); return; } // User cancelled
+        newEstComm = Number(input);
+        if (isNaN(newEstComm) || newEstComm < 0) { alert("Invalid amount."); loadInstallerDashboard(); return; }
+    }
+
     let commissionAmount = 0, totalDeduction = 0, shouldPayComm = (newStatus === 'installed');
+    
+    // 🌟 Trigger: Final Payment (Automated if estimate exists)
     if (shouldPayComm) {
-        const input = prompt("🎉 INSTALLATION COMPLETE!\n\nEnter Net Commission for Referrer:", "200");
-        if (!input) { loadInstallerDashboard(); return; }
-        commissionAmount = Number(input);
+        if (savedEst && savedEst > 0) {
+            commissionAmount = Number(savedEst);
+            // Confirm using the estimate
+            if(!confirm(`🎉 INSTALLATION COMPLETE!\n\nProcessing Payout using Quoted Estimate:\nReferrer Comm: $${commissionAmount}\nPlatform Fee: $${(commissionAmount*0.05).toFixed(2)}\n\nProceed?`)) {
+                 loadInstallerDashboard(); return; 
+            }
+        } else {
+            // Fallback: No estimate found, ask manually
+            const input = prompt("🎉 INSTALLATION COMPLETE!\n\nNo estimate found. Enter Net Commission for Referrer:", "200");
+            if (!input) { loadInstallerDashboard(); return; }
+            commissionAmount = Number(input);
+        }
+
         totalDeduction = commissionAmount * 1.05;
 
         if (currentBalance < totalDeduction) { alert(`❌ Insufficient Credit! Need $${totalDeduction.toFixed(2)}.`); loadInstallerDashboard(); return; }
-        if (!confirm(`💰 CONFIRM PAYOUT\n\nReferrer: $${commissionAmount}\nPlatform: $${(commissionAmount*0.05).toFixed(2)}\nTotal: $${totalDeduction.toFixed(2)}`)) { loadInstallerDashboard(); return; }
     }
 
     try {
         const updateData = { status: newStatus };
         if (shouldPayUnlock) updateData.fee_paid = true;
         if (shouldPayComm) updateData.final_commission = commissionAmount;
+        if (newEstComm !== null) updateData.commission_reward = newEstComm; // Save the estimate to commission_reward
 
         if (newStatus === 'cancelled' || newStatus === 'fraud') {
-            const { data: currentLeadData } = await sbClient.from('leads').select('cancelled_by_ids').eq('id', leadId).single();
             let currentBlacklist = currentLeadData?.cancelled_by_ids || [];
             if (!currentBlacklist.includes(currentProfile.id)) currentBlacklist.push(currentProfile.id);
             updateData.cancelled_by_ids = currentBlacklist;
@@ -555,4 +609,179 @@ window.appSwitchToReferral = function() {
 window.appBackToInstaller = function() {
     document.getElementById('view-referral').style.display = 'none';
     document.getElementById('view-installer').style.display = 'block';
+}
+// ==========================================
+// 📱 Mobile UX Helpers
+// ==========================================
+window.scrollToActions = function() {
+    const container = document.querySelector('#view-referral .table-container');
+    const hint = document.getElementById('ref-swipe-hint');
+
+    // 1. 自动向右平滑滚动表格
+    if(container) {
+        container.scrollTo({
+            left: container.scrollWidth,
+            behavior: 'smooth'
+        });
+    }
+
+    // 2. 停止闪烁，改变样式
+    if(hint) {
+        hint.classList.add('stopped');
+        hint.innerHTML = "Swiped ✅"; // 文字变更为已完成
+        hint.onclick = null; // 移除点击事件
+    }
+}
+
+// ==========================================
+// ⚙️ Profile Settings Logic (Secure V2)
+// ==========================================
+
+// 1. 打开主 Profile 弹窗
+window.openProfileModal = async function() {
+    const modal = document.getElementById('profile-modal');
+    
+    // 🔥 每次打开都重置为锁定状态
+    document.getElementById('prof-lock-panel').style.display = 'flex';
+    document.getElementById('prof-secure-fields').style.display = 'none';
+
+    // 填充只读和基础信息
+    document.getElementById('prof-role').value = (currentProfile.role || 'Partner').toUpperCase();
+    document.getElementById('prof-email').value = currentUser.email || '';
+    document.getElementById('prof-code').value = currentProfile.ref_code || '-';
+    
+    document.getElementById('prof-name').value = currentProfile.contact_name || '';
+    document.getElementById('prof-company').value = currentProfile.company_name || '';
+    document.getElementById('prof-phone').value = currentProfile.phone || '';
+    document.getElementById('prof-abn').value = currentProfile.abn_acn || '';
+    document.getElementById('prof-notify').checked = currentProfile.notify_email !== false;
+
+    // 预填充敏感信息（虽然此时不可见，但先填进去，等解锁后直接显示）
+    document.getElementById('prof-bank').value = currentProfile.payment_details || '';
+    document.getElementById('prof-pin').value = currentProfile.security_pin || ''; 
+    document.getElementById('prof-new-pass').value = ''; 
+
+    modal.style.display = 'flex';
+    setTimeout(() => modal.style.opacity = '1', 10);
+}
+
+window.closeProfileModal = function(e) {
+    if (e && e.target.id !== 'profile-modal' && !e.target.classList.contains('modal-close')) return;
+    document.getElementById('profile-modal').style.opacity = '0';
+    setTimeout(() => document.getElementById('profile-modal').style.display = 'none', 300);
+}
+
+// 2. 二级验证弹窗逻辑
+window.openVerifyModal = function() {
+    document.getElementById('verify-password-input').value = ''; // 清空
+    const vModal = document.getElementById('verify-modal');
+    vModal.style.display = 'flex';
+    setTimeout(() => {
+        vModal.style.opacity = '1';
+        document.getElementById('verify-password-input').focus(); // 自动聚焦
+    }, 10);
+}
+
+window.closeVerifyModal = function(e) {
+    if (e && e.target.id !== 'verify-modal' && !e.target && !e.target.innerText === 'Cancel') return;
+    document.getElementById('verify-modal').style.opacity = '0';
+    setTimeout(() => document.getElementById('verify-modal').style.display = 'none', 300);
+}
+
+// 3. 提交解锁验证 (核心安全逻辑)
+window.submitUnlock = async function() {
+    const pass = document.getElementById('verify-password-input').value;
+    const btn = document.getElementById('btn-verify-submit');
+    
+    if(!pass) return alert("Please enter password.");
+    
+    btn.innerText = "Checking...";
+    
+    // ⚡ 调用 Supabase 验证当前密码
+    const { error } = await sbClient.auth.signInWithPassword({
+        email: currentUser.email,
+        password: pass
+    });
+
+    btn.innerText = "Unlock";
+
+    if (error) {
+        alert("❌ Password Incorrect. Access Denied.");
+        document.getElementById('verify-password-input').value = '';
+    } else {
+        // ✅ 验证成功
+        closeVerifyModal();
+        // 切换 UI：隐藏锁，显示真实表单
+        document.getElementById('prof-lock-panel').style.display = 'none';
+        document.getElementById('prof-secure-fields').style.display = 'block';
+    }
+}
+
+// 4. 保存所有设置
+// (注：能点到保存，说明要么没改敏感信息，要么已经解锁了敏感信息)
+window.saveProfileSettings = async function() {
+    const btn = document.getElementById('btn-save-profile');
+    const originalText = btn.innerText;
+    btn.innerText = "Saving...";
+    btn.disabled = true;
+
+    // 获取值
+    const newName = document.getElementById('prof-name').value.trim();
+    const newCompany = document.getElementById('prof-company').value.trim();
+    const newPhone = document.getElementById('prof-phone').value.trim();
+    const newABN = document.getElementById('prof-abn').value.trim();
+    const newNotify = document.getElementById('prof-notify').checked;
+    
+    // 敏感值 (如果未解锁，这些值就是 openModal 时预填的旧值，保存也没问题)
+    const newBank = document.getElementById('prof-bank').value.trim();
+    const newPin = document.getElementById('prof-pin').value.trim();
+    const newPass = document.getElementById('prof-new-pass').value;
+
+    if (!newName) { alert("Contact Name is required."); btn.innerText = originalText; btn.disabled = false; return; }
+    if (newPin && !/^\d{4,6}$/.test(newPin)) {
+        alert("PIN must be 4-6 digits numbers only.");
+        btn.innerText = originalText; btn.disabled = false; return;
+    }
+
+    try {
+        // A. 更新数据库
+        const updates = {
+            contact_name: newName,
+            company_name: newCompany,
+            phone: newPhone,
+            abn_acn: newABN,
+            payment_details: newBank,
+            security_pin: newPin,
+            notify_email: newNotify
+        };
+
+        const { error } = await sbClient.from('partners').update(updates).eq('id', currentProfile.id);
+        if (error) throw error;
+
+        // B. 如果填了新密码，更新 Auth
+        if (newPass) {
+            const { error: passErr } = await sbClient.auth.updateUser({ password: newPass });
+            if (passErr) throw passErr;
+            alert("✅ Profile & Password updated successfully!");
+        } else {
+            alert("✅ Profile saved successfully!");
+        }
+
+        await loadProfile(); 
+        closeProfileModal();
+
+    } catch (err) {
+        console.error(err);
+        alert("Error: " + err.message);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+window.handleLogout = async function() {
+    if(confirm("Are you sure you want to sign out?")) {
+        await sbClient.auth.signOut();
+        window.location.replace("index.html");
+    }
 }
