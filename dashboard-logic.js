@@ -66,7 +66,7 @@ async function loadReferrerDashboard() {
     const { data: allInstallers } = await sbClient.from('partners').select('id, company_name').eq('role', 'solar_pro').order('company_name');
     renderDefaultInstallerBox(allInstallers);
 
-    const { data: leads } = await sbClient.from('leads').select('*').eq('referral_code', myCode).order('created_at', { ascending: false });
+    const { data: leads } = await sbClient.from('leads').select('*').eq('referral_code', myCode).order('updated_at', { ascending: false });
     
     currentLeads = leads || []; // 🔥 新增：把数据存入全局变量
 
@@ -127,6 +127,7 @@ function renderReferrerTable(leads, installers) {
     }
 
     leads.forEach(lead => {
+            
         const commVal = lead.commission_reward || 200;
         const unlockFee = 20; 
         const status = lead.status;
@@ -219,7 +220,7 @@ async function loadInstallerDashboard() {
         .select('*')
         .neq('status', 'pending')
         .or(`assigned_partner_id.eq.${currentProfile.id},cancelled_by_ids.cs.{${currentProfile.id}}`)
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
     currentLeads = leads || []; // 🔥 新增：把数据存入全局变量
     let refMap = {};
     const { data: allPartners } = await sbClient.from('partners').select('ref_code, contact_name, company_name');
@@ -317,13 +318,17 @@ async function loadInstallerDashboard() {
         const dateStr = new Date(lead.created_at).toLocaleDateString('en-AU', {month:'short', day:'numeric'});
         const leadSafe = encodeURIComponent(JSON.stringify(lead));
 
+        const updateTag = lead.has_client_update 
+        ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` 
+        : '';
+
         const tr = document.createElement('tr');
         if (displayStatus === 'new' && isMyLead) tr.style.backgroundColor = '#f0fdf4';
         if (isPastCancelled && !isMyLead) tr.style.backgroundColor = '#f9fafb';
 
         tr.innerHTML = `
             <td>
-                <div class="clickable-name" onclick="showLeadDetails('${leadSafe}')">${lead.name}</div>
+                <div class="clickable-name" onclick="handleLeadClick('${leadSafe}',${lead.id})">${lead.name}${updateTag}</div>
                 <div class="user-sub">${dateStr}</div>
             </td>
             <td style="vertical-align:middle; font-size:0.8rem; font-weight:600; color:#475569;">${refName}</td>
@@ -361,34 +366,217 @@ function updateInstallerStatsUI(total, activeNew, valid, cancelled, installed, c
     document.getElementById('inst-stat-total-spent').innerText = fmt.format(unlockPaid + commPaid);
 }
 
+
 // ==========================================
-// 🔵 Core Actions & Helpers
+// 🔍 Lead Details Modal Logic (Final V6 - With Tag Mapping)
 // ==========================================
 window.showLeadDetails = function(leadEncoded) {
     const lead = JSON.parse(decodeURIComponent(leadEncoded));
+    const profile = lead.user_profile || {}; 
+    
+    // 1. 获取 DOM 元素
     const modal = document.getElementById('lead-details-modal');
     const content = document.getElementById('modal-body');
-    document.getElementById('modal-lead-name').innerText = lead.name;
+    const title = document.getElementById('modal-lead-name');
+    if (title) title.innerText = lead.name;
     
-    content.innerHTML = `
+    // 2. 判断角色权限
+    const isInstaller = (currentProfile.role === 'solar_pro' || currentProfile.role === 'installer');
+
+    // ==========================================
+    // A. 基础信息 (Referrer & Installer 可见)
+    // ==========================================
+    let html = `
         <div class="detail-row"><span class="detail-label">Phone:</span> <span class="detail-value"><a href="tel:${lead.phone}">${lead.phone || 'N/A'}</a></span></div>
-        <div class="detail-row"><span class="detail-label">Email:</span> <span class="detail-value">${lead.email || 'customer@email.com'}</span></div>
-        <div class="detail-row"><span class="detail-label">Address:</span> <span class="detail-value">${lead.address || lead.postcode + ', Australia'}</span></div>
-        <hr style="border:0; border-top:1px solid #f1f5f9; margin:15px 0;">
-        <div class="detail-row"><span class="detail-label">System Size:</span> <span class="detail-value">6.6kW Solar System</span></div>
-        <div class="detail-row"><span class="detail-label">Panel Pref:</span> <span class="detail-value">Jinko / Trina</span></div>
-        <div class="detail-row"><span class="detail-label">Inverter:</span> <span class="detail-value">Growatt 5kW</span></div>
-        <div class="detail-row"><span class="detail-label">Bill:</span> <span class="detail-value">$350 - $500 / qtr</span></div>
-        <div style="margin-top:15px;">
-            <div class="detail-label" style="margin-bottom:5px;">Site Photos:</div>
-            <div style="display:flex; gap:5px;">
-                <div style="width:60px; height:60px; background:#e2e8f0; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:#64748b;">Meter</div>
-                <div style="width:60px; height:60px; background:#e2e8f0; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; color:#64748b;">Roof</div>
-            </div>
-        </div>
+        <div class="detail-row"><span class="detail-label">Email:</span> <span class="detail-value"><a href="mailto:${lead.email}">${lead.email || 'N/A'}</a></span></div>
+        <div class="detail-row"><span class="detail-label">Address:</span> <span class="detail-value">${lead.address || 'N/A'}</span></div>
+        <div class="detail-row"><span class="detail-label">Quarterly Bill:</span> <span class="detail-value">${lead.bill_amount ? '$' + lead.bill_amount : 'N/A'}</span></div>
     `;
+
+    // ==========================================
+    // B. 安装模式 (逻辑：关键字判断)
+    // ==========================================
+    const rawMode = lead.installation_mode || profile.install_mode || 'both';
+    const modeStr = String(rawMode).toLowerCase();
+    let modeDisplay = '';
+
+    if (isInstaller) {
+        if (modeStr.includes('both') || (modeStr.includes('solar') && modeStr.includes('battery'))) {
+            modeDisplay = `<div style="font-weight:700; color:var(--primary);">${lead.solar_size || 6.6}kW Solar + ${lead.battery_size || 10}kWh Battery</div>`;
+        }
+        else if (modeStr.includes('battery')) {
+            const existSolar = profile.existing_solar_size ? `${profile.existing_solar_size}kW` : 'Unknown';
+            modeDisplay = `<div style="font-weight:700; color:var(--primary);">${lead.battery_size || 0}kWh Battery</div>
+                           <div style="font-size:0.75rem; color:var(--text-light); margin-top:2px;">(Existing Solar: ${existSolar})</div>`;
+        } 
+        else if (modeStr.includes('solar')) {
+            modeDisplay = `<div style="font-weight:700; color:var(--primary);">${lead.solar_size || 6.6}kW Solar System</div>`;
+        }
+        else {
+            modeDisplay = `<div style="font-weight:700; color:var(--text-light);">${rawMode}</div>`;
+        }
+    } else {
+        modeDisplay = `<span style="font-weight:600; color:var(--text-main);">${rawMode}</span>`;
+    }
+    
+    html += `<div class="detail-row" style="align-items:flex-start;"><span class="detail-label">System Mode:</span> <span class="detail-value">${modeDisplay}</span></div>`;
+
+    // ==========================================
+    // C. Installer 专属详细信息 (全量字段)
+    // ==========================================
+    if (isInstaller) {
+        const language = lead.language || profile.language || 'English';
+        const phase = lead.property_phase || profile.property_phase || 'Unknown'; 
+
+        // 1. Property Profile 数据提取
+        const pType = lead.property_type || profile.property_type || 'Unknown';
+        const pStoreys = lead.property_storeys || profile.property_storeys || profile.storey || 'Unknown';
+        const pRoof = lead.property_roof || profile.property_roof || profile.roof_type || 'Unknown';
+        const pShade = lead.property_shade || profile.property_shade || profile.shade || 'Unknown';
+
+        // 2. User Profile 标签映射表 (Key -> 显示文字)
+        const TAG_MAP = {
+            'ac': '❄️ Air Con',
+            'hws': '💧 Elec. Hot Water',
+            'pool': '🏊 Pool Pump',
+            'ev_now': '🚗 EV Owner',
+            'ev_plan': '🔜 Plan to buy EV',
+            'wfh': '🏠 Work From Home',
+            'gas2elec': '🔥 Switch Gas to Elec',
+            'backup': '🔋 Backup Power',
+            'general': '📺 General Usage',
+            'others': '⚡ High Load'
+        };
+
+        // 3. 提取所有值为 true 的标签
+        const profileFlags = Object.entries(profile)
+            .filter(([key, val]) => (val === true || val === 'true' || val === 'Yes') && TAG_MAP[key])
+            .map(([key, val]) => TAG_MAP[key]);
+
+        html += `
+            <hr style="border:0; border-top:1px solid #e2e8f0; margin:15px 0;">
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <div class="detail-label">Est. Price</div>
+                    <div style="color:var(--accent); font-weight:700;">${lead.estimated_price || 'N/A'}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Language</div>
+                    <div style="font-weight:600;">${language}</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                <div>
+                    <div class="detail-label">Brand Pref</div>
+                    <div>${profile.selected_brand || 'Any Tier 1'}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Phase</div>
+                    <div>${phase}</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div>
+                    <div class="detail-label">Timeframe</div>
+                    <div>${profile.install_timeframe || 'Flexible'}</div>
+                </div>
+                <div>
+                    <div class="detail-label">Contact Method</div>
+                    <div>${profile.contact_method || 'Any'}</div>
+                </div>
+            </div>
+
+            <div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid #e2e8f0;">
+                <div class="detail-label" style="margin-bottom:8px; font-weight:700; color:var(--primary);">Property Profile</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:0.8rem;">
+                    <div><span style="color:#64748b;">Type:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pType}</span></div>
+                    <div><span style="color:#64748b;">Storeys:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pStoreys}</span></div>
+                    <div><span style="color:#64748b;">Roof:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pRoof}</span></div>
+                    <div><span style="color:#64748b;">Shade:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pShade}</span></div>
+                </div>
+            </div>
+
+            ${profileFlags.length > 0 ? `
+            <div style="margin-bottom:15px;">
+                <div class="detail-label" style="margin-bottom:6px;">Usage & Lifestyle</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    ${profileFlags.map(flag => `<span style="background:#e0f2fe; color:#0369a1; padding:4px 10px; border-radius:15px; font-size:0.75rem; font-weight:600; border:1px solid #bae6fd;">${flag}</span>`).join('')}
+                </div>
+            </div>` : ''}
+
+            <div>
+                <div class="detail-label" style="margin-bottom:8px;">Site Photos</div>
+                <div style="display:flex; gap:10px;">
+                    ${renderPhotoBox(lead.meter_box_photo, 'Meter Box')}
+                    ${renderPhotoBox(lead.roof_photo, 'Roof')}
+                </div>
+            </div>
+
+            <div style="margin-top:20px; border-top:2px solid #f1f5f9; padding-top:15px;">
+                <div style="font-weight:700; font-size:0.85rem; margin-bottom:10px; color:var(--primary);">User log / notes</div>
+                <div id="lead-history-container">${renderSimpleHistory(lead.notes)}</div>
+            </div>
+        `;
+    }
+
+    content.innerHTML = html;
     modal.style.display = 'flex';
-    setTimeout(() => modal.style.opacity = '1', 10);
+    setTimeout(() => { modal.style.opacity = '1'; }, 10);
+}
+
+// ==========================================
+// 🧩 Helper Functions (Add these at the bottom if missing)
+// ==========================================
+
+// 1. 渲染照片小方块
+function renderPhotoBox(url, label) {
+    if (url) {
+        return `<a href="${url}" target="_blank" style="text-decoration:none;">
+            <div style="width:70px; height:70px; background:#e2e8f0; border-radius:8px; background-image:url('${url}'); background-size:cover; border:1px solid #cbd5e1; position:relative;">
+                <span style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.5); color:white; font-size:0.6rem; text-align:center; padding:2px;">${label}</span>
+            </div>
+        </a>`;
+    } else {
+        return `<div style="width:70px; height:70px; background:#f8fafc; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px dashed #cbd5e1; color:#94a3b8;">
+            <span style="font-size:1.2rem;">📷</span>
+            <span style="font-size:0.6rem;">No ${label}</span>
+        </div>`;
+    }
+}
+
+// 2. 渲染简单的历史记录 (用于详情弹窗底部)
+function renderSimpleHistory(notes) {
+    if (!notes) return '<div style="font-size:0.75rem; color:#94a3b8; font-style:italic;">No changes recorded.</div>';
+    
+    return notes.split('\n').filter(l => l.trim()).reverse().map(log => {
+        let borderColor = '#cbd5e1';
+        let bgColor = '#f8fafc';
+        
+        if (log.includes('[LOCK_ALERT]')) { borderColor = '#f59e0b'; bgColor = '#fff7ed'; }
+        if (log.includes('[CONFIG_UPDATE]')) { borderColor = '#10b981'; bgColor = '#f0fdf4'; }
+        
+        return `<div style="font-size:0.75rem; margin-bottom:5px; padding:6px 10px; background:${bgColor}; border-left:3px solid ${borderColor}; border-radius:4px; color:var(--text-main);">
+            ${log}
+        </div>`;
+    }).join('');
+}
+
+// 辅助函数：渲染照片框
+function renderPhotoBox(url, label) {
+    if (url) return `<a href="${url}" target="_blank" style="width:60px; height:60px; background:#e2e8f0; border-radius:8px; background-image:url('${url}'); background-size:cover;"></a>`;
+    return `<div style="width:60px; height:60px; background:#f1f5f9; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.65rem; color:#94a3b8; border:1px dashed #cbd5e1;">No ${label}</div>`;
+}
+
+// 辅助函数：渲染简单历史记录
+function renderSimpleHistory(notes) {
+    if (!notes) return '<div style="font-size:0.75rem; color:#94a3b8;">No history.</div>';
+    return notes.split('\n').filter(l => l.trim()).reverse().map(log => {
+        let color = log.includes('[LOCK_ALERT]') ? '#f59e0b' : (log.includes('[CONFIG_UPDATE]') ? '#10b981' : '#64748b');
+        return `<div style="font-size:0.75rem; margin-bottom:4px; padding:4px 8px; background:#f8fafc; border-left:3px solid ${color};">${log}</div>`;
+    }).join('');
 }
 
 window.closeLeadModal = function(e) {
@@ -1023,3 +1211,39 @@ function getStatusColor(status) {
         default: return '#cbd5e1';          // 默认灰
     }
 }
+
+// ==========================================
+// 🍊 Update Tag Logic (Click-to-Clear)
+// ==========================================
+window.handleLeadClick = async function(leadEncoded, leadId) {
+    // 1. 先做正事：打开详情弹窗 (调用你原来的函数)
+    // 注意：leadEncoded 是被编码过的字符串，可以直接传给 showLeadDetails
+    if (typeof showLeadDetails === 'function') {
+        showLeadDetails(leadEncoded);
+    }
+
+    // 2. 视觉反馈：查找那个 ID 对应的橙色标签
+    const tagElement = document.getElementById(`tag-update-${leadId}`);
+    
+    // 如果标签存在（说明是未读状态），我们把它消灭掉
+    if (tagElement) {
+        // A. 立即在界面上隐藏（给用户极快的感觉）
+        tagElement.style.display = 'none';
+
+        try {
+            // B. 在后台默默告诉数据库：这个更新已读了
+            const { error } = await sbClient
+                .from('leads')
+                .update({ has_client_update: false })
+                .eq('id', leadId);
+
+            if (error) {
+                console.error("Failed to sync read status:", error);
+            } else {
+                // console.log("Update flag cleared for lead:", leadId);
+            }
+        } catch (err) {
+            console.error("Error clearing update flag:", err);
+        }
+    }
+};

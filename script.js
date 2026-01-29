@@ -1690,7 +1690,16 @@ async function submitLead() {
             language: curLang,
             installation_mode: curMode,
             state: document.getElementById('state-select').value,
-            created_at: new Date().toISOString(), // 刷新创建时间或者保持原样
+            
+            // ❌ 【删除这行】绝对不要传 created_at，否则会覆盖老用户的“第一次”时间
+            // created_at: new Date().toISOString(), 
+
+            // 🔥 【新增】强制刷新 updated_at，让它排到列表最上面
+            updated_at: new Date().toISOString(),
+
+            // 🔥 【新增】点亮 Installer 端的橘色 "UPDATED" 提醒标
+            has_client_update: true, 
+            
             notes: "[System] User Unlocked Price (Preliminary Lead)",
             
             // 房屋详情
@@ -1854,6 +1863,7 @@ async function sendFinalEnquiry() {
         // 4. 构建更新数据包
         // 注意：这里我们准备 update，所以不需要包含所有字段，只要包含变更字段即可
         // 但为了保险，我们保持全量更新
+        // 4. 构建更新数据包
         const payload = {
             // 基本信息更新
             language: curLang,
@@ -1872,7 +1882,7 @@ async function sendFinalEnquiry() {
             file_name: fileName,
             file_url: fileUrl,
             
-            // 再次确认配置 (防止用户回去改了配置)
+            // 再次确认配置
             bill_amount: billInput.value,
             budget_target: document.getElementById('budget-input').value,
             solar_size: document.getElementById('solar-val').innerText,
@@ -1885,7 +1895,11 @@ async function sendFinalEnquiry() {
             chat_history: globalChatHistory,
             referral_code: trackingCode,
             
-            updated_at: new Date().toISOString() // 刷新更新时间
+            // 🔥 【关键】刷新时间，保证排序
+            updated_at: new Date().toISOString(),
+
+            // 🔥 【关键】告诉 Installer 这是一个客户主动发起的更新
+            has_client_update: true 
         };
 
         // 5. 🔥 核心修改：执行 Update 而不是 Insert
