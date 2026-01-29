@@ -339,6 +339,127 @@
             position: relative;
             transform: translateY(0);
         }
+
+        /* =========================================
+           📱 Mobile Bottom Navigation Bar
+           ========================================= */
+        
+        /* 默认隐藏底栏 (桌面端) */
+        .bottom-nav { display: none; }
+
+        /* 仅在手机/平板端显示 (屏幕宽度小于 768px) */
+        @media (max-width: 768px) {
+            /* 给底部留出空间，防止内容被遮挡 */
+            body { padding-bottom: 90px !important; }
+
+            .bottom-nav {
+                display: flex; /* 显示出来 */
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background: white;
+                border-top: 1px solid #e2e8f0;
+                justify-content: space-around; /* 三个图标均匀分布 */
+                align-items: center;
+                padding: 10px 0;
+                z-index: 9999; /* 保证在最上层 */
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            }
+
+            .nav-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-decoration: none;
+                color: #94a3b8; /* 默认灰色 */
+                font-size: 0.7rem;
+                font-weight: 600;
+                width: 33%;
+                cursor: pointer;
+                transition: color 0.2s;
+            }
+
+            .nav-item svg {
+                width: 24px;
+                height: 24px;
+                margin-bottom: 4px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            /* 选中状态 (Partner) - 绿色高亮 */
+            .nav-item.active {
+                color: #10b981; 
+            }
+        }
+
+        /* =========================================
+           ⏱️ Timeline Modal Styles
+           ========================================= */
+        .timeline-container {
+            margin-top: 20px;
+            padding-left: 10px;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 15px;
+            padding-bottom: 25px; /* 间距 */
+            position: relative;
+        }
+
+        /* 垂直连接线 */
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 7px; /* 圆点中心对齐 */
+            top: 24px;
+            bottom: 0;
+            width: 2px;
+            background: #e2e8f0;
+        }
+
+        /* 最后一个项目不显示连接线 */
+        .timeline-item:last-child::before { display: none; }
+        .timeline-item:last-child { padding-bottom: 0; }
+
+        /* 圆点样式 */
+        .timeline-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #cbd5e1; /* 默认灰色 */
+            flex-shrink: 0;
+            margin-top: 4px;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px #e2e8f0;
+            z-index: 1; /* 盖住线 */
+        }
+
+        /* 完成/激活状态的圆点 */
+        .timeline-dot.done {
+            background: var(--accent); /* 绿色 */
+            box-shadow: 0 0 0 2px #d1fae5;
+        }
+        .timeline-dot.current {
+            background: var(--blue); /* 蓝色 */
+            box-shadow: 0 0 0 2px #dbeafe;
+            transform: scale(1.1);
+        }
+        .timeline-dot.cancelled {
+            background: var(--red); /* 红色 */
+            box-shadow: 0 0 0 2px #fee2e2;
+        }
+
+        /* 文字内容 */
+        .timeline-content { flex: 1; }
+        .timeline-time { font-size: 0.7rem; color: #94a3b8; margin-bottom: 2px; }
+        .timeline-title { font-weight: 600; color: var(--primary); font-size: 0.9rem; }
+        .timeline-desc { font-size: 0.8rem; color: #64748b; margin-top: 4px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -649,6 +770,59 @@
             <button onclick="closeVerifyModal()" style="flex:1; background:#f1f5f9; border:none; padding:10px; border-radius:8px; color:#64748b; font-weight:600; cursor:pointer;">Cancel</button>
             <button onclick="submitUnlock()" id="btn-verify-submit" style="flex:1; background:var(--primary); border:none; padding:10px; border-radius:8px; color:white; font-weight:600; cursor:pointer;">Unlock</button>
         </div>
+    </div>
+</div>
+
+<div class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <svg viewBox="0 0 24 24">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Quote</span>
+        </a>
+
+        <a href="javascript:alert('Map feature coming soon!')" class="nav-item">
+            <svg viewBox="0 0 24 24">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                <line x1="8" y1="2" x2="8" y2="18"></line>
+                <line x1="16" y1="6" x2="16" y2="22"></line>
+            </svg>
+            <span>Map</span>
+        </a>
+
+        <div class="nav-item active">
+            <svg viewBox="0 0 24 24">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Partner</span>
+        </div>
+    </div>
+    
+    <div id="timeline-modal" class="modal-overlay" onclick="closeTimelineModal(event)">
+    <div class="modal-content" style="max-width: 400px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin:0; color:var(--primary);">Project Timeline</h3>
+            <div onclick="closeTimelineModal()" class="modal-close" style="font-size:1.5rem; cursor:pointer;">&times;</div>
+        </div>
+        
+        <div style="background:#f8fafc; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px; padding-bottom:15px; border-bottom:1px solid #e2e8f0;">
+                <div id="time-lead-avatar" style="width:40px; height:40px; background:white; border:1px solid #e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--primary);">JS</div>
+                <div>
+                    <div id="time-lead-name" style="font-weight:700; font-size:0.95rem;">John Smith</div>
+                    <div id="time-lead-status" style="font-size:0.75rem; padding:2px 8px; border-radius:4px; display:inline-block; margin-top:2px;">Current: New</div>
+                </div>
+            </div>
+
+            <div id="timeline-list" class="timeline-container">
+                </div>
+        </div>
+
+        <button onclick="closeTimelineModal()" style="width:100%; margin-top:20px; padding:12px; background:white; border:1px solid #e2e8f0; color:#64748b; border-radius:8px; font-weight:600; cursor:pointer;">Close</button>
     </div>
 </div>
 

@@ -1613,29 +1613,30 @@ function isValidPostcode(p) { return /^\d{4}$/.test(p); }
 // ==========================================
 // [UPDATED] 提交初步线索 (Unlock Quote) - 保存到 Supabase
 // ==========================================
+// ==========================================
+// 🟢 修改版 submitLead (防重 + 暴力解锁 UI)
+// ==========================================
 async function submitLead() {
     const name = document.getElementById('lead-name').value.trim();
     const email = document.getElementById('lead-email').value.trim();
     const phone = document.getElementById('lead-phone').value.trim();
-    const address = document.getElementById('lead-address').value.trim(); // 获取地址
+    const address = document.getElementById('lead-address').value.trim(); 
     const msgEl = document.getElementById('submit-msg');
 
-    // 🟢 [新增 1] 尝试从缓存里取出推荐码
+    // 尝试从缓存里取出推荐码
     const trackingCode = localStorage.getItem('solaryo_ref_code') || null;
 
     const finalBtn = document.getElementById('btn-final-enquiry');
     if (finalBtn) {
         finalBtn.style.display = 'flex';
-        finalBtn.classList.add('highlight'); // 添加呼吸效果
+        finalBtn.classList.add('highlight'); 
     }
     const stickyBtn = document.querySelector('.sticky-btn');
     if (stickyBtn) {
-        // 强制改成极简文案，节省手机空间
         stickyBtn.innerText = (curLang === 'cn') ? "咨询" : "Enquiry"; 
         stickyBtn.classList.add('highlight');
     }
 
-    // 清除错误信息
     msgEl.innerText = '';
 
     // 1. 基础验证
@@ -1656,88 +1657,107 @@ async function submitLead() {
     }
 
     const btn = document.getElementById('btn-submit');
-    const originalBtnText = btn.innerText; // 保存原始按钮文字
+    const originalBtnText = btn.innerText; 
 
-    // 2. 更改按钮状态 (防止重复点击)
+    // 2. 更改按钮状态
     btn.innerText = curLang === 'cn' ? "处理中..." : "Processing...";
     btn.disabled = true;
 
     try {
-        // --- 3. 构建数据包 (Payload) ---
-        // 即使没有最终确认，我们也把当前计算器里的所有配置存下来
-        const payload = {
-            created_at: new Date().toISOString(),
+        // --- 3. 准备数据 ---
+        const solarText = document.getElementById('solar-val').innerText;
+        const batText = document.getElementById('bat-val').innerText;
+        const priceText = document.getElementById('out-net').innerText;
+
+        // A. 准备发送给智能大脑 (SQL V13) 的核心数据
+        // 参数名必须严格对应 SQL 函数的定义 (p_name, p_phone...)
+        const rpcPayload = {
+            p_name: name,
+            p_phone: phone, // 直接传，SQL 会自动处理格式
+            p_email: email.toLowerCase(),
+            p_address: address,
+            p_postcode: extractedPostcode || "",
+            p_solar_size: solarText,
+            p_battery_size: batText,
+            p_bill: document.getElementById('bill-input').value,
+            p_estimated_price: priceText,
+            p_user_profile: userApplianceProfile || {}, 
+            p_ref_code: trackingCode
+        };
+
+        // B. 准备 SQL 函数没包含的“额外详情” (用于后续补全)
+        const detailPayload = {
             language: curLang,
             installation_mode: curMode,
             state: document.getElementById('state-select').value,
-
-            // 核心联系方式
-            name: name,
-            phone: phone,
-            email: email,
-            address: address,
-            postcode: extractedPostcode || "", // 如果 Google Maps 提取到了邮编
-
-            // 🟢 [新增 2] 写入推荐码 (必须和数据库字段一致)
-            referral_code: trackingCode,
-
-            // 标记这是一个 "解锁阶段" 的线索，而非最终确认
+            created_at: new Date().toISOString(), // 刷新创建时间或者保持原样
             notes: "[System] User Unlocked Price (Preliminary Lead)",
             
-            // 补全房屋详情 (Property Details)
+            // 房屋详情
             property_storeys: getSelectedText('storey-select'),
             property_roof: getSelectedText('roof-select'),
             property_shade: getSelectedText('shade-select'),
             property_type: getSelectedText('property-type-select'),
             property_phase: getSelectedText('phase-select'),
             
-            // 系统配置数据
-            bill_amount: document.getElementById('bill-input').value,
-            budget_target: document.getElementById('budget-input').value,
-            solar_size: document.getElementById('solar-val').innerText,
-            battery_size: document.getElementById('bat-val').innerText,
+            // 其他配置
             existing_solar_size: document.getElementById('exist-solar-val').innerText,
+            budget_target: document.getElementById('budget-input').value,
             quote_tier: selectedTier,
-            estimated_price: document.getElementById('out-net').innerText,
-
-            // 用户画像
-            user_profile: userApplianceProfile,
-
-            // 聊天记录 (如果有)
             chat_history: globalChatHistory
         };
 
-        // --- 4. 发送给 Supabase ---
-        const { error } = await supabaseClient.from('leads').insert([payload]);
+        // --- 4. 🔥 核心修改：调用智能防重函数 (Rewrite/Insert) ---
+        const { data, error } = await supabaseClient.rpc('submit_smart_quote', rpcPayload);
 
-        if (error) {
-            console.error("Supabase Save Error:", error);
-            // 这里可以选择是否报错，或者静默失败继续解锁
-            // throw error; // 如果想让失败时阻止解锁，取消注释这行
+        if (error) throw error;
+
+        // 拿到 ID！(无论是新单还是老单，都会返回 ID)
+        const currentLeadId = data.id;
+        console.log("Smart Submit Result:", data.status, "ID:", currentLeadId);
+        
+        // 存入缓存，给 Step 2 用
+        localStorage.setItem('current_lead_id', currentLeadId);
+
+        // --- 5. ⚡️ 立即补全详情 (Update) ---
+        // 因为 RPC 函数只处理了核心字段，我们这里用 ID 把剩下的房屋详情填进去
+        if (currentLeadId) {
+            await supabaseClient.from('leads').update(detailPayload).eq('id', currentLeadId);
         }
 
-        // --- 5. 成功后的 UI 逻辑 (保持原有动效) ---
+        // --- 6. 成功后的 UI 逻辑 (包含暴力解锁修复) ---
 
-        // 存入 Session 避免刷新后重新锁住
         sessionStorage.setItem('quoteUnlocked', 'true');
 
-        // 隐藏遮罩层
-        document.getElementById('unlock-overlay').classList.add('hidden');
+        // 处理遮罩层 (兼容 hidden-opt)
+        const overlay = document.getElementById('unlock-overlay');
+        if (overlay) {
+            overlay.classList.add('hidden');      // 你的原代码逻辑
+            overlay.classList.add('hidden-opt');  // 我们的修复逻辑
+            overlay.style.display = 'none';       // 暴力隐藏
+        }
 
-        // 解锁价格模糊
-        document.querySelectorAll('.price-number').forEach(el => el.classList.remove('locked'));
+        // 🟢 [暴力修复] 处理结果卡文字阴影/模糊
+        document.querySelectorAll('.price-number').forEach(el => {
+            el.classList.remove('locked');
+            el.classList.remove('blur-text');
+            
+            // 强制重置样式，确保变亮
+            el.style.filter = 'none';         
+            el.style.webkitFilter = 'none';   
+            el.style.textShadow = 'none';     
+            el.style.color = '';     
+            el.style.opacity = '1';
+        });
 
-        // 显示 VPP Banner 和 最终预约按钮
         const vppBanner = document.getElementById('vpp-banner');
         if (vppBanner && curMode !== 'solar') vppBanner.style.display = 'flex';
 
         const finalBtnDisplay = document.getElementById('btn-final-enquiry');
         if (finalBtnDisplay) finalBtnDisplay.style.display = 'flex';
 
-        // 启动底部悬浮栏监听
         setupStickyObserver();
 
-        // 提示信息和彩带特效
         msgEl.style.color = '#66bb6a';
         msgEl.innerText = i18n[curLang].alert_sent;
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#10b981', '#f59e0b', '#0f172a'] });
@@ -1745,7 +1765,6 @@ async function submitLead() {
         btn.innerText = curLang === 'cn' ? "解锁成功" : "Unlocked!";
 
     } catch (err) {
-        // 如果出错，恢复按钮状态，提示用户
         console.error("Submit Lead Error:", err);
         msgEl.style.color = '#ef5350';
         msgEl.innerText = "Network Error. Please try again.";
@@ -1775,6 +1794,9 @@ function getSelectedText(elementId) {
     return "";
 }
 // [MODIFIED] C端最终询价 (支持多文件上传)
+// ==========================================
+// 🟢 修改版 sendFinalEnquiry (只更新不插入)
+// ==========================================
 async function sendFinalEnquiry() {
     // 1. 获取 DOM 元素
     const nameEl = document.getElementById('conf-name');
@@ -1787,7 +1809,8 @@ async function sendFinalEnquiry() {
     const billInput = document.getElementById('bill-input');
     const contactMethodEl = document.querySelector('input[name="contact-method"]:checked');
     const fileInput = document.getElementById('conf-file');
-    // 🟢 [新增] 1. 取出推荐码
+    
+    // 取出推荐码
     const trackingCode = localStorage.getItem('solaryo_ref_code') || null;
 
     // 2. 验证
@@ -1798,49 +1821,41 @@ async function sendFinalEnquiry() {
     }
 
     const btn = document.getElementById('btn-final-submit');
+    const originalBtnText = btn.innerText;
     btn.disabled = true;
     btn.innerText = curLang === 'cn' ? "提交中..." : "Sending...";
 
     try {
-        // 🟢 [核心修改] 多文件上传逻辑
+        // 多文件上传逻辑 (保持你原版逻辑)
         let fileUrl = null;
         let fileName = null;
 
         if (fileInput.files.length > 0) {
             const files = Array.from(fileInput.files);
-            
-            // 检查大小
             for (let file of files) {
                 if (file.size > 10 * 1024 * 1024) {
                     throw new Error((curLang === 'cn' ? "文件过大: " : "File too large: ") + file.name);
                 }
             }
-
-            // 并行上传
             const uploadPromises = files.map(async (file) => {
                 const uniqueName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-                
                 const { data: uploadData, error: uploadError } = await supabaseClient
                     .storage.from('uploads').upload(uniqueName, file);
-
                 if (uploadError) throw uploadError;
-
                 const { data: publicUrlData } = supabaseClient
                     .storage.from('uploads').getPublicUrl(uploadData.path);
-
                 return { url: publicUrlData.publicUrl, name: file.name };
             });
-
             const results = await Promise.all(uploadPromises);
-            
-            // 拼接字符串存入
             fileUrl = results.map(r => r.url).join(',');
             fileName = results.map(r => r.name).join(', ');
         }
 
-        // 4. 构建数据包
+        // 4. 构建更新数据包
+        // 注意：这里我们准备 update，所以不需要包含所有字段，只要包含变更字段即可
+        // 但为了保险，我们保持全量更新
         const payload = {
-            created_at: new Date().toISOString(),
+            // 基本信息更新
             language: curLang,
             installation_mode: curMode,
             state: stateEl.value,
@@ -1849,13 +1864,15 @@ async function sendFinalEnquiry() {
             email: emailEl.value,
             postcode: postcodeEl.value,
             address: addressEl ? addressEl.value : "",
+            
+            // 最终咨询特有字段
             contact_method: contactMethodEl ? contactMethodEl.value : 'phone',
             install_timeframe: getSelectedText('conf-timeframe'),
-            property_storeys: getSelectedText('storey-select'),
-            property_roof: getSelectedText('roof-select'),
-            property_shade: getSelectedText('shade-select'),
-            property_phase: getSelectedText('phase-select'),
-            property_type: getSelectedText('property-type-select'),
+            notes: notesEl.value ? `[User Note]: ${notesEl.value}` : null,
+            file_name: fileName,
+            file_url: fileUrl,
+            
+            // 再次确认配置 (防止用户回去改了配置)
             bill_amount: billInput.value,
             budget_target: document.getElementById('budget-input').value,
             solar_size: document.getElementById('solar-val').innerText,
@@ -1864,19 +1881,32 @@ async function sendFinalEnquiry() {
             quote_tier: selectedTier,
             estimated_price: document.getElementById('out-net').innerText,
             selected_brand: (curMode === 'solar') ? 'Solar Only (Panels)' : currentSelectedBrandName,
-            notes: notesEl.value,
             user_profile: userApplianceProfile,
             chat_history: globalChatHistory,
-            // 🟢 [新增] 2. 再次写入推荐码
             referral_code: trackingCode,
             
-            file_name: fileName,
-            file_url: fileUrl
+            updated_at: new Date().toISOString() // 刷新更新时间
         };
 
-        // 5. 写入数据库
-        const { error } = await supabaseClient.from('leads').insert([payload]);
-        if (error) throw error;
+        // 5. 🔥 核心修改：执行 Update 而不是 Insert
+        const leadId = localStorage.getItem('current_lead_id');
+
+        if (leadId) {
+            // A. 正常情况：更新 Step 1 的单子
+            const { error } = await supabaseClient
+                .from('leads')
+                .update(payload)
+                .eq('id', leadId);
+            
+            if (error) throw error;
+        } else {
+            // B. 异常兜底：如果用户清了缓存导致没 ID，才被迫 Insert
+            console.warn("No ID found, falling back to insert...");
+            payload.created_at = new Date().toISOString();
+            payload.status = 'new';
+            const { error } = await supabaseClient.from('leads').insert([payload]);
+            if (error) throw error;
+        }
 
         // 6. 成功反馈
         setTimeout(() => {
@@ -1899,7 +1929,7 @@ async function sendFinalEnquiry() {
         document.getElementById('final-msg').style.color = 'red';
         document.getElementById('final-msg').innerText = errMsg;
         btn.disabled = false;
-        btn.innerText = i18n[curLang].btn_confirm_send;
+        btn.innerText = originalBtnText; // 恢复按钮文字
     }
 }
 // --- Inline Validation ---

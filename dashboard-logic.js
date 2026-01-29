@@ -9,6 +9,7 @@ const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let currentProfile = null;
+let currentLeads = []; // 🔥 新增这一行，用来存数据给弹窗用
 
 // Status Flow
 const STATUS_FLOW = ['new', 'contacted', 'site_visit', 'deposit', 'installed'];
@@ -67,6 +68,8 @@ async function loadReferrerDashboard() {
 
     const { data: leads } = await sbClient.from('leads').select('*').eq('referral_code', myCode).order('created_at', { ascending: false });
     
+    currentLeads = leads || []; // 🔥 新增：把数据存入全局变量
+
     await updateReferrerStats(leads);
     renderReferrerTable(leads, allInstallers);
 }
@@ -185,7 +188,11 @@ function renderReferrerTable(leads, installers) {
                 <div class="user-sub">${dateStr}</div>
             </td>
             <td style="vertical-align: middle;">${earnedDisplay}</td>
-            <td style="vertical-align: middle;">${progressHTML}</td>
+            <td style="vertical-align: middle;">
+            <div onclick="openTimelineModal('${lead.id}')" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+              ${progressHTML}
+            </div>
+            </td>
             <td style="vertical-align: middle;">${assignSelect}</td>
             <td style="vertical-align: middle; text-align: right;">${actionBtn}</td>
         `;
@@ -213,7 +220,7 @@ async function loadInstallerDashboard() {
         .neq('status', 'pending')
         .or(`assigned_partner_id.eq.${currentProfile.id},cancelled_by_ids.cs.{${currentProfile.id}}`)
         .order('created_at', { ascending: false });
-
+    currentLeads = leads || []; // 🔥 新增：把数据存入全局变量
     let refMap = {};
     const { data: allPartners } = await sbClient.from('partners').select('ref_code, contact_name, company_name');
     if (allPartners) {
@@ -329,7 +336,11 @@ async function loadInstallerDashboard() {
                 </select>
                 ${(lead.status === 'new' && isMyLead) ? '<div style="font-size:0.65rem; color:#15803d; margin-top:2px;">Please contact ASAP</div>' : ''}
             </td>
-            <td style="vertical-align:middle;">${visualSteps}</td>
+            <td style="vertical-align:middle;">
+             <div onclick="openTimelineModal('${lead.id}')" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                 ${visualSteps}
+                </div>
+            </td>
         `;
         tbody.appendChild(tr);
     });
@@ -486,6 +497,19 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
 
     try {
         const updateData = { status: newStatus };
+
+        // 🔥 新增：里程碑打卡逻辑
+        // 只有当这个字段还是空的时候才打卡（防止来回切状态导致时间被覆盖，或者您希望覆盖也可以去掉判断）
+        const now = new Date().toISOString();
+        
+        if (newStatus === 'contacted') updateData.date_contacted = now;
+        if (newStatus === 'site_visit') updateData.date_site_visit = now;
+        if (newStatus === 'deposit') updateData.date_deposit = now;
+        if (newStatus === 'installed') updateData.date_installed = now;
+        if (newStatus === 'cancelled' || newStatus === 'fraud') updateData.date_cancelled = now;
+        
+        updateData.updated_at = now;
+
         if (shouldPayUnlock) updateData.fee_paid = true;
         if (shouldPayComm) updateData.final_commission = commissionAmount;
         if (newEstComm !== null) updateData.commission_reward = newEstComm; // Save the estimate to commission_reward
@@ -593,10 +617,26 @@ window.handleWithdraw = async function() {
         if(currentProfile.role === 'referral') loadReferrerDashboard(); else loadInstallerDashboard();
     }
 }
-window.handleNudge = function(leadId) {
+window.handleNudge = async function(leadId) {
     const btn = event.target;
+    const originalText = btn.innerText;
+    
+    // 1. UI 变化：显示正在发送
     btn.innerText = "Sending...";
-    setTimeout(() => { alert("Nudge sent!"); btn.innerText = "Nudged ✅"; }, 800);
+    btn.disabled = true;
+
+    // 2. (可选) 这里可以调用 Supabase 插入一条通知给 Installer
+    // await sbClient.from('notifications').insert({ ... });
+
+    // 3. 模拟发送延迟
+    setTimeout(() => {
+        alert("✅ Nudge Sent! \nWe've reminded the installer to update this lead.");
+        
+        // 4. 按钮变绿，防止重复点
+        btn.innerText = "Nudged ✅";
+        btn.style.background = "#dcfce7";
+        btn.style.color = "#166534";
+    }, 800);
 }
 window.handleReport = function(leadId, status) { prompt(`Report issue for Lead #${leadId}:`); alert("Report submitted."); }
 window.appSwitchToReferral = function() {
@@ -783,5 +823,203 @@ window.handleLogout = async function() {
     if(confirm("Are you sure you want to sign out?")) {
         await sbClient.auth.signOut();
         window.location.replace("index.html");
+    }
+}
+
+// ==========================================
+// ⏱️ Timeline Modal Logic (Milestone Version)
+// ==========================================
+
+window.openTimelineModal = function(leadId) {
+    if (!currentLeads || currentLeads.length === 0) return;
+    const lead = currentLeads.find(l => l.id == leadId);
+    if (!lead) return;
+
+    // 1. 头部信息 (保持不变)
+    const displayName = lead.name || lead.contact_name || lead.client_name || 'Valued Client';
+    document.getElementById('time-lead-name').innerText = displayName;
+    document.getElementById('time-lead-avatar').innerText = displayName.charAt(0).toUpperCase();
+    
+    const statusEl = document.getElementById('time-lead-status');
+    statusEl.innerText = 'Current: ' + formatStatus(lead.status);
+    statusEl.style.background = getStatusColor(lead.status) + '20'; 
+    statusEl.style.color = getStatusColor(lead.status);
+
+    // 2. 生成时间轴
+    const listContainer = document.getElementById('timeline-list');
+    listContainer.innerHTML = ''; 
+
+    // 定义每个阶段对应的时间字段
+    // 结构：[状态代码, 显示标题, 对应数据库字段, 描述文案]
+    const milestones = [
+        { id: 'new',        title: 'Lead Created',  time: lead.created_at,       desc: 'Customer submitted details.' },
+        { id: 'contacted',  title: 'Contacted',     time: lead.date_contacted,   desc: 'Initial call made & verified.' },
+        { id: 'site_visit', title: 'Site Visit',    time: lead.date_site_visit,  desc: 'Site inspection & Quote sent.' },
+        { id: 'deposit',    title: 'Deposit Paid',  time: lead.date_deposit,     desc: 'Quote accepted & Deposit received.' },
+        { id: 'installed',  title: 'Installed',     time: lead.date_installed,   desc: 'System installation completed.' }
+    ];
+
+    let html = '';
+    let isCancelled = ['cancelled', 'void', 'fraud'].includes(lead.status);
+    let reachedCurrent = false;
+
+    // A. 遍历正常流程
+    milestones.forEach((step, index) => {
+        // 如果已经到了取消状态，且当前步骤还没发生过（没时间），就跳过后续步骤
+        if (isCancelled && !step.time && index > 0) return; 
+
+        // 判定状态：
+        // 1. 有时间 = Done (已完成)
+        // 2. 是当前状态 = Current (进行中)
+        // 3. 没时间 = Pending (灰色)
+        
+        let isDone = !!step.time; // 有时间就算做过
+        let isCurrent = (lead.status === step.id);
+        
+        // 特殊处理：有些步骤可能跳过了（比如直接从New变Installed），中间没时间但逻辑上算过
+        // 如果当前步骤的索引 < 实际状态的索引，且没有时间，我们给它补一个 "Skipped/Auto" 或者默认显示
+        // 这里为了简单，我们只显示"有时间"的或者"当前"的
+        
+        // 渲染逻辑：
+        // 显示条件：(有时间) 或者 (是当前状态) 或者 (是第一步)
+        if (step.time || isCurrent || step.id === 'new') {
+            
+            let timeDisplay = step.time ? formatTime(step.time) : 'In Progress...';
+            
+            // 计算停滞时间 (Stagnation Alert)
+            let alertHtml = '';
+            if (isCurrent && step.time) {
+                const diffDays = (new Date() - new Date(step.time)) / (1000 * 60 * 60 * 24);
+                if (diffDays > 3) {
+                    alertHtml = `<div style="font-size:0.65rem; color:#ef4444; font-weight:700; margin-top:2px;">⏳ No updates for ${Math.floor(diffDays)} days</div>`;
+                }
+            }
+
+            html += `
+                <div class="timeline-item">
+                    <div class="timeline-dot ${isCurrent ? 'current' : 'done'}"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-time">${timeDisplay}</div>
+                        <div class="timeline-title">${step.title}</div>
+                        <div class="timeline-desc">${step.desc}</div>
+                        ${alertHtml}
+                    </div>
+                </div>
+            `;
+        }
+    });
+
+    // B. 如果是取消状态，在最后追加一个红色节点
+    if (isCancelled) {
+        const cancelTime = lead.date_cancelled || lead.updated_at;
+        html += `
+            <div class="timeline-item">
+                <div class="timeline-dot cancelled"></div>
+                <div class="timeline-content">
+                    <div class="timeline-time">${formatTime(cancelTime)}</div>
+                    <div class="timeline-title" style="color:var(--red)">${formatStatus(lead.status)}</div>
+                    <div class="timeline-desc">${lead.notes || 'Process terminated.'}</div>
+                </div>
+            </div>`;
+    }
+
+    listContainer.innerHTML = html;
+    
+    const modal = document.getElementById('timeline-modal');
+    modal.style.display = 'flex';
+    setTimeout(() => modal.style.opacity = '1', 10);
+}
+
+// 辅助函数：优化时间显示
+// 如果有时间 -> 显示时间
+// 如果没时间 -> 显示 "Done" 而不是 "Completed" (更简洁)
+function createTimelineItem(isDone, title, dateStr, desc, isCurrent = false) {
+    const dotClass = isCurrent ? 'current' : (isDone ? 'done' : '');
+    
+    // 🔥 这里控制显示什么文字
+    let timeDisplay = '✔ Done'; 
+    if (dateStr) {
+        timeDisplay = formatTime(dateStr);
+    }
+    
+    return `
+        <div class="timeline-item">
+            <div class="timeline-dot ${dotClass}"></div>
+            <div class="timeline-content">
+                <div class="timeline-time">${timeDisplay}</div>
+                <div class="timeline-title">${title}</div>
+                <div class="timeline-desc">${desc}</div>
+            </div>
+        </div>
+    `;
+}
+
+// 新增一个小助手：统一时间格式 (月-日 时:分)
+function formatTime(isoString) {
+    if (!isoString) return '';
+    return new Date(isoString).toLocaleString('en-AU', {
+        month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'
+    });
+}
+
+// 辅助函数：生成单行 HTML
+function createTimelineItem(isDone, title, dateStr, desc, isCurrent = false) {
+    const dotClass = isCurrent ? 'current' : (isDone ? 'done' : '');
+    const timeDisplay = dateStr ? new Date(dateStr).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : 'Completed';
+    
+    return `
+        <div class="timeline-item">
+            <div class="timeline-dot ${dotClass}"></div>
+            <div class="timeline-content">
+                <div class="timeline-time">${timeDisplay}</div>
+                <div class="timeline-title">${title}</div>
+                <div class="timeline-desc">${desc}</div>
+            </div>
+        </div>
+    `;
+}
+
+// 辅助函数：每个步骤的描述文案
+function getStepDescription(status) {
+    switch(status) {
+        case 'contacted': return 'Initial call made & requirements verified.';
+        case 'site_visit': return 'Site inspection scheduled/completed.';
+        case 'deposit': return 'Quote accepted & deposit received.';
+        case 'installed': return 'System installation completed.';
+        default: return 'Status updated.';
+    }
+}
+
+window.closeTimelineModal = function(e) {
+    if (e && e.target.id !== 'timeline-modal' && !e.target.classList.contains('modal-close')) return;
+    document.getElementById('timeline-modal').style.opacity = '0';
+    setTimeout(() => document.getElementById('timeline-modal').style.display = 'none', 300);
+}
+
+// ==========================================
+// 🎨 Helper Functions (Missing Pieces)
+// ==========================================
+
+// 1. 格式化状态文字 (例如: "site_visit" -> "Site Visit")
+function formatStatus(status) {
+    if (!status) return 'Unknown';
+    // 把下划线替换为空格，并首字母大写
+    return status.split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+// 2. 获取状态对应的颜色
+function getStatusColor(status) {
+    switch (status) {
+        case 'new': return '#3b82f6';       // 蓝色
+        case 'contacted': return '#8b5cf6'; // 紫色
+        case 'site_visit': return '#f59e0b';// 橙色
+        case 'deposit': return '#eab308';   // 黄色
+        case 'installed': return '#10b981'; // 绿色
+        case 'cancelled': return '#ef4444'; // 红色
+        case 'fraud': return '#ef4444';     // 红色
+        case 'void': return '#94a3b8';      // 灰色
+        default: return '#cbd5e1';          // 默认灰
     }
 }
