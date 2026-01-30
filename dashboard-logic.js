@@ -127,26 +127,26 @@ function renderReferrerTable(leads, installers) {
     }
 
     leads.forEach(lead => {
-            
         const commVal = lead.commission_reward || 200;
         const unlockFee = 20; 
         const status = lead.status;
         const cancelledList = lead.cancelled_by_ids || [];
         const isActuallyAssigned = !!lead.assigned_partner_id && status !== 'pending';
 
-        // 🔥 [Updated] 将 commission_reward 传入函数
+        // 1. 进度条 (保持显示 Under Review)
         let progressHTML = getSegmentedProgressHTML(status, isActuallyAssigned, lead.commission_reward);
         
+        // 2. 收益列显示 (保持显示 Under Review)
         let earnedDisplay = '';
-        if (status === 'fraud') earnedDisplay = `<div style="color:#ef4444; font-size:0.8rem;">Fraud / Invalid</div>`;
+        if (status === 'fraud_review') earnedDisplay = `<div style="color:#f59e0b; font-size:0.8rem; font-weight:600;">🛡️ Under Review</div>`;
+        else if (status === 'fraud') earnedDisplay = `<div style="color:#ef4444; font-size:0.8rem;">⛔ Invalid Lead</div>`;
         else if (status === 'cancelled') earnedDisplay = `<div style="color:#f59e0b; font-size:0.8rem; font-weight:700;">Cancelled</div><div style="font-size:0.65rem; color:#64748b;">(Fee Retained)</div>`;
         else if (status === 'installed') earnedDisplay = `<div style="font-size:0.75rem; color:#10b981;">Unlock: +$${unlockFee}</div><div style="font-size:0.75rem; color:#10b981;">Comm: +$${commVal}</div><div style="font-weight:700; color:#059669; border-top:1px dashed #bbf7d0;">Net: $${unlockFee + commVal}</div>`;
         else if (['contacted', 'site_visit', 'deposit'].includes(status)) earnedDisplay = `<div style="font-size:0.75rem; color:#10b981;">Unlock: +$${unlockFee}</div><div style="font-weight:700; color:#059669;">Net: $${unlockFee}</div>`;
-        // 🔥 修改：使用蓝色呼吸徽章样式
-        // 🔥 优化：强制换行，使宽度变窄，对齐数字列
         else earnedDisplay = `<div class="waiting-badge" style="white-space:nowrap;">⏳ Wait for<br>Contact ($20) </div>`;
 
-        const isLocked = isActuallyAssigned && !['cancelled', 'fraud', 'pending'].includes(status);
+        // 3. 锁定选择框 (保持锁定，防止审核期间换人)
+        const isLocked = (isActuallyAssigned && !['cancelled', 'pending'].includes(status)) || status === 'fraud_review' || status === 'fraud';
         const selectedId = lead.assigned_partner_id || currentProfile.default_installer_id;
         
         let assignSelect = `<select id="sel-lead-${lead.id}" class="installer-select" onchange="updateReassignUI(${lead.id})"
@@ -166,16 +166,34 @@ function renderReferrerTable(leads, installers) {
         }
         assignSelect += `</select>`;
 
+        // 4. 🔥 按钮逻辑修正：Fraud Review 状态下仍然显示 Report
         let actionBtn = '';
         const btnId = `btn-action-${lead.id}`;
-        if (status === 'fraud') actionBtn = `<button class="btn-action btn-report" disabled style="opacity:0.5">⛔ Invalid</button>`;
+        
+        // 🚨 优先级 1: 已确认欺诈 (永久禁用)
+        if (status === 'fraud') {
+             actionBtn = `<button class="btn-action btn-report" disabled style="opacity:0.5">⛔ Invalid</button>`;
+        }
+        // 🚨 优先级 2: 已取消 (处理重新分配逻辑)
         else if (status === 'cancelled') {
              if (isCurrentSelectionRejected) actionBtn = `<button id="${btnId}" onclick="handleReport(${lead.id}, 'Rejected')" class="btn-action btn-report">🚩 Report Issue</button>`;
              else actionBtn = `<button id="${btnId}" onclick="handleConfirmAllocation(${lead.id}, true)" class="btn-action btn-confirm" style="background:#f59e0b; border-color:#d97706;">🔄 Re-Assign</button>`;
         }
-        else if (!isActuallyAssigned) actionBtn = `<button id="${btnId}" onclick="handleConfirmAllocation(${lead.id}, false)" class="btn-action btn-confirm">✅ Confirm</button>`;
-        else if (isActuallyAssigned && status === 'new') actionBtn = `<button id="${btnId}" onclick="handleNudge(${lead.id})" class="btn-action btn-nudge">🔔 Nudge</button>`;
-        else actionBtn = `<button id="${btnId}" onclick="handleReport(${lead.id}, '${status}')" class="btn-action btn-report-light">🚩 Report</button>`;
+        // 🚨 优先级 3: 未分配
+        else if (!isActuallyAssigned) {
+             actionBtn = `<button id="${btnId}" onclick="handleConfirmAllocation(${lead.id}, false)" class="btn-action btn-confirm">✅ Confirm</button>`;
+        }
+        // 🚨 优先级 4: 新分配未读
+        else if (isActuallyAssigned && status === 'new') {
+             actionBtn = `<button id="${btnId}" onclick="handleNudge(${lead.id})" class="btn-action btn-nudge">🔔 Nudge</button>`;
+        }
+        // 🚨 优先级 5: 其他所有状态 (包含 fraud_review) -> 显示 Report 按钮
+        // 这样 Referrer 可以在审核期间点击 Report 进行质疑
+        else {
+             // 如果是审核中，为了醒目，可以稍微加深一点颜色，或者直接用标准的 report 样式
+             // 这里使用标准样式，点击后弹出 prompt
+             actionBtn = `<button id="${btnId}" onclick="handleReport(${lead.id}, '${status}')" class="btn-action btn-report-light">🚩 Report</button>`;
+        }
 
         const dateStr = new Date(lead.created_at).toLocaleDateString('en-AU', {month:'short', day:'numeric'});
         const leadSafe = encodeURIComponent(JSON.stringify(lead));
@@ -221,7 +239,7 @@ async function loadInstallerDashboard() {
         .neq('status', 'pending')
         .or(`assigned_partner_id.eq.${currentProfile.id},cancelled_by_ids.cs.{${currentProfile.id}}`)
         .order('updated_at', { ascending: false });
-    currentLeads = leads || []; // 🔥 新增：把数据存入全局变量
+    currentLeads = leads || [];
     let refMap = {};
     const { data: allPartners } = await sbClient.from('partners').select('ref_code, contact_name, company_name');
     if (allPartners) {
@@ -232,14 +250,8 @@ async function loadInstallerDashboard() {
     if(!tbody) return;
     tbody.innerHTML = '';
 
-    let countTotal = 0;
-    let countNew = 0;
-    let countCancelled = 0;
-    let countValid = 0;
-    let countInstalled = 0;
-    let countContacted = 0;
-    let totalUnlockPaid = 0;
-    let totalCommPaid = 0;
+    let countTotal = 0, countNew = 0, countCancelled = 0, countValid = 0, countInstalled = 0, countContacted = 0;
+    let totalUnlockPaid = 0, totalCommPaid = 0;
 
     if (!leads || leads.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No jobs assigned yet.</td></tr>`;
@@ -255,7 +267,7 @@ async function loadInstallerDashboard() {
         countTotal++;
         if (displayStatus === 'new') countNew++;
         
-        if (['cancelled', 'fraud'].includes(displayStatus)) {
+        if (['cancelled', 'fraud', 'fraud_review'].includes(displayStatus)) {
             countCancelled++;
         } else {
             countValid++;
@@ -268,9 +280,7 @@ async function loadInstallerDashboard() {
             }
             if (lead.status === 'installed') {
                 countInstalled++;
-                if (lead.final_commission) {
-                    totalCommPaid += Number(lead.final_commission) * 1.05;
-                }
+                if (lead.final_commission) totalCommPaid += Number(lead.final_commission) * 1.05;
             }
         }
 
@@ -278,25 +288,21 @@ async function loadInstallerDashboard() {
         let items = [];
         if (isMyLead) {
             if (lead.fee_paid) items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
-            
             if (lead.status === 'installed' && lead.final_commission) {
-                // 1. 如果已安装，显示最终佣金 (Final Comm)
                 const comm = Number(lead.final_commission);
                 const fee = comm * 0.05;
                 const total = comm + fee;
                 items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${total.toFixed(0)}</span></div><div style="font-size:0.65rem; color:#94a3b8; text-align:right; margin-top:-2px;">(Net: $${comm} | Fee: $${fee.toFixed(0)})</div>`);
             } 
             else if (lead.commission_reward && lead.commission_reward > 0) {
-                // 2. 🔥 新增：如果还没安装，但输入过预估值，显示 Est. Comm
-                // 这里的 commission_reward 存的是预估值 (V21.1逻辑)
                 items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
             }
-
             if (items.length > 0) financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
         } else if (isPastCancelled) {
             financialHtml = `<div style="font-size:0.7rem; color:#94a3b8; font-style:italic;">Connection Ended</div>`;
         }
 
+        // 🔥 更新下拉菜单生成逻辑
         const currentIdx = STATUS_FLOW.indexOf(displayStatus);
         let optionsHtml = '';
         STATUS_FLOW.forEach((step, idx) => {
@@ -306,21 +312,33 @@ async function loadInstallerDashboard() {
             if (step === 'contacted') label = "📞 Contacted ($50)";
             if (step === 'deposit') label = "💰 Deposit";
             if (step === 'installed') label = "✅ Installed (Comm.)";
-            const isDisabled = (idx < currentIdx); 
-            optionsHtml += `<option value="${step}" ${step===displayStatus?'selected':''} ${isDisabled?'disabled':''}>${isDisabled?'✔ ':''}${label}</option>`;
+            
+            // 如果是审核中，普通流程全部禁用
+            const isReviewing = (displayStatus === 'fraud_review');
+            const isDisabled = (idx < currentIdx) || isReviewing; 
+            optionsHtml += `<option value="${step}" ${step===displayStatus?'selected':''} ${isDisabled?'disabled':''}>${isDisabled && !isReviewing?'✔ ':''}${label}</option>`;
         });
+        
         optionsHtml += `<option value="cancelled" ${displayStatus==='cancelled'?'selected':''}>❌ Cancelled</option>`;
-        optionsHtml += `<option value="fraud" ${displayStatus==='fraud'?'selected':''}>⛔ Report Invalid</option>`;
+        
+        // 🔥 特殊处理 Fraud 选项显示
+        if (displayStatus === 'fraud_review') {
+            optionsHtml += `<option value="fraud_review" selected>⏳ Reviewing...</option>`;
+        } else if (displayStatus === 'fraud') {
+            optionsHtml += `<option value="fraud" selected>⛔ Fraud Confirmed</option>`;
+        } else {
+            optionsHtml += `<option value="fraud">🚩 Report Invalid</option>`;
+        }
 
-        const isLocked = !isMyLead || ['installed', 'cancelled', 'fraud'].includes(lead.status);
+        // 🔒 锁定条件增加 fraud_review
+        const isLocked = !isMyLead || ['installed', 'cancelled', 'fraud', 'fraud_review'].includes(lead.status);
         const visualSteps = getSegmentedProgressHTML(displayStatus, true); 
         const refName = lead.referral_code && refMap[lead.referral_code] ? refMap[lead.referral_code] : '-';
         const dateStr = new Date(lead.created_at).toLocaleDateString('en-AU', {month:'short', day:'numeric'});
         const leadSafe = encodeURIComponent(JSON.stringify(lead));
 
         const updateTag = lead.has_client_update 
-        ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` 
-        : '';
+        ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` : '';
 
         const tr = document.createElement('tr');
         if (displayStatus === 'new' && isMyLead) tr.style.backgroundColor = '#f0fdf4';
@@ -355,15 +373,64 @@ async function loadInstallerDashboard() {
 
 function updateInstallerStatsUI(total, activeNew, valid, cancelled, installed, contacted, unlockPaid, commPaid) {
     const fmt = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 });
-    document.getElementById('inst-stat-total').innerText = total;
-    document.getElementById('inst-stat-new').innerText = activeNew;
-    document.getElementById('inst-stat-valid').innerText = valid;
-    document.getElementById('inst-stat-cancelled').innerText = cancelled;
-    document.getElementById('inst-stat-completed').innerText = installed;
-    document.getElementById('inst-stat-comm-paid').innerText = fmt.format(commPaid);
-    document.getElementById('inst-stat-contacted').innerText = contacted;
-    document.getElementById('inst-stat-unlock-paid').innerText = fmt.format(unlockPaid);
-    document.getElementById('inst-stat-total-spent').innerText = fmt.format(unlockPaid + commPaid);
+
+    // ============================================================
+    // 🎨 Part 1: 更新新的环形图卡片 (Option 1 Logic)
+    // ============================================================
+    
+    // 1. 更新文字数字 (使用安全检查，防止找不到元素报错)
+    const elChartTotal = document.getElementById('chart-total');
+    if (elChartTotal) elChartTotal.innerText = total;
+
+    const elChartNew = document.getElementById('chart-new');
+    if (elChartNew) elChartNew.innerText = activeNew;
+
+    const elChartValid = document.getElementById('chart-valid');
+    if (elChartValid) elChartValid.innerText = valid;
+
+    const elChartCancelled = document.getElementById('chart-cancelled');
+    if (elChartCancelled) elChartCancelled.innerText = cancelled;
+
+    // 2. 核心魔法：更新 CSS 圆环 (conic-gradient)
+    const chartEl = document.getElementById('leads-donut');
+    if (chartEl) {
+        // 防止除以 0
+        const safeTotal = total > 0 ? total : 1;
+        
+        // 计算百分比
+        const pctNew = (activeNew / safeTotal) * 100;
+        const pctValid = (valid / safeTotal) * 100;
+        
+        // 计算渐变的分界点 (累加)
+        const endNew = pctNew;
+        const endValid = endNew + pctValid;
+
+        // 应用渐变：橙色(New) -> 绿色(Valid) -> 红色(Cancelled)
+        chartEl.style.background = `conic-gradient(
+            var(--orange) 0% ${endNew}%, 
+            var(--accent) ${endNew}% ${endValid}%, 
+            var(--red) ${endValid}% 100%
+        )`;
+    }
+
+    // ============================================================
+    // 📋 Part 2: 更新其他卡片 (保持原样，因为你只改了第一张卡)
+    // ============================================================
+    
+    const elCompleted = document.getElementById('inst-stat-completed');
+    if (elCompleted) elCompleted.innerText = installed;
+
+    const elComm = document.getElementById('inst-stat-comm-paid');
+    if (elComm) elComm.innerText = fmt.format(commPaid);
+
+    const elContacted = document.getElementById('inst-stat-contacted');
+    if (elContacted) elContacted.innerText = contacted;
+
+    const elUnlock = document.getElementById('inst-stat-unlock-paid');
+    if (elUnlock) elUnlock.innerText = fmt.format(unlockPaid);
+
+    const elSpent = document.getElementById('inst-stat-total-spent');
+    if (elSpent) elSpent.innerText = fmt.format(unlockPaid + commPaid);
 }
 
 
@@ -586,9 +653,33 @@ window.closeLeadModal = function(e) {
     setTimeout(() => modal.style.display = 'none', 300);
 }
 
-// 🔥 [Updated] Progress Bar Logic: Yellow Steps & Inline Comm
+// 🔥 [Updated] Progress Bar: Added Fraud Review State
 function getSegmentedProgressHTML(status, isAssigned, commissionReward) {
     let activeLevel = 0; 
+    
+    // 1. 特殊状态处理：审核中 & 已确认欺诈 & 已取消
+    if (status === 'fraud_review') {
+        return `<div class="step-container">
+            <div class="step-bar"><div class="step-segment active-orange" style="flex:1; opacity: 0.8; background-image: repeating-linear-gradient(45deg, #f59e0b, #f59e0b 10px, #d97706 10px, #d97706 20px);"></div></div>
+            <div class="progress-label"><span style="color:#d97706; font-weight:800;">⚠️ FRAUD UNDER REVIEW</span></div>
+        </div>`;
+    }
+
+    if (status === 'fraud') {
+        return `<div class="step-container">
+            <div class="step-bar"><div class="step-segment active-red" style="flex:1;"></div></div>
+            <div class="progress-label"><span style="color:#ef4444; font-weight:800;">⛔ FRAUD CONFIRMED</span></div>
+        </div>`;
+    }
+
+    if (status === 'cancelled') {
+        return `<div class="step-container">
+            <div class="step-bar"><div class="step-segment active-red" style="flex:1;"></div></div>
+            <div class="progress-label"><span style="color:#ef4444">CANCELLED</span></div>
+        </div>`;
+    }
+
+    // 2. 正常流程处理
     if (status === 'installed') activeLevel = 5;
     else if (status === 'deposit') activeLevel = 4;
     else if (status === 'site_visit') activeLevel = 3;
@@ -599,15 +690,11 @@ function getSegmentedProgressHTML(status, isAssigned, commissionReward) {
     let segments = '';
     const labels = ['Allocated', 'Contact', 'Quote', 'Deposit', 'Install'];
     
-    if (status === 'cancelled' || status === 'fraud') {
-        return `<div class="step-container"><div class="step-bar"><div class="step-segment active-red" style="flex:1;"></div></div><div class="progress-label"><span style="color:#ef4444">${status.toUpperCase()}</span></div></div>`;
-    }
-
     for (let i = 1; i <= 5; i++) {
         let activeClass = '';
         if (activeLevel >= i) {
             if (i === 5) activeClass = 'active-green';
-            else if (i === 3 || i === 4) activeClass = 'active-orange'; // 3(Quote) and 4(Deposit) are yellow
+            else if (i === 3 || i === 4) activeClass = 'active-orange'; 
             else activeClass = 'active';
         }
         segments += `<div class="step-segment ${activeClass}"></div>`;
@@ -615,7 +702,7 @@ function getSegmentedProgressHTML(status, isAssigned, commissionReward) {
 
     let currentLabel = activeLevel > 0 ? labels[activeLevel - 1] : 'Pending Allocation';
     
-    // 🔥 Inline Est. Comm Display
+    // Inline Est. Comm Display
     if ((status === 'site_visit' || status === 'deposit') && commissionReward) {
         const est = Number(commissionReward);
         if (est > 0) {
@@ -629,88 +716,138 @@ function getSegmentedProgressHTML(status, isAssigned, commissionReward) {
 }
 
 // 🔥 [Updated] Handle Status Change with Estimated Commission Logic
-// Now reading and saving to 'commission_reward' column
+// 🔥 [Updated] Handle Status Change with Fraud Reason & Logic
 window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid) {
-    // 1. Fetch current lead data, using 'commission_reward' as the storage for estimate
-    const { data: currentLeadData } = await sbClient.from('leads').select('commission_reward, cancelled_by_ids').eq('id', leadId).single();
+    
+    // 1. Fetch current lead data (Increased scope to fetch 'notes')
+    // 我们多取一个 'notes' 字段，以便把原因追加进去
+    const { data: currentLeadData } = await sbClient
+        .from('leads')
+        .select('commission_reward, cancelled_by_ids, notes')
+        .eq('id', leadId)
+        .single();
+        
     const savedEst = currentLeadData?.commission_reward;
+    const currentNotes = currentLeadData?.notes || '';
 
-    if (!confirm(`⚠️ Confirm Status Change?\n\nTo: ${newStatus.toUpperCase()}`)) { loadInstallerDashboard(); return; }
+    // ---------------------------------------------------------
+    // 🛡️ 1. 防撞单拦截逻辑 (Fraud Protection Interceptor)
+    // ---------------------------------------------------------
+    let finalStatus = newStatus;
+    let fraudReason = null; // 用于存储输入的原因
+    
+    // 如果用户选了 "Report Invalid"
+    if (newStatus === 'fraud') {
+        // 🔥 强制要求输入原因
+        const input = prompt(
+            "🛡️ REPORT INVALID LEAD\n\n" +
+            "Please enter the reason (e.g., 'Wrong Number', 'Duplicate', 'Out of Service Area').\n" +
+            "This will be sent to the platform for review.\n\n" +
+            "Reason (Required):"
+        );
+
+        // 校验 1: 用户点击了取消
+        if (input === null) {
+            loadInstallerDashboard(); // 重置 UI
+            return; 
+        }
+
+        // 校验 2: 输入为空
+        if (input.trim() === "") {
+            alert("❌ Reason is REQUIRED to report a lead.");
+            loadInstallerDashboard(); // 重置 UI
+            return;
+        }
+
+        fraudReason = input.trim();
+        finalStatus = 'fraud_review'; // 强制改为审核状态
+    } 
+    else {
+        // 普通状态变更的确认
+        if (!confirm(`⚠️ Confirm Status Change?\n\nTo: ${newStatus.toUpperCase()}`)) { 
+            loadInstallerDashboard(); 
+            return; 
+        }
+    }
+    // ---------------------------------------------------------
 
     const { data: partner } = await sbClient.from('partners').select('wallet_balance').eq('id', currentProfile.id).single();
     let currentBalance = partner ? Number(partner.wallet_balance) : 0;
 
     const unlockTriggers = ['contacted', 'site_visit', 'deposit'];
-    let shouldPayUnlock = unlockTriggers.includes(newStatus) && !feePaid; 
+    let shouldPayUnlock = unlockTriggers.includes(finalStatus) && !feePaid; 
     
     if (shouldPayUnlock) {
         if (currentBalance < 50) { alert("❌ Insufficient Credit! Need $50.00."); loadInstallerDashboard(); return; }
         if (!confirm(`💰 PAYMENT REQUIRED\n\nLead Unlock Fee: $50.00\n\nProceed?`)) { loadInstallerDashboard(); return; }
     }
 
-    // 🌟 Trigger: Estimated Commission Input at Quote/Site Visit
     let newEstComm = null;
-    if (newStatus === 'site_visit') {
+    if (finalStatus === 'site_visit') {
         const promptMsg = savedEst && savedEst > 0
             ? `🚚 Site Visit / Quote\n\nExisting Estimate: $${savedEst}\nUpdate Estimated Referrer Commission ($):` 
             : `🚚 Site Visit / Quote\n\nPlease enter ESTIMATED Referrer Commission ($):`;
             
         const input = prompt(promptMsg, savedEst || "200");
-        if (input === null) { loadInstallerDashboard(); return; } // User cancelled
+        if (input === null) { loadInstallerDashboard(); return; }
         newEstComm = Number(input);
         if (isNaN(newEstComm) || newEstComm < 0) { alert("Invalid amount."); loadInstallerDashboard(); return; }
     }
 
-    let commissionAmount = 0, totalDeduction = 0, shouldPayComm = (newStatus === 'installed');
+    let commissionAmount = 0, totalDeduction = 0, shouldPayComm = (finalStatus === 'installed');
     
-    // 🌟 Trigger: Final Payment (Automated if estimate exists)
     if (shouldPayComm) {
         if (savedEst && savedEst > 0) {
             commissionAmount = Number(savedEst);
-            // Confirm using the estimate
             if(!confirm(`🎉 INSTALLATION COMPLETE!\n\nProcessing Payout using Quoted Estimate:\nReferrer Comm: $${commissionAmount}\nPlatform Fee: $${(commissionAmount*0.05).toFixed(2)}\n\nProceed?`)) {
                  loadInstallerDashboard(); return; 
             }
         } else {
-            // Fallback: No estimate found, ask manually
             const input = prompt("🎉 INSTALLATION COMPLETE!\n\nNo estimate found. Enter Net Commission for Referrer:", "200");
             if (!input) { loadInstallerDashboard(); return; }
             commissionAmount = Number(input);
         }
-
         totalDeduction = commissionAmount * 1.05;
-
         if (currentBalance < totalDeduction) { alert(`❌ Insufficient Credit! Need $${totalDeduction.toFixed(2)}.`); loadInstallerDashboard(); return; }
     }
 
     try {
-        const updateData = { status: newStatus };
-
-        // 🔥 新增：里程碑打卡逻辑
-        // 只有当这个字段还是空的时候才打卡（防止来回切状态导致时间被覆盖，或者您希望覆盖也可以去掉判断）
+        const updateData = { status: finalStatus }; 
         const now = new Date().toISOString();
-        
-        if (newStatus === 'contacted') updateData.date_contacted = now;
-        if (newStatus === 'site_visit') updateData.date_site_visit = now;
-        if (newStatus === 'deposit') updateData.date_deposit = now;
-        if (newStatus === 'installed') updateData.date_installed = now;
-        if (newStatus === 'cancelled' || newStatus === 'fraud') updateData.date_cancelled = now;
-        
+
+        // 1. 设置各类时间戳
+        if (finalStatus === 'contacted') updateData.date_contacted = now;
+        if (finalStatus === 'site_visit') updateData.date_site_visit = now;
+        if (finalStatus === 'deposit') updateData.date_deposit = now;
+        if (finalStatus === 'installed') updateData.date_installed = now;
+        if (['cancelled', 'fraud', 'fraud_review'].includes(finalStatus)) {
+            updateData.date_cancelled = now; 
+        }
         updateData.updated_at = now;
 
+        // 2. 处理支付字段
         if (shouldPayUnlock) updateData.fee_paid = true;
         if (shouldPayComm) updateData.final_commission = commissionAmount;
-        if (newEstComm !== null) updateData.commission_reward = newEstComm; // Save the estimate to commission_reward
+        if (newEstComm !== null) updateData.commission_reward = newEstComm; 
 
-        if (newStatus === 'cancelled' || newStatus === 'fraud') {
+        // 3. 处理黑名单 (Cancelled / Fraud)
+        if (finalStatus === 'cancelled' || finalStatus === 'fraud' || finalStatus === 'fraud_review') {
             let currentBlacklist = currentLeadData?.cancelled_by_ids || [];
             if (!currentBlacklist.includes(currentProfile.id)) currentBlacklist.push(currentProfile.id);
             updateData.cancelled_by_ids = currentBlacklist;
         }
 
+        // 4. 🔥 核心：将原因写入 Notes
+        if (fraudReason) {
+            // 格式： [FRAUD_REPORT] 2023-10-xx: 原因内容
+            const reasonLog = `[FRAUD_REPORT] ${new Date().toLocaleDateString('en-AU')}: ${fraudReason}`;
+            updateData.notes = currentNotes ? currentNotes + '\n' + reasonLog : reasonLog;
+        }
+
         const { error: leadErr } = await sbClient.from('leads').update(updateData).eq('id', leadId);
         if (leadErr) throw leadErr;
 
+        // 5. 扣款与分润逻辑
         if (shouldPayUnlock) {
             await rpcUpdateBalance(currentProfile.id, -50);
             await recordTransaction(currentProfile.id, -50, 'lead_unlock', `Unlock Lead #${leadId}`);
@@ -737,7 +874,13 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
             }
         }
 
-        alert("Processed Successfully! ✅");
+        // 6. 成功提示
+        if (finalStatus === 'fraud_review') {
+            alert("🛡️ Report Submitted.\n\nStatus: 'Under Review'.\nNote added to history.");
+        } else {
+            alert("Processed Successfully! ✅");
+        }
+        
         loadInstallerDashboard();
 
     } catch (err) { console.error(err); alert("Error: " + err.message); loadInstallerDashboard(); }
@@ -1207,6 +1350,7 @@ function getStatusColor(status) {
         case 'installed': return '#10b981'; // 绿色
         case 'cancelled': return '#ef4444'; // 红色
         case 'fraud': return '#ef4444';     // 红色
+        case 'fraud_review': return '#f97316'; // 🔥 Orange for Review
         case 'void': return '#94a3b8';      // 灰色
         default: return '#cbd5e1';          // 默认灰
     }

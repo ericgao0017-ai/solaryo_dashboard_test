@@ -575,22 +575,37 @@
         </div>
 
        <div class="stats-grid">
-            <div class="card stat-card" style="border-top: 4px solid var(--primary); min-height: 115px;">
-                <div style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; justify-content:space-between; align-items:flex-start; padding: 0px 15px 15px 15px; overflow:hidden;">
-                    <div style="display:flex; flex-direction:column; justify-content:space-between; min-width: 100px; gap: 5px;"> 
-                        <div><h3 style="margin:0; font-size:0.85rem; color:#64748b;">Total Leads</h3><p id="inst-stat-total" class="stat-main" style="color:var(--primary); font-size:2.2rem; line-height: 1;">0</p></div>
-                        <div style="font-size:0.75rem; color:#64748b;">Active (New): <strong id="inst-stat-new" style="color:var(--orange);">0</strong></div>
-                    </div>
-                    <div style="width:1px; background:#e2e8f0; margin:0 10px; min-height:60px; align-self: stretch; flex-shrink: 0;"></div>
-                    <div style="display:flex; flex-direction:column; justify-content:center; gap:8px; text-align:right; min-width: 80px;">
-                        <div><h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Valid</h3><p id="inst-stat-valid" style="margin:0; font-size:1.2rem; font-weight:700; color:#10b981; line-height:1.1;">0</p></div>
-                        <div><h3 style="margin:0; font-size:0.7rem; color:#94a3b8; text-transform:uppercase;">Cancelled</h3><p id="inst-stat-cancelled" style="margin:0; font-size:1.2rem; font-weight:700; color:#ef4444; line-height:1.1;">0</p></div>
-                    </div>
-                </div>
-                <div class="stat-footer" style="padding: 8px 15px;">
-                    <span class="stat-footer-label">Pipeline Health</span>
-                    <span class="stat-footer-value" style="color:#10b981; font-size:0.8rem;">Stable 📊</span>
-                </div>
+            <div class="card stat-card" style="border-top: 4px solid var(--primary);">
+    
+                        <div style="display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; justify-content:space-between; align-items:center; padding: 15px 15px 15px 15px;">
+        
+                            <div style="display:flex; flex-direction:column; gap:8px; min-width: 90px; flex-shrink: 0;">
+                            <div style="font-size:0.8rem; color:#64748b; font-weight:600; letter-spacing:0.5px;">LEAD STATUS</div>
+            
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:10px; height:10px; background:var(--orange); border-radius:50%;"></div>
+                            <span style="font-size:0.9rem; color:#334155;">New: <strong id="chart-new">0</strong></span>
+                        </div>
+            
+                        <div style="display:flex; align-items:center; gap:8px;">
+                         <div style="width:10px; height:10px; background:var(--accent); border-radius:50%;"></div>
+                         <span style="font-size:0.9rem; color:#334155;">Valid: <strong id="chart-valid">0</strong></span>
+                             </div>
+            
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:10px; height:10px; background:var(--red); border-radius:50%;"></div>
+                            <span style="font-size:0.9rem; color:#334155;">Lost: <strong id="chart-cancelled">0</strong></span>
+                            </div>
+                                 </div>
+
+                        <div class="donut-chart" id="leads-donut" style="flex-shrink: 0; width:112px; height:112px; border-radius:50%; background: conic-gradient(var(--orange) 0% 0%, var(--accent) 0% 0%, var(--red) 0% 100%); display:flex; align-items:center; justify-content:center;">
+            
+                            <div style="width:75px; height:75px; background:white; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1; box-shadow: inset 0px 0px 8px rgba(0,0,0,0.05);">
+                             <span id="chart-total" style="font-size:1.8rem; font-weight:800; color:var(--primary); line-height:1;">0</span>
+                                <span style="font-size:0.65rem; color:#94a3b8; font-weight:700; margin-top:-3px;">TOTAL</span>
+                             </div>
+                             </div>
+                     </div>
             </div>
             
             <div class="card stat-card" style="border-top: 4px solid var(--accent); min-height: 115px;">
