@@ -10,6 +10,7 @@ const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let currentProfile = null;
 let currentLeads = []; // 🔥 新增这一行，用来存数据给弹窗用
+let cachedRefMap = {};
 
 // Status Flow
 const STATUS_FLOW = ['new', 'contacted', 'site_visit', 'deposit', 'installed'];
@@ -22,10 +23,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// ==========================================
+// 🔐 Authentication Logic (Auto-Login)
+// ==========================================
 async function checkAuth() {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (!session) { window.location.replace("index.html#partner"); return; }
+    // 1. 获取当前 Session
+    const { data: { session }, error } = await sbClient.auth.getSession();
+
+    // 2. 监听认证状态变化 (比如 Token 刷新或在其他窗口登出)
+    sbClient.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+            // 如果用户登出，强制踢回首页
+            window.location.replace("index.html");
+        }
+    });
+
+    // 3. 判断结果
+    if (error || !session) {
+        // 没有 Session，跳回登录页
+        // 使用 replace 防止用户点“后退”按钮回到这个受保护的页面
+        window.location.replace("index.html#partner"); 
+        return;
+    }
+
+    // 4. 成功获取用户，赋值给全局变量
     currentUser = session.user;
+    
+    // (可选) 打印日志确认
+    // console.log("✅ Auto-logged in as:", currentUser.email);
 }
 
 async function loadProfile() {
@@ -66,7 +91,7 @@ async function loadReferrerDashboard() {
     const { data: allInstallers } = await sbClient.from('partners').select('id, company_name').eq('role', 'solar_pro').order('company_name');
     renderDefaultInstallerBox(allInstallers);
 
-    const { data: leads } = await sbClient.from('leads').select('*').eq('referral_code', myCode).order('updated_at', { ascending: false });
+    const { data: leads } = await sbClient.from('leads').select('*').eq('referral_code', myCode).order('created_at', { ascending: false });
     
     currentLeads = leads || []; // 🔥 新增：把数据存入全局变量
 
@@ -195,7 +220,7 @@ function renderReferrerTable(leads, installers) {
              actionBtn = `<button id="${btnId}" onclick="handleReport(${lead.id}, '${status}')" class="btn-action btn-report-light">🚩 Report</button>`;
         }
 
-        const dateStr = new Date(lead.created_at).toLocaleDateString('en-AU', {month:'short', day:'numeric'});
+        const dateStr = new Date(lead.created_at).toLocaleDateString('en-AU', {year: 'numeric', month:'short', day:'numeric'});
         const leadSafe = encodeURIComponent(JSON.stringify(lead));
 
         const tr = document.createElement('tr');
@@ -228,147 +253,31 @@ async function loadInstallerDashboard() {
     
     document.getElementById('inst-welcome-name').innerText = currentProfile.company_name || "Solar Pro";
 
+    // 1. 获取余额
     const { data: partnerData } = await sbClient.from('partners').select('wallet_balance').eq('id', currentProfile.id).single();
     const currentBalance = partnerData ? Number(partnerData.wallet_balance) : 0;
     const fmt = new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 });
     document.getElementById('inst-stat-credit').innerText = fmt.format(currentBalance);
 
-    const { data: leads } = await sbClient
-        .from('leads')
-        .select('*')
-        .neq('status', 'pending')
-        .or(`assigned_partner_id.eq.${currentProfile.id},cancelled_by_ids.cs.{${currentProfile.id}}`)
-        .order('updated_at', { ascending: false });
-    currentLeads = leads || [];
-    let refMap = {};
+    // 2. 获取 Referrer 映射表并存入全局
     const { data: allPartners } = await sbClient.from('partners').select('ref_code, contact_name, company_name');
+    cachedRefMap = {}; // 重置
     if (allPartners) {
-        allPartners.forEach(p => { if(p.ref_code) refMap[p.ref_code] = p.company_name || p.contact_name; });
+        allPartners.forEach(p => { if(p.ref_code) cachedRefMap[p.ref_code] = p.company_name || p.contact_name; });
     }
 
-    const tbody = document.getElementById('installer-leads-body');
-    if(!tbody) return;
-    tbody.innerHTML = '';
+    // 3. 获取 Leads 数据
+    const { data: leads } = await sbClient
+    .from('leads')
+    .select('*')
+    .neq('status', 'pending')
+    .or(`assigned_partner_id.eq.${currentProfile.id},cancelled_by_ids.cs.{${currentProfile.id}}`)
+    .order('created_at', { ascending: false }); // <--- 改成 created_at
+    
+    currentLeads = leads || [];
 
-    let countTotal = 0, countNew = 0, countCancelled = 0, countValid = 0, countInstalled = 0, countContacted = 0;
-    let totalUnlockPaid = 0, totalCommPaid = 0;
-
-    if (!leads || leads.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No jobs assigned yet.</td></tr>`;
-        updateInstallerStatsUI(0, 0, 0, 0, 0, 0, 0, 0); 
-        return;
-    }
-
-    leads.forEach(lead => {
-        const isMyLead = lead.assigned_partner_id === currentProfile.id;
-        const isPastCancelled = lead.cancelled_by_ids && lead.cancelled_by_ids.includes(currentProfile.id);
-        const displayStatus = isPastCancelled && !isMyLead ? 'cancelled' : lead.status;
-
-        countTotal++;
-        if (displayStatus === 'new') countNew++;
-        
-        if (['cancelled', 'fraud', 'fraud_review'].includes(displayStatus)) {
-            countCancelled++;
-        } else {
-            countValid++;
-        }
-
-        if (isMyLead) {
-            if (lead.fee_paid) {
-                countContacted++;
-                totalUnlockPaid += 50;
-            }
-            if (lead.status === 'installed') {
-                countInstalled++;
-                if (lead.final_commission) totalCommPaid += Number(lead.final_commission) * 1.05;
-            }
-        }
-
-        let financialHtml = `<span style="color:#cbd5e1;">-</span>`;
-        let items = [];
-        if (isMyLead) {
-            if (lead.fee_paid) items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
-            if (lead.status === 'installed' && lead.final_commission) {
-                const comm = Number(lead.final_commission);
-                const fee = comm * 0.05;
-                const total = comm + fee;
-                items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${total.toFixed(0)}</span></div><div style="font-size:0.65rem; color:#94a3b8; text-align:right; margin-top:-2px;">(Net: $${comm} | Fee: $${fee.toFixed(0)})</div>`);
-            } 
-            else if (lead.commission_reward && lead.commission_reward > 0) {
-                items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
-            }
-            if (items.length > 0) financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
-        } else if (isPastCancelled) {
-            financialHtml = `<div style="font-size:0.7rem; color:#94a3b8; font-style:italic;">Connection Ended</div>`;
-        }
-
-        // 🔥 更新下拉菜单生成逻辑
-        const currentIdx = STATUS_FLOW.indexOf(displayStatus);
-        let optionsHtml = '';
-        STATUS_FLOW.forEach((step, idx) => {
-            let label = step.charAt(0).toUpperCase() + step.slice(1);
-            if (step === 'site_visit') label = "🚚 Site Visit";
-            if (step === 'new') label = "📥 New Received";
-            if (step === 'contacted') label = "📞 Contacted ($50)";
-            if (step === 'deposit') label = "💰 Deposit";
-            if (step === 'installed') label = "✅ Installed (Comm.)";
-            
-            // 如果是审核中，普通流程全部禁用
-            const isReviewing = (displayStatus === 'fraud_review');
-            const isDisabled = (idx < currentIdx) || isReviewing; 
-            optionsHtml += `<option value="${step}" ${step===displayStatus?'selected':''} ${isDisabled?'disabled':''}>${isDisabled && !isReviewing?'✔ ':''}${label}</option>`;
-        });
-        
-        optionsHtml += `<option value="cancelled" ${displayStatus==='cancelled'?'selected':''}>❌ Cancelled</option>`;
-        
-        // 🔥 特殊处理 Fraud 选项显示
-        if (displayStatus === 'fraud_review') {
-            optionsHtml += `<option value="fraud_review" selected>⏳ Reviewing...</option>`;
-        } else if (displayStatus === 'fraud') {
-            optionsHtml += `<option value="fraud" selected>⛔ Fraud Confirmed</option>`;
-        } else {
-            optionsHtml += `<option value="fraud">🚩 Report Invalid</option>`;
-        }
-
-        // 🔒 锁定条件增加 fraud_review
-        const isLocked = !isMyLead || ['installed', 'cancelled', 'fraud', 'fraud_review'].includes(lead.status);
-        const visualSteps = getSegmentedProgressHTML(displayStatus, true); 
-        const refName = lead.referral_code && refMap[lead.referral_code] ? refMap[lead.referral_code] : '-';
-        const dateStr = new Date(lead.created_at).toLocaleDateString('en-AU', {month:'short', day:'numeric'});
-        const leadSafe = encodeURIComponent(JSON.stringify(lead));
-
-        const updateTag = lead.has_client_update 
-        ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` : '';
-
-        const tr = document.createElement('tr');
-        if (displayStatus === 'new' && isMyLead) tr.style.backgroundColor = '#f0fdf4';
-        if (isPastCancelled && !isMyLead) tr.style.backgroundColor = '#f9fafb';
-
-        tr.innerHTML = `
-            <td>
-                <div class="clickable-name" onclick="handleLeadClick('${leadSafe}',${lead.id})">${lead.name}${updateTag}</div>
-                <div class="user-sub">${dateStr}</div>
-            </td>
-            <td style="vertical-align:middle; font-size:0.8rem; font-weight:600; color:#475569;">${refName}</td>
-            <td style="vertical-align:top;">${financialHtml}</td>
-            <td style="vertical-align:middle;">
-                <select onchange="handleStatusChange(${lead.id}, this.value, '${lead.status}', ${lead.fee_paid})" 
-                    class="installer-select"
-                    ${isLocked ? 'disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0;"' : ''}>
-                    ${optionsHtml}
-                </select>
-                ${(lead.status === 'new' && isMyLead) ? '<div style="font-size:0.65rem; color:#15803d; margin-top:2px;">Please contact ASAP</div>' : ''}
-            </td>
-            <td style="vertical-align:middle;">
-             <div onclick="openTimelineModal('${lead.id}')" style="cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                 ${visualSteps}
-                </div>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    updateInstallerStatsUI(countTotal, countNew, countValid, countCancelled, countInstalled, countContacted, totalUnlockPaid, totalCommPaid);
+    // 🌟 核心改动：调用独立的渲染函数
+    renderInstallerTable(currentLeads);
 }
 
 function updateInstallerStatsUI(total, activeNew, valid, cancelled, installed, contacted, unlockPaid, commPaid) {
@@ -632,19 +541,19 @@ function renderSimpleHistory(notes) {
 }
 
 // 辅助函数：渲染照片框
-function renderPhotoBox(url, label) {
-    if (url) return `<a href="${url}" target="_blank" style="width:60px; height:60px; background:#e2e8f0; border-radius:8px; background-image:url('${url}'); background-size:cover;"></a>`;
-    return `<div style="width:60px; height:60px; background:#f1f5f9; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.65rem; color:#94a3b8; border:1px dashed #cbd5e1;">No ${label}</div>`;
-}
+//function renderPhotoBox(url, label) {
+//    if (url) return `<a href="${url}" target="_blank" style="width:60px; height:60px; background:#e2e8f0; border-radius:8px; background-image:url('${url}'); background-size:cover;"></a>`;
+//    return `<div style="width:60px; height:60px; background:#f1f5f9; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.65rem; color:#94a3b8; border:1px dashed #cbd5e1;">No ${label}</div>`;
+//}
 
 // 辅助函数：渲染简单历史记录
-function renderSimpleHistory(notes) {
-    if (!notes) return '<div style="font-size:0.75rem; color:#94a3b8;">No history.</div>';
-    return notes.split('\n').filter(l => l.trim()).reverse().map(log => {
-        let color = log.includes('[LOCK_ALERT]') ? '#f59e0b' : (log.includes('[CONFIG_UPDATE]') ? '#10b981' : '#64748b');
-        return `<div style="font-size:0.75rem; margin-bottom:4px; padding:4px 8px; background:#f8fafc; border-left:3px solid ${color};">${log}</div>`;
-    }).join('');
-}
+//function renderSimpleHistory(notes) {
+//    if (!notes) return '<div style="font-size:0.75rem; color:#94a3b8;">No history.</div>';
+//    return notes.split('\n').filter(l => l.trim()).reverse().map(log => {
+//        let color = log.includes('[LOCK_ALERT]') ? '#f59e0b' : (log.includes('[CONFIG_UPDATE]') ? '#10b981' : '#64748b');
+//        return `<div style="font-size:0.75rem; margin-bottom:4px; padding:4px 8px; background:#f8fafc; border-left:3px solid ${color};">${log}</div>`;
+//    }).join('');
+//}
 
 window.closeLeadModal = function(e) {
     if (e && e.target.id !== 'lead-details-modal' && !e.target.classList.contains('modal-close')) return;
@@ -1391,3 +1300,299 @@ window.handleLeadClick = async function(leadEncoded, leadId) {
         }
     }
 };
+
+// ==========================================
+// 📊 数据功能：搜索筛选 & CSV 导出
+// ==========================================
+
+// 1. 缓存安装商列表（全局变量），供搜索重新渲染使用
+let cachedInstallersList = [];
+
+// 2. 搜索过滤主逻辑
+window.filterLeads = function(role) {
+    const inputId = role === 'referral' ? 'ref-search-input' : 'inst-search-input';
+    const searchTerm = document.getElementById(inputId).value.toLowerCase();
+    
+    const filtered = currentLeads.filter(lead => {
+        const name = (lead.name || "").toLowerCase();
+        // 如果想搜电话，就把下面这行加上
+        // const phone = (lead.phone || "").toLowerCase();
+        return name.includes(searchTerm);
+    });
+
+    if (role === 'referral') {
+        renderReferrerTable(filtered, cachedInstallersList);
+    } else {
+        // 🌟 现在搜索时可以正确渲染 Installer 表格了
+        renderInstallerTable(filtered);
+    }
+};
+
+// 3. 专门为 Installer 搜索使用的轻量渲染函数
+function renderInstallerRowsOnly(leads) {
+    const tbody = document.getElementById('installer-leads-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    // 重新运行 loadInstallerDashboard 里的循环部分
+    // 注意：这里可能需要 refMap，建议在 loadInstallerDashboard 里将其设为全局
+    if (leads.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No matching leads.</td></tr>`;
+        return;
+    }
+    // 逻辑同 loadInstallerDashboard 的循环体，建议将该循环体抽离成独立函数以优化代码
+    // 为了简单起见，搜索时可以直接重新执行 loadInstallerDashboard() 
+    // 但更优雅的做法是将渲染逻辑抽离出来。
+}
+
+// 4. CSV 导出功能
+window.exportLeadsToCSV = function(role) {
+    if (!currentLeads || currentLeads.length === 0) {
+        alert("No leads available to export.");
+        return;
+    }
+
+    // 定义表头
+    const headers = ["Created At", "Name", "Email", "Phone", "Status", "Address", "Estimated Commission"];
+    
+    // 转换为 CSV 格式的行
+    const csvRows = [
+        headers.join(","), // 第一行：标题
+        ...currentLeads.map(lead => [
+            new Date(lead.created_at).toLocaleDateString(),
+            `"${lead.name || ''}"`,
+            lead.email || '',
+            `"${lead.phone || ''}"`,
+            lead.status || '',
+            `"${lead.address || ''}"`,
+            lead.commission_reward || 0
+        ].join(","))
+    ].join("\n");
+
+    // 创建下载链接
+    const blob = new Blob([csvRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Solaryo_Leads_${role}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// 5. 修正：在已有的 loadReferrerDashboard 中保存 cachedInstallersList
+const originalLoadReferrer = window.loadReferrerDashboard;
+window.loadReferrerDashboard = async function() {
+    // 拦截并保存 installer 列表
+    const { data: allInstallers } = await sbClient.from('partners').select('id, company_name').eq('role', 'solar_pro').order('company_name');
+    cachedInstallersList = allInstallers || [];
+    // 继续原来的逻辑
+    await originalLoadReferrer(); 
+};
+
+// 🌟 新增的独立渲染函数
+function renderInstallerTable(leads) {
+    const tbody = document.getElementById('installer-leads-body');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+
+    // 统计变量
+    let countTotal = 0, countNew = 0, countCancelled = 0, countValid = 0, countInstalled = 0, countContacted = 0;
+    let totalUnlockPaid = 0, totalCommPaid = 0;
+
+    if (!leads || leads.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No jobs found.</td></tr>`;
+        updateInstallerStatsUI(0, 0, 0, 0, 0, 0, 0, 0); 
+        return;
+    }
+
+    leads.forEach(lead => {
+        const isMyLead = lead.assigned_partner_id === currentProfile.id;
+        const isPastCancelled = lead.cancelled_by_ids && lead.cancelled_by_ids.includes(currentProfile.id);
+        const displayStatus = isPastCancelled && !isMyLead ? 'cancelled' : lead.status;
+
+        // --- 统计逻辑 ---
+        countTotal++;
+        if (displayStatus === 'new') countNew++;
+        if (['cancelled', 'fraud', 'fraud_review'].includes(displayStatus)) countCancelled++;
+        else countValid++;
+
+        if (isMyLead) {
+            if (lead.fee_paid) { countContacted++; totalUnlockPaid += 50; }
+            if (lead.status === 'installed' && lead.final_commission) {
+                countInstalled++; totalCommPaid += Number(lead.final_commission) * 1.05;
+            }
+        }
+
+        // --- 财务 HTML 生成 ---
+        let financialHtml = `<span style="color:#cbd5e1;">-</span>`;
+        let items = [];
+        if (isMyLead) {
+            if (lead.fee_paid) items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
+            if (lead.status === 'installed' && lead.final_commission) {
+                const comm = Number(lead.final_commission);
+                const fee = comm * 0.05;
+                items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${(comm + fee).toFixed(0)}</span></div>`);
+            } else if (lead.commission_reward > 0) {
+                items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
+            }
+            if (items.length > 0) financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
+        } else if (isPastCancelled) {
+            financialHtml = `<div style="font-size:0.7rem; color:#94a3b8; font-style:italic;">Connection Ended</div>`;
+        }
+
+        // --- 下拉菜单与状态逻辑 (保持你原来的 optionsHtml 生成代码) ---
+        const currentIdx = STATUS_FLOW.indexOf(displayStatus);
+        let optionsHtml = '';
+        STATUS_FLOW.forEach((step, idx) => {
+            let label = step.charAt(0).toUpperCase() + step.slice(1);
+            if (step === 'site_visit') label = "🚚 Site Visit";
+            if (step === 'new') label = "📥 New Received";
+            if (step === 'contacted') label = "📞 Contacted ($50)";
+            if (step === 'deposit') label = "💰 Deposit";
+            if (step === 'installed') label = "✅ Installed (Comm.)";
+            const isReviewing = (displayStatus === 'fraud_review');
+            const isDisabled = (idx < currentIdx) || isReviewing; 
+            optionsHtml += `<option value="${step}" ${step===displayStatus?'selected':''} ${isDisabled?'disabled':''}>${isDisabled && !isReviewing?'✔ ':''}${label}</option>`;
+        });
+        optionsHtml += `<option value="cancelled" ${displayStatus==='cancelled'?'selected':''}>❌ Cancelled</option>`;
+        if (displayStatus === 'fraud_review') optionsHtml += `<option value="fraud_review" selected>⏳ Reviewing...</option>`;
+        else if (displayStatus === 'fraud') optionsHtml += `<option value="fraud" selected>⛔ Fraud Confirmed</option>`;
+        else optionsHtml += `<option value="fraud">🚩 Report Invalid</option>`;
+
+        // --- 行渲染 ---
+        const isLocked = !isMyLead || ['installed', 'cancelled', 'fraud', 'fraud_review'].includes(lead.status);
+        const refName = lead.referral_code && cachedRefMap[lead.referral_code] ? cachedRefMap[lead.referral_code] : '-';
+        const leadSafe = encodeURIComponent(JSON.stringify(lead));
+        const updateTag = lead.has_client_update ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` : '';
+
+        const tr = document.createElement('tr');
+        if (displayStatus === 'new' && isMyLead) tr.style.backgroundColor = '#f0fdf4';
+        
+        tr.innerHTML = `
+            <td>
+                <div class="clickable-name" onclick="handleLeadClick('${leadSafe}',${lead.id})">${lead.name}${updateTag}</div>
+                <div class="user-sub">${new Date(lead.created_at).toLocaleDateString('en-AU', {year: 'numeric', month:'short', day:'numeric'})}</div>
+            </td>
+            <td style="vertical-align:middle; font-size:0.8rem; font-weight:600; color:#475569;">${refName}</td>
+            <td style="vertical-align:top;">${financialHtml}</td>
+            <td style="vertical-align:middle;">
+                <select onchange="handleStatusChange(${lead.id}, this.value, '${lead.status}', ${lead.fee_paid})" class="installer-select" ${isLocked ? 'disabled style="background:#f1f5f9;"' : ''}>
+                    ${optionsHtml}
+                </select>
+            </td>
+            <td style="vertical-align:middle;">
+                <div onclick="openTimelineModal('${lead.id}')" style="cursor:pointer;">${getSegmentedProgressHTML(displayStatus, true)}</div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // 渲染完成后更新统计 UI
+    updateInstallerStatsUI(countTotal, countNew, countValid, countCancelled, countInstalled, countContacted, totalUnlockPaid, totalCommPaid);
+}
+
+// ==========================================
+// 🔃 排序功能逻辑 (通用版 V2)
+// ==========================================
+
+// 全局排序状态
+let currentSortState = { column: 'created_at', direction: 'desc' };
+
+window.handleSort = function(column) {
+    // 1. 切换排序方向
+    if (currentSortState.column === column) {
+        currentSortState.direction = currentSortState.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortState.column = column;
+        currentSortState.direction = 'desc'; // 新列默认降序
+    }
+
+    // 2. 执行排序
+    currentLeads.sort((a, b) => {
+        let valA, valB;
+
+        switch(column) {
+            case 'created_at':
+                valA = new Date(a.created_at).getTime();
+                valB = new Date(b.created_at).getTime();
+                break;
+                
+            case 'financials':
+                valA = Number(a.commission_reward || 0);
+                valB = Number(b.commission_reward || 0);
+                break;
+                
+            case 'status':
+                const statusOrder = ['new', 'contacted', 'site_visit', 'deposit', 'installed', 'cancelled', 'fraud', 'fraud_review'];
+                valA = statusOrder.indexOf(a.status);
+                valB = statusOrder.indexOf(b.status);
+                break;
+
+            case 'referrer': // Installer 视图专用：按 Referrer 名字
+                valA = (cachedRefMap && cachedRefMap[a.referral_code] || '').toLowerCase();
+                valB = (cachedRefMap && cachedRefMap[b.referral_code] || '').toLowerCase();
+                break;
+
+            case 'installer': // Partner 视图专用：按 Installer 名字
+                // 从缓存列表里找名字
+                const getInstName = (id) => {
+                    if (!id) return 'zzzz'; // 未分配的排最后
+                    const inst = cachedInstallersList.find(i => i.id === id);
+                    return inst ? inst.company_name.toLowerCase() : 'zzzz';
+                };
+                valA = getInstName(a.assigned_partner_id);
+                valB = getInstName(b.assigned_partner_id);
+                break;
+                
+            default:
+                valA = 0; valB = 0;
+        }
+
+        if (valA < valB) return currentSortState.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return currentSortState.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // 3. 更新图标 UI (根据当前角色决定更新哪一组 ID)
+    const prefix = (currentProfile.role === 'referral') ? 'ref-' : 'inst-';
+    updateSortIcons(column, currentSortState.direction, prefix);
+
+    // 4. 根据角色重新渲染对应的表格
+    if (currentProfile.role === 'referral') {
+        renderReferrerTable(currentLeads, cachedInstallersList);
+    } else {
+        renderInstallerTable(currentLeads);
+    }
+};
+
+// 辅助：更新图标样式 (带前缀支持)
+function updateSortIcons(activeCol, direction, prefix) {
+    // 所有的排序字段
+    const cols = ['created_at', 'financials', 'status', 'referrer', 'installer', 'status2'];
+    
+    cols.forEach(col => {
+        const el = document.getElementById(`${prefix}sort-icon-${col}`);
+        if(el) {
+            el.innerText = '⇅'; 
+            el.style.color = '#cbd5e1'; // 灰色
+        }
+    });
+
+    // 设置当前激活的图标
+    const activeEl = document.getElementById(`${prefix}sort-icon-${activeCol}`);
+    if(activeEl) {
+        activeEl.innerText = direction === 'asc' ? '▲' : '▼';
+        activeEl.style.color = 'var(--primary)'; // 激活色
+    }
+    
+    // 特殊处理：Installer 视图有两个 Status 列
+    if(activeCol === 'status' && prefix === 'inst-') {
+         const el2 = document.getElementById('inst-sort-icon-status2');
+         if(el2) {
+             el2.innerText = direction === 'asc' ? '▲' : '▼';
+             el2.style.color = 'var(--primary)';
+         }
+    }
+}

@@ -1153,5 +1153,48 @@
 
     <script src="script.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPGUUSb3VX0CGsUgwENW0djTyl6morWTY&libraries=places&callback=initAutocomplete" async defer></script>
+    <script>
+    (function() {
+    // 定义局部变量，防止与外部冲突
+    const LOGIN_SUPABASE_URL = 'https://iytxwgyhemetdkmqoxoa.supabase.co';
+    const LOGIN_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5dHh3Z3loZW1ldGRrbXFveG9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMzI3MDIsImV4cCI6MjA3OTkwODcwMn0.ZsiueMCjwm5FoPlC3IDEgmsPaabkhefw3uHFl6gBm7Q';
+
+    if (window.supabase) {
+        const sbClient = window.supabase.createClient(LOGIN_SUPABASE_URL, LOGIN_SUPABASE_KEY);
+
+        // 检查登录状态
+        sbClient.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                console.log("✅ [AutoLogin] 用户已登录:", session.user.email);
+
+                // 1. 核心功能：劫持路由，点击 Partner 直接跳 Dashboard
+                const originalSwitchTab = window.switchTab || function(){};
+                window.switchTab = function(tabName) {
+                    if (tabName === 'partner') {
+                        console.log("🚀 跳转至 Dashboard");
+                        window.location.href = 'dashboard.html';
+                        return;
+                    }
+                    originalSwitchTab(tabName);
+                };
+
+                // 2. 视觉优化：仅将按钮变绿，❌ 不再修改文字
+                try {
+                    const allButtons = document.querySelectorAll('[onclick*="partner"]');
+                    allButtons.forEach(btn => {
+                        btn.style.color = "#10b981"; // 变成绿色，提示已登录状态
+                        // 🟢 我删除了修改 innerText 的那行代码，现在它会保持原样（Partner / 合作伙伴）
+                    });
+                } catch(e) {}
+
+                // 3. URL 直接访问检查
+                if (window.location.hash === '#partner') {
+                    window.location.replace('dashboard.html');
+                }
+            }
+        });
+    }
+    })();
+</script>
 </body>
 </html>
