@@ -118,8 +118,14 @@
             </div>
 
             <div class="input-group">
-                <label>Create Password</label>
-                <input type="password" id="new-pwd" placeholder="Enter password" oninput="checkRequirements()">
+             <label>Create Password</label>
+                <div style="position: relative;">
+                 <input type="password" id="new-pwd" placeholder="Enter password" oninput="checkRequirements()" style="padding-right: 40px;">
+                 <span onclick="togglePwd('new-pwd', this)" 
+                         style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; display: flex; align-items: center;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </span>
+             </div>
             </div>
 
             <div class="requirements">
@@ -129,7 +135,32 @@
 
             <div class="input-group">
                 <label>Confirm Password</label>
-                <input type="password" id="confirm-pwd" placeholder="Re-enter password">
+                 <div style="position: relative;">
+                    <input type="password" id="confirm-pwd" placeholder="Re-enter password" style="padding-right: 40px;">
+                     <span onclick="togglePwd('confirm-pwd', this)" 
+                        style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; display: flex; align-items: center;">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </span>
+                 </div>
+            </div>
+
+            <div class="input-group" style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                <label>Security PIN (4-6 digits)</label>
+                     <div style="position: relative;">
+                  <input type="password" id="payment-pin" 
+                          placeholder="Enter PIN" 
+                       maxlength="6" 
+                       inputmode="numeric" 
+                      pattern="[0-9]*"
+                      style="padding-right: 40px;">
+                    <span onclick="togglePwd('payment-pin', this)" 
+                          style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; display: flex; align-items: center;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                 </span>
+                </div>
+                 <div style="font-size: 0.8rem; color: var(--text-light); margin-top: 6px;">
+                     Required for payouts.
+                    </div>
             </div>
 
             <button onclick="activateAccount()" id="btn-activate">Activate Account</button>
@@ -151,6 +182,27 @@
         // 🟢 [关键修改] 改个名字叫 sbClient，防止和外部的 'supabase' 变量打架
         const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // 定义图标的 SVG 代码（清爽线条版）
+        const eyeOpenIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+
+        const eyeCloseIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+
+        function togglePwd(inputId, iconSpan) {
+             const input = document.getElementById(inputId);
+    
+         if (input.type === 'password') {
+        // 变成明文
+        input.type = 'text';
+        // 换成“闭眼”图标 (表示点击可以隐藏) 或 保持睁眼看
+        // 通常逻辑是：现在的状态是看得到的 -> 显示“闭眼”图标(点击隐藏)
+        iconSpan.innerHTML = eyeCloseIcon; 
+        } else {
+        // 变回密码
+        input.type = 'password';
+        // 换回“睁眼”图标
+        iconSpan.innerHTML = eyeOpenIcon;
+        }
+        }
         // 页面加载逻辑
         window.onload = async function() {
             // 1. 尝试获取当前会话
@@ -197,40 +249,68 @@
         }
 
         async function activateAccount() {
-            const email = document.getElementById('email-input').value.trim();
-            const pwd = document.getElementById('new-pwd').value;
-            const confirm = document.getElementById('confirm-pwd').value;
-            const btn = document.getElementById('btn-activate');
+             const email = document.getElementById('email-input').value.trim();
+             const pwd = document.getElementById('new-pwd').value;
+             const confirm = document.getElementById('confirm-pwd').value;
+              const pin = document.getElementById('payment-pin').value; // 你的 PIN 输入框 ID
+             const btn = document.getElementById('btn-activate');
             
-            const msgBox = document.getElementById('msg-box');
-            msgBox.style.display = 'none';
-            msgBox.className = 'msg-box';
+                 // UI 重置
+             const msgBox = document.getElementById('msg-box');
+                 msgBox.style.display = 'none';
+             msgBox.className = 'msg-box';
 
-            if (!email.includes('@')) return showError("未检测到有效邮箱，请刷新重试。");
-            if (pwd.length < 8) return showError("密码长度至少 8 位。");
-            if (!/[A-Z]/.test(pwd)) return showError("密码必须包含至少一个大写字母。");
-            if (pwd !== confirm) return showError("两次输入的密码不一致。");
+                // --- 1. 校验逻辑 ---
+             if (!email) return showError("邮箱加载失败，请刷新页面。");
+             if (pwd.length < 8) return showError("密码长度至少 8 位。");
+              if (!/[A-Z]/.test(pwd)) return showError("密码必须包含至少一个大写字母。");
+              if (pwd !== confirm) return showError("两次输入的密码不一致。");
+    
+             // 🔒 PIN 码强校验
+                 if (!/^\d{4,6}$/.test(pin)) {
+                  return showError("支付 PIN 码必须是 4-6 位纯数字。");
+             }
 
-            btn.disabled = true;
-            btn.innerText = "激活中...";
+             // --- 2. 提交逻辑 ---
+             btn.disabled = true;
+             btn.innerText = "正在激活...";
 
-            try {
-                // 🟢 这里的 supabase 也改成了 sbClient
-                const { data, error } = await sbClient.auth.updateUser({ 
-                    password: pwd 
-                });
+             try {
+                  // [A] 更新 Auth 账户密码
+                 // 用户点击邮件链接进来时，Supabase 已自动建立了 Session，可以直接 update
+                 const { data: { user }, error: authError } = await sbClient.auth.updateUser({ 
+                     password: pwd 
+                 });
 
-                if (error) throw error;
+                 if (authError) throw authError;
 
-                document.getElementById('form-content').style.display = 'none';
-                document.getElementById('success-content').style.display = 'block';
+                 if (!user || !user.id) throw new Error("无法获取用户 ID，请刷新重试。");
 
-            } catch (err) {
-                console.error(err);
-                showError(err.message);
-                btn.disabled = false;
-                btn.innerText = "Activate Account";
-            }
+                  // [B] 更新 Partners 表 (PIN 码 + 激活状态)
+                  // 🔥 关键点：因为你的 auth_id 已经自动插入了，这里直接匹配 user.id 即可
+                  const { error: dbError } = await sbClient
+                    .from('partners')
+                   .update({ 
+                        payment_pin: pin,
+                     status: 'active' // 顺手把状态改成激活
+                  })
+                  .eq('auth_id', user.id); // 精准打击
+
+                  if (dbError) {
+                      console.error('DB Error:', dbError);
+                      throw new Error("密码设置成功，但 PIN 码保存失败。请重试。");
+                     }
+
+                    // [C] 全部成功
+                 document.getElementById('form-content').style.display = 'none';
+                 document.getElementById('success-content').style.display = 'block';
+
+                  } catch (err) {
+                      console.error(err);
+                      showError(err.message);
+                         btn.disabled = false;
+                         btn.innerText = "Activate Account";
+                       }
         }
 
         function showError(text) {

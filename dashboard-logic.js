@@ -938,7 +938,7 @@ window.openProfileModal = async function() {
 
     // 预填充敏感信息（虽然此时不可见，但先填进去，等解锁后直接显示）
     document.getElementById('prof-bank').value = currentProfile.payment_details || '';
-    document.getElementById('prof-pin').value = currentProfile.security_pin || ''; 
+    document.getElementById('prof-pin').value = currentProfile.payment_pin || ''; 
     document.getElementById('prof-new-pass').value = ''; 
 
     modal.style.display = 'flex';
@@ -1031,7 +1031,7 @@ window.saveProfileSettings = async function() {
             phone: newPhone,
             abn_acn: newABN,
             payment_details: newBank,
-            security_pin: newPin,
+            payment_pin: newPin,
             notify_email: newNotify
         };
 
