@@ -12,6 +12,82 @@ let currentProfile = null;
 let currentLeads = []; // 🔥 新增这一行，用来存数据给弹窗用
 let cachedRefMap = {};
 
+// ==========================================
+// 🔒 PIN Verification Logic (补全这个逻辑)
+// ==========================================
+let pinResolve = null; 
+let pinReject = null;
+
+// 1. 切换 PIN 可见性
+// 1. 切换 PIN 可见性 (升级版：带图标切换)
+window.toggleVerifyPinVisibility = function(iconSpan) {
+    const input = document.getElementById('verify-pin-input');
+    
+    // 图标定义
+    const eyeOpen = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+    const eyeClosed = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+
+    if (input.type === 'password') {
+        // 变成明文 -> 显示闭眼图标 (表示点击可隐藏)
+        input.type = 'text';
+        iconSpan.innerHTML = eyeClosed;
+    } else {
+        // 变回密码 -> 显示睁眼图标
+        input.type = 'password';
+        iconSpan.innerHTML = eyeOpen;
+    }
+}
+
+// 2. 核心验证函数 (Promise)
+window.requestPinVerification = function() {
+    return new Promise((resolve, reject) => {
+        // 检查是否设置了 PIN
+        if (!currentProfile || !currentProfile.payment_pin) {
+            alert("⚠️ You haven't set up a Security PIN yet.\nPlease go to Profile Settings (top right) to set one.");
+            return reject("NO_PIN_SET");
+        }
+
+        const modal = document.getElementById('modal-pin-verify');
+        const input = document.getElementById('verify-pin-input');
+        
+        // 重置状态
+        input.value = ''; 
+        modal.style.display = 'flex';
+        setTimeout(() => { 
+            modal.style.opacity = '1'; 
+            input.focus(); 
+        }, 10);
+
+        pinResolve = resolve;
+        pinReject = reject;
+    });
+}
+
+// 3. 确认按钮逻辑
+// 确保 DOM 加载后再绑定事件，或者直接在这里绑定
+setTimeout(() => {
+    const btnConfirm = document.getElementById('btn-confirm-pin');
+    if(btnConfirm) {
+        btnConfirm.onclick = function() {
+            const inputPin = document.getElementById('verify-pin-input').value;
+            // 弱类型比较，防止一个是数字一个是字符串
+            if (inputPin == currentProfile.payment_pin) {
+                document.getElementById('modal-pin-verify').style.display = 'none';
+                if (pinResolve) pinResolve(true); // ✅ 成功
+            } else {
+                alert("❌ Incorrect PIN.");
+                document.getElementById('verify-pin-input').value = '';
+            }
+        };
+    }
+}, 1000); // 延迟绑定以确保HTML已加载
+
+// 4. 取消逻辑
+window.closePinVerifyModal = function() {
+    document.getElementById('modal-pin-verify').style.display = 'none';
+    if (pinReject) pinReject("USER_CANCELLED");
+}
+
 // Status Flow
 const STATUS_FLOW = ['new', 'contacted', 'site_visit', 'deposit', 'installed'];
 
@@ -684,19 +760,28 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
     let currentBalance = partner ? Number(partner.wallet_balance) : 0;
 
     const unlockTriggers = ['contacted', 'site_visit', 'deposit'];
-    let shouldPayUnlock = unlockTriggers.includes(finalStatus) && !feePaid; 
+    let shouldPayUnlock = unlockTriggers.includes(finalStatus) && !feePaid;
     
+    // 🔥 1. 解锁费用 PIN 验证
     if (shouldPayUnlock) {
         if (currentBalance < 50) { alert("❌ Insufficient Credit! Need $50.00."); loadInstallerDashboard(); return; }
+        // 先确认
         if (!confirm(`💰 PAYMENT REQUIRED\n\nLead Unlock Fee: $50.00\n\nProceed?`)) { loadInstallerDashboard(); return; }
+        
+        // 再输 PIN
+        try {
+            await requestPinVerification(); // 🔒 暂停等待输入 PIN
+        } catch (e) {
+            loadInstallerDashboard(); return; // 取消或失败
+        }
     }
 
     let newEstComm = null;
     if (finalStatus === 'site_visit') {
+        // ... (保持 Site Visit 估价逻辑不变) ...
         const promptMsg = savedEst && savedEst > 0
             ? `🚚 Site Visit / Quote\n\nExisting Estimate: $${savedEst}\nUpdate Estimated Referrer Commission ($):` 
             : `🚚 Site Visit / Quote\n\nPlease enter ESTIMATED Referrer Commission ($):`;
-            
         const input = prompt(promptMsg, savedEst || "200");
         if (input === null) { loadInstallerDashboard(); return; }
         newEstComm = Number(input);
@@ -705,19 +790,28 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
 
     let commissionAmount = 0, totalDeduction = 0, shouldPayComm = (finalStatus === 'installed');
     
+    // 🔥 2. 佣金支付 PIN 验证
     if (shouldPayComm) {
         if (savedEst && savedEst > 0) {
             commissionAmount = Number(savedEst);
-            if(!confirm(`🎉 INSTALLATION COMPLETE!\n\nProcessing Payout using Quoted Estimate:\nReferrer Comm: $${commissionAmount}\nPlatform Fee: $${(commissionAmount*0.05).toFixed(2)}\n\nProceed?`)) {
+            if(!confirm(`🎉 INSTALLATION COMPLETE!\n\nReferrer Comm: $${commissionAmount}\nPlatform Fee: $${(commissionAmount*0.05).toFixed(2)}\n\nProceed?`)) {
                  loadInstallerDashboard(); return; 
             }
         } else {
-            const input = prompt("🎉 INSTALLATION COMPLETE!\n\nNo estimate found. Enter Net Commission for Referrer:", "200");
+            const input = prompt("🎉 INSTALLATION COMPLETE!\n\nEnter Net Commission for Referrer:", "200");
             if (!input) { loadInstallerDashboard(); return; }
             commissionAmount = Number(input);
         }
+        
         totalDeduction = commissionAmount * 1.05;
         if (currentBalance < totalDeduction) { alert(`❌ Insufficient Credit! Need $${totalDeduction.toFixed(2)}.`); loadInstallerDashboard(); return; }
+
+        // 再输 PIN
+        try {
+            await requestPinVerification(); // 🔒 暂停等待输入 PIN
+        } catch (e) {
+            loadInstallerDashboard(); return; // 取消或失败
+        }
     }
 
     try {
@@ -848,15 +942,53 @@ window.updateDefaultInstaller = async function(val) {
 window.handleWithdraw = async function() {
     const balance = currentProfile.wallet_balance || 0;
     if (balance <= 0) return alert("Wallet is empty.");
-    const amount = prompt(`Available: $${balance}\nWithdraw Amount:`, balance);
-    if (amount > 0) {
-        await sbClient.from('payouts').insert({ partner_id: currentProfile.id, amount: amount, status: 'pending' });
-        await rpcUpdateBalance(currentProfile.id, -amount);
-        await recordTransaction(currentProfile.id, -amount, 'withdrawal', `Payout Request: $${amount}`);
-        alert("Withdrawal submitted.");
-        if(currentProfile.role === 'referral') loadReferrerDashboard(); else loadInstallerDashboard();
+    
+    // 1. 先询问金额
+    const amountStr = prompt(`Available: $${balance}\nWithdraw Amount:`, balance);
+    const amount = parseFloat(amountStr);
+
+    // 只有金额有效时，才开始验证流程
+    if (amount > 0 && amount <= balance) {
+        
+        // 🔒🔒🔒 【关键修改】在此处“暂停”并请求验证 🔒🔒🔒
+        try {
+            // 这行代码会弹窗，并等待用户输入正确 PIN 码
+            // 如果用户点取消或输错，代码会跳到 catch，不会执行下面的转账
+            await requestPinVerification(); 
+        } catch (err) {
+            console.log("Withdrawal cancelled or PIN failed.");
+            return; // ⛔️ 停止执行！钱不会被转走
+        }
+        // 🔒🔒🔒 验证通过，继续执行 🔒🔒🔒
+
+        try {
+            // 2. 创建提现记录
+            const { error: insertErr } = await sbClient.from('payouts').insert({ 
+                partner_id: currentProfile.id, 
+                amount: amount, 
+                status: 'pending' 
+            });
+            if (insertErr) throw insertErr;
+
+            // 3. 扣减余额
+            await rpcUpdateBalance(currentProfile.id, -amount);
+
+            // 4. 记录流水
+            await recordTransaction(currentProfile.id, -amount, 'withdrawal', `Payout Request: $${amount}`);
+
+            alert("Withdrawal submitted successfully.");
+            
+            // 5. 刷新页面
+            if(currentProfile.role === 'referral') loadReferrerDashboard(); else loadInstallerDashboard();
+
+        } catch (dbErr) {
+            console.error(dbErr);
+            alert("Error processing withdrawal: " + dbErr.message);
+        }
+    } else if (amount > balance) {
+        alert("Insufficient balance.");
     }
-}
+};
 window.handleNudge = async function(leadId) {
     const btn = event.target;
     const originalText = btn.innerText;
@@ -1030,7 +1162,7 @@ window.saveProfileSettings = async function() {
             company_name: newCompany,
             phone: newPhone,
             abn_acn: newABN,
-            payout_method: newBank,
+            payment_method: newBank,
             payment_pin: newPin,
           //  notify_email: newNotify
         };
