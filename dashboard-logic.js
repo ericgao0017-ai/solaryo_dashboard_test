@@ -934,10 +934,10 @@ window.openProfileModal = async function() {
     document.getElementById('prof-company').value = currentProfile.company_name || '';
     document.getElementById('prof-phone').value = currentProfile.phone || '';
     document.getElementById('prof-abn').value = currentProfile.abn_acn || '';
-    document.getElementById('prof-notify').checked = currentProfile.notify_email !== false;
+    //document.getElementById('prof-notify').checked = currentProfile.notify_email !== false;
 
     // 预填充敏感信息（虽然此时不可见，但先填进去，等解锁后直接显示）
-    document.getElementById('prof-bank').value = currentProfile.payment_details || '';
+    document.getElementById('prof-bank').value = currentProfile.payout_method || '';
     document.getElementById('prof-pin').value = currentProfile.payment_pin || ''; 
     document.getElementById('prof-new-pass').value = ''; 
 
@@ -1010,7 +1010,7 @@ window.saveProfileSettings = async function() {
     const newCompany = document.getElementById('prof-company').value.trim();
     const newPhone = document.getElementById('prof-phone').value.trim();
     const newABN = document.getElementById('prof-abn').value.trim();
-    const newNotify = document.getElementById('prof-notify').checked;
+   // const newNotify = document.getElementById('prof-notify').checked;
     
     // 敏感值 (如果未解锁，这些值就是 openModal 时预填的旧值，保存也没问题)
     const newBank = document.getElementById('prof-bank').value.trim();
@@ -1030,9 +1030,9 @@ window.saveProfileSettings = async function() {
             company_name: newCompany,
             phone: newPhone,
             abn_acn: newABN,
-            payment_details: newBank,
+            payout_method: newBank,
             payment_pin: newPin,
-            notify_email: newNotify
+          //  notify_email: newNotify
         };
 
         const { error } = await sbClient.from('partners').update(updates).eq('id', currentProfile.id);
