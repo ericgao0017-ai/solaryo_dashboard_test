@@ -4746,7 +4746,7 @@ function renderMonthlyChart(annualTotal) {
     monthlyChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels, // 英文简写是国际通用的，通常不需要改中文 (1月, 2月...)
+            labels: labels,
             datasets: [{
                 data: dataPoints,
                 backgroundColor: '#f59e0b',
@@ -4759,7 +4759,17 @@ function renderMonthlyChart(annualTotal) {
             maintainAspectRatio: false,
             plugins: { 
                 legend: { display: false }, 
-                tooltip: { enabled: true } 
+                
+                // 🟢 【核心修改】自定义 Tooltip 显示格式
+                tooltip: { 
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            // context.raw 是原始数值，后面拼接 " kWh"
+                            return context.raw + ' kWh';
+                        }
+                    }
+                } 
             },
             scales: {
                 y: { display: false }, 
