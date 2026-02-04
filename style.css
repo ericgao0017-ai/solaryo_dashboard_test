@@ -5017,3 +5017,577 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
         gap: 12px !important;
     }
 }
+/* =========================================
+   🚀 2. Hero Action Styles (顶部搜索栏)
+   ========================================= */
+.hero-actions {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    position: relative;
+    z-index: 10;
+}
+
+.hero-input-group {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 6px;
+    border-radius: 50px;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-input-group:focus-within {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.2);
+    border-color: var(--accent);
+}
+
+.hero-input-group .input-icon {
+    font-size: 1.2rem;
+    padding-left: 16px;
+    color: var(--accent);
+    animation: bounceIcon 2s infinite;
+}
+
+@keyframes bounceIcon {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+#hero-address {
+    flex: 1;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 12px 10px !important;
+    font-size: 1rem !important;
+    color: var(--primary);
+    height: auto !important; /* 覆盖全局input高度 */
+}
+
+#hero-address:focus {
+    outline: none !important;
+}
+
+.btn-hero-analyze {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-hero-analyze:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+/* =========================================
+   📊 Inline Analysis Dashboard (New)
+   ========================================= */
+
+/* Hero 输入框微调 */
+.hero-input-group {
+    position: relative;
+    z-index: 20; /* 保证在面板之上 */
+    transition: border-radius 0.3s;
+}
+/* 当面板展开时，输入框下角变直，与面板无缝连接 */
+.hero-input-group.expanded {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: 1px solid transparent;
+}
+
+/* 面板容器 */
+.inline-panel {
+    background: rgba(15, 23, 42, 0.95); /* 深色不透明背景 */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: none;
+    border-radius: 0 0 24px 24px;
+    margin-top: -2px; /* 向上重叠一点，消除缝隙 */
+    padding: 0;
+    overflow: hidden;
+    transform-origin: top;
+    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    position: relative;
+    z-index: 15;
+    color: white;
+}
+
+.inline-panel.hidden {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    border-width: 0;
+}
+
+.inline-panel:not(.hidden) {
+    max-height: 800px; /* 足够展示内容的高度 */
+    opacity: 1;
+    padding: 25px;
+    border-width: 1px;
+}
+
+/* --- Loader --- */
+.panel-loader { padding: 40px; text-align: center; color: #94a3b8; }
+.radar-spinner {
+    width: 50px; height: 50px; border: 2px solid var(--accent);
+    border-radius: 50%; margin: 0 auto 15px auto;
+    border-top-color: transparent; animation: spin 1s infinite linear;
+}
+
+/* --- Layout --- */
+.panel-top-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+/* 左侧地图 HUD */
+.map-hud-box {
+    height: 180px; background: #000; border-radius: 16px; 
+    overflow: hidden; position: relative; border: 1px solid #334155;
+}
+#inline-map-container, #inline-map-container img { width: 100%; height: 100%; object-fit: cover; }
+/* 这里的 filter 调整是关键：增加对比度让地图看起来更"新" */
+#inline-map-container img { filter: contrast(1.2) saturate(1.1) brightness(0.9); }
+
+.map-overlay-ui {
+    position: absolute; top: 10px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; font-size: 0.7rem; font-family: monospace;
+}
+.live-indicator { background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; color: #10b981; }
+.geo-coords { color: rgba(255,255,255,0.7); text-shadow: 0 1px 2px black; }
+
+
+/* --- [NEW] Compare Slider (Satellite vs Flux) --- */
+.compare-container { position: relative; width: 100%; height: 100%; }
+.map-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.map-layer img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Base satellite look (crisp) */
+#inline-map-base img { filter: contrast(1.2) saturate(1.1) brightness(0.9); }
+
+/* Fake flux overlay look (phase-1) */
+#inline-map-flux img.fake-flux {
+    filter: contrast(1.35) saturate(1.35) brightness(0.85) hue-rotate(120deg);
+    mix-blend-mode: screen;
+    opacity: 0.85;
+}
+
+/* Overlay clipped by width (drag to reveal) */
+#overlay-layer { width: 50%; overflow: hidden; }
+
+/* Handle */
+.compare-handle {
+    position: absolute; top: 0; left: 50%;
+    width: 0; height: 100%;
+    cursor: ew-resize;
+    z-index: 6;
+}
+.compare-handle::before {
+    content: "";
+    position: absolute; top: 0; left: -1px;
+    width: 2px; height: 100%;
+    background: rgba(255,255,255,0.6);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+}
+.handle-circle {
+    position: absolute; top: 50%; left: -18px; transform: translateY(-50%);
+    width: 36px; height: 36px;
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white; font-weight: 800;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+.layer-label {
+    position: absolute; bottom: 10px; left: 10px;
+    font-size: 0.65rem; font-weight: 700;
+    padding: 4px 8px; border-radius: 8px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #e2e8f0;
+}
+.overlay-layer .layer-label { left: auto; right: 10px; }
+
+/* 右侧数据 */
+.stats-dashboard {
+    display: flex; flex-direction: column; justify-content: center; gap: 15px;
+}
+
+/* --- [NEW] Score Card + Subscores --- */
+.score-card-row { display: flex; gap: 14px; align-items: center; padding: 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); background: rgba(2, 6, 23, 0.35); }
+.score-ring-box { width: 92px; height: 92px; position: relative; flex-shrink: 0; }
+.circular-chart { width: 92px; height: 92px; }
+.circular-chart .circle { fill: none; stroke-width: 3.2; stroke-linecap: round; stroke: #10b981; transition: stroke-dasharray 0.8s ease, stroke 0.4s ease; }
+.percentage { font-size: 0.9rem; fill: #e2e8f0; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+.score-info { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.score-grade { font-size: 1.05rem; font-weight: 900; color: #e2e8f0; }
+.score-desc { font-size: 0.78rem; color: #94a3b8; line-height: 1.25; }
+
+.subscore-list { margin-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+.subscore-top { display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #cbd5e1; }
+.subscore-label { opacity: 0.9; }
+.subscore-val { font-weight: 800; color: #e2e8f0; }
+.subscore-bar { height: 6px; background: rgba(148, 163, 184, 0.18); border-radius: 999px; overflow: hidden; }
+.subscore-bar .fill { display: block; height: 100%; width: 0%; background: rgba(16, 185, 129, 0.9); border-radius: 999px; transition: width 0.8s ease; }
+
+/* --- [NEW] Data Source card --- */
+.data-source-card { margin-top: 14px; padding: 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); background: rgba(2, 6, 23, 0.25); }
+.ds-title { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #94a3b8; margin-bottom: 8px; }
+.ds-row { display: flex; justify-content: space-between; gap: 10px; font-size: 0.78rem; color: #cbd5e1; margin-bottom: 6px; }
+.ds-label { opacity: 0.9; }
+.ds-val { font-weight: 800; color: #e2e8f0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.ds-disclaimer { margin-top: 8px; font-size: 0.72rem; color: #94a3b8; line-height: 1.25; }
+
+/* Chart tag + recommendation */
+.chart-header-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.chart-tag { font-size: 0.68rem; font-weight: 800; color: #94a3b8; background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(255,255,255,0.12); padding: 6px 10px; border-radius: 999px; }
+.inline-reco { margin-top: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.18); color: #e2e8f0; font-size: 0.82rem; font-weight: 700; }
+
+.stat-big .label { display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
+.value-row { display: flex; align-items: baseline; gap: 4px; }
+.stat-big .number { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+.stat-big .unit { font-size: 0.9rem; color: #64748b; font-weight: 600; }
+.stat-big .sub-text { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+.stat-divider { height: 1px; background: rgba(255,255,255,0.1); width: 100%; }
+
+/* --- Chart Area --- */
+.panel-chart-row {
+    background: rgba(255,255,255,0.03); border-radius: 16px; padding: 15px; margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.chart-header { display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px; }
+.chart-wrapper { height: 120px; width: 100%; position: relative; }
+
+/* --- Environmental & Actions --- */
+.panel-bottom-row { display: flex; gap: 20px; align-items: center; }
+
+/* 环保数据格 */
+.env-impact-box { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.env-item { 
+    display: flex; align-items: center; gap: 10px; 
+    background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px;
+}
+.env-icon { font-size: 1.5rem; }
+.env-text { display: flex; flex-direction: column; line-height: 1.2; }
+.env-text strong { font-size: 0.9rem; color: #e2e8f0; }
+.env-text small { font-size: 0.65rem; color: #64748b; }
+
+/* 按钮组 */
+.action-buttons-row { flex: 0.8; display: flex; gap: 10px; flex-direction: column; }
+.btn-action {
+    width: 100%; border: none; padding: 12px; border-radius: 10px; 
+    font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 0.9rem;
+}
+.btn-action.primary {
+    background: #10b981; color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+.btn-action.primary:hover { background: #059669; transform: translateY(-2px); }
+.btn-action.secondary {
+    background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1;
+}
+.btn-action.secondary:hover { border-color: white; color: white; }
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+    .panel-top-row { grid-template-columns: 1fr; } /* 地图和数据垂直排列 */
+    .map-hud-box { height: 150px; }
+    .panel-bottom-row { flex-direction: column; } /* 环保和按钮垂直排列 */
+    .env-impact-box { width: 100%; }
+    .action-buttons-row { width: 100%; flex-direction: row; }
+}
+
+/* --- 修复 1: Hero 界面被遮挡 --- */
+/* 增加 max-height 到足够大，并给底部留出 padding */
+.inline-panel:not(.hidden) {
+    max-height: 1500px !important; /* 原来可能太小了 */
+    opacity: 1;
+    padding: 25px;
+    padding-bottom: 40px; /* 底部留白 */
+    border-width: 1px;
+    overflow: visible; /* 允许内容撑开 */
+}
+
+/* --- 修复 2: 静态屋顶图优化 & 热力图渲染 --- */
+.map-hud-box {
+    height: 220px; /* 稍微调高一点，显示更多屋顶 */
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #334155;
+}
+
+#inline-map-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 铺满容器，不留黑边 */
+    transition: all 0.5s ease;
+}
+
+/* 卫星模式：增加一点锐化感 */
+#inline-map-img.satellite-mode {
+    filter: contrast(1.1) brightness(0.9);
+}
+
+/* 热力图模式：更高级的渲染效果 */
+/* 使用 hue-rotate 变色，invert 反转亮暗，saturate 增加饱和度 */
+#inline-map-img.heatmap-mode {
+    filter: invert(1) hue-rotate(180deg) contrast(1.5) saturate(2) brightness(1.1) blur(0.5px);
+    /* 配合 mix-blend-mode 效果更好，但在单图层下 filter 是最稳的 */
+}
+
+/* --- 新增: 切换按钮样式 --- */
+.map-toggle-controls {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 20px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+    border: 1px solid rgba(255,255,255,0.2);
+    z-index: 10;
+}
+
+.map-tog-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.map-tog-btn.active {
+    background: #10b981;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* --- 修复 3: 布局与数据网格 --- */
+.stats-dashboard {
+    justify-content: flex-start; /* 顶部对齐 */
+}
+
+/* 修改 .stats-grid-compact，确保 2x2 排列整齐 */
+.stats-grid-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 强制两列 */
+    gap: 12px;
+    margin-top: 15px;
+}
+
+/* 移除之前的 full-width 样式，让所有格子一样大 */
+.stat-big {
+    background: rgba(255,255,255,0.05);
+    padding: 10px 12px; /*稍微减小内边距*/
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 70px; /* 保证高度一致 */
+}
+
+/* 专门给 Value: $xxx 那一行做个样式，防止换行太难看 */
+.sub-text {
+    font-size: 0.7rem; 
+    color: #64748b; 
+    margin-top: 2px;
+    white-space: nowrap; /* 不换行 */
+}
+
+/* 指南针图标样式 */
+.compass-icon {
+    font-size: 1.2rem;
+    margin-right: 6px;
+    display: inline-block;
+    /* 这里的 transform 会被 JS 覆盖，实现旋转 */
+}
+
+/* 针对 Orientation 文字大小微调，防止 "North East" 爆格 */
+#inline-orientation-val {
+    font-size: 1rem; /* 稍微比数字小一点 */
+    font-weight: 700;
+}
+
+/* 移动端适配 */
+@media (max-width: 400px) {
+    #inline-orientation-val {
+        font-size: 0.9rem; /* 手机上字体再小点 */
+    }
+    .stat-big .number {
+        font-size: 1.4rem; /* 数字也稍微调小 */
+    }
+}
+
+/* --- 修复: Disclaimer 样式优化 --- */
+.ds-disclaimer-box {
+    margin-top: 10px;
+    text-align: center;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+    padding-top: 8px;
+}
+
+.ds-disclaimer-box p {
+    font-size: 0.65rem;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* --- 修复: 详细版环保卡片 (仿照截图) --- */
+.panel-bottom-row-detailed {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+    margin-bottom: 25px; /* 给下面的按钮留出空间 */
+}
+
+.env-detail-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.2s;
+}
+
+.env-detail-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+}
+
+.env-icon-large {
+    font-size: 2rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.env-text-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.env-label-mini {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+}
+
+.env-main-val {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    line-height: 1.1;
+}
+
+.env-main-val .unit {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.env-desc-mini {
+    font-size: 0.65rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+/* --- 修复: 按钮组间距 --- */
+.action-buttons-row-separated {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px; /* 🟢 增加间距，解决太近的问题 */
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+    .panel-bottom-row-detailed {
+        grid-template-columns: 1fr; /* 手机上环保卡片垂直排列 */
+        gap: 10px;
+    }
+    
+    .action-buttons-row-separated {
+        flex-direction: row; /* 按钮保持水平，或者改为 column */
+    }
+}
+
+/* --- 用户引导框 (填补左侧空白) --- */
+.user-guide-box {
+    background: rgba(255, 255, 255, 0.08); /* 稍微亮一点的半透明背景 */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    /* 增加一个微妙的呼吸光晕，吸引注意力 */
+    animation: guidePulse 3s infinite;
+}
+
+@keyframes guidePulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); border-color: rgba(255, 255, 255, 0.15); }
+    50% { box-shadow: 0 0 10px 0 rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); } /* 绿色呼吸 */
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); border-color: rgba(255, 255, 255, 0.15); }
+}
+
+.user-guide-box:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.guide-icon {
+    font-size: 1.5rem;
+    animation: pointDown 1.5s infinite ease-in-out;
+}
+
+@keyframes pointDown {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(3px); }
+}
+
+.guide-content {
+    flex: 1;
+}
+
+.guide-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #10b981; /* 使用品牌绿，强调"精准" */
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.guide-desc {
+    font-size: 0.75rem;
+    color: #cbd5e1; /* 浅灰色文字 */
+    line-height: 1.3;
+}

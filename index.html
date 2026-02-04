@@ -181,6 +181,7 @@
 </head>
 
 <body>
+
     <div id="fomo-bar" class="fomo-bar apple-notify" onclick="openFomoModal()">
         <div class="fomo-content">
             <span id="fomo-icon" class="fomo-icon">🔥</span>
@@ -272,6 +273,140 @@
                     <button class="active" onclick="setLang('en')">EN</button>
                 </div>
             </div>
+
+           <div class="hero-wrapper" style="max-width: 800px; margin: 0 auto; position: relative;">
+    
+                 <div class="hero-input-group" id="hero-input-container">
+                         <div class="input-icon">📍</div>
+                      <input type="text" id="hero-address" placeholder="Enter address to est. potential..." autocomplete="off">
+                      <button onclick="triggerInlineAnalysis()" class="btn-hero-analyze" id="btn-analyze-trigger">
+                       🚀 Analyze
+                             </button>
+                </div>
+
+                 <div id="inline-analysis-panel" class="inline-panel hidden">
+    
+    <div id="inline-loader" class="panel-loader" style="display:none;">
+        <div class="radar-spinner"></div>
+        <p>🛰️ Connecting to Satellite Feed...</p>
+    </div>
+
+    <div id="inline-results" style="display:none;">
+    <div class="panel-top-row">
+        <div class="map-section-wrapper">
+            <div class="map-hud-box" id="map-view-box">
+                <img id="inline-map-img" src="" alt="Roof Analysis" class="satellite-mode">
+                
+                <div class="map-toggle-controls">
+                    <button class="map-tog-btn active" onclick="toggleMapMode('satellite')" data-i18n="btn_sat">Satellite</button>
+                    <button class="map-tog-btn" onclick="toggleMapMode('heatmap')" data-i18n="btn_heat">Heatmap</button>
+                </div>
+                
+                <div class="map-overlay-ui">
+                    <div class="live-indicator">LIVE FEED</div>
+                    <div class="geo-coords" id="inline-coords">--</div>
+                </div>
+            </div>
+            <div class="user-guide-box">
+                        <div class="guide-icon">👇</div>
+                        <div class="guide-content">
+                        <div class="guide-title" data-i18n="guide_title">Want precise savings?</div>
+                    <div class="guide-desc" data-i18n="guide_desc">Enter your bill details below to unlock accurate ROI.</div>
+                 </div>
+            </div>
+            <div class="ds-disclaimer-box">
+                <p data-i18n="inline_disclaimer_1">* Disclaimer: Imagery based on Google Maps data. Estimates only.</p>
+                <p data-i18n="inline_disclaimer_2" style="color: #94a3b8; margin-top: 2px;">Estimated values based on roof irradiance and max capacity. Actual output depends on final system configuration.</p>
+            </div>
+        </div>
+
+        <div class="stats-dashboard">
+            <div class="score-card-row">
+                <div class="score-ring-box">
+                <svg viewBox="0 0 36 36" class="circular-chart">
+                     <path class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        
+                 <text x="18" y="20.35" class="percentage" id="score-text">0</text>
+                    </svg>
+                </div>
+                <div class="score-info">
+                    <div class="score-grade" id="score-grade">--</div>
+                    <div class="score-desc" id="score-desc" data-i18n="inline_score_desc_placeholder">--</div>
+                </div>
+            </div>
+
+            <div class="stats-grid-compact">
+                <div class="stat-big">
+                  <span class="label" data-i18n="inline_max_capacity">Max Capacity</span>
+                 <div class="value-row"><span class="number" id="inline-max-kw">--</span><span class="unit">kW</span></div>
+                </div>
+
+                <div class="stat-big">
+                    <span class="label" data-i18n="inline_roof_area">Roof Area (Est.)</span>
+                    <div class="value-row"><span class="number" id="inline-roof-area">--</span><span class="unit">m²</span></div>
+                 </div>
+
+                 <div class="stat-big">
+                        <span class="label" data-i18n="inline_orientation">Orientation</span>
+                     <div class="value-row">
+                     <span class="compass-icon" id="inline-compass-icon">🧭</span>
+                     <span class="number" id="inline-orientation-val">--</span>
+                    </div>
+                 </div>
+
+                <div class="stat-big">
+                    <span class="label" data-i18n="inline_est_max_gen">Est. Max Gen</span>
+                    <div class="value-row"><span class="number" id="inline-annual-kwh">--</span><span class="unit">kWh</span></div>
+                        <div class="sub-text"><span data-i18n="inline_value_label">Value:</span> <span id="inline-annual-value" style="color:#f59e0b;">$--</span></div>
+                     </div>
+                </div>
+        </div>
+    </div>
+
+    <div class="panel-chart-row">
+        <div class="chart-header-row">
+            <div class="chart-tag" id="monthly-model-tag" data-i18n="inline_month_gen_title">Monthly generation</div>
+        </div>
+        <div class="chart-wrapper"><canvas id="monthlyChart"></canvas></div>
+    </div>
+
+    <div class="inline-reco" id="inline-battery-reco" data-i18n="inline_battery_reco">
+        Your roof shows strong generation potential — we recommend adding a battery.
+    </div>
+
+    <div class="panel-bottom-row-detailed">
+        <div class="env-detail-card">
+            <div class="env-icon-large">🌲</div>
+            <div class="env-text-group">
+                <div class="env-label-mini" data-i18n="env_label_plant">Equivalent to planting</div>
+                <div class="env-main-val"><span id="env-trees">--</span> <span class="unit" data-i18n="env_unit_trees">trees / year</span></div>
+                <div class="env-desc-mini" data-i18n="env_desc_trees">CO2 absorption offset</div>
+            </div>
+        </div>
+
+        <div class="env-detail-card">
+            <div class="env-icon-large">🚗</div>
+            <div class="env-text-group">
+                <div class="env-label-mini" data-i18n="env_label_save">Equivalent to saving</div>
+                <div class="env-main-val"><span id="env-cars">--</span> <span class="unit" data-i18n="env_unit_cars">cars / year</span></div>
+                <div class="env-desc-mini" data-i18n="env_desc_cars">Petrol emissions avoided</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-buttons-row-separated">
+        <button onclick="applyAnalysisOutcome('yes')" class="btn-action secondary"><span data-i18n="inline_btn_yes">✅ I have Solar</span></button>
+        <button onclick="applyAnalysisOutcome('no')" class="btn-action primary"><span data-i18n="inline_btn_no">❌ New Install</span></button>
+    </div>
+</div>
+</div>
+
+    <div style="text-align:center; margin-top:10px;" id="hero-sub-link">
+        <a href="javascript:void(0)" onclick="skipAiAnalysis()" style="font-size:0.8rem; color:#fff; opacity:0.8; text-decoration:underline;">
+            Skip analysis & calculate manually
+        </a>
+    </div>
+</div>
 
             <div class="label-row-header">
                 <label data-i18n="lbl_mode" style="margin-bottom: 0;">Installation Type</label>
@@ -536,6 +671,10 @@
                             </div>
                         </div>
 
+                        <input type="hidden" id="hidden-lat">
+                        <input type="hidden" id="hidden-lng">
+                        <input type="hidden" id="hidden-solar-data">
+                        <input type="hidden" id="hidden-install-type" value="new">
                         <input type="text" id="lead-name" data-i18n-ph="ph_name" placeholder="Name*">
                         <input type="email" id="lead-email" data-i18n-ph="ph_email" placeholder="Email*">
                         <div id="err-lead-email" class="inline-error-msg"></div>

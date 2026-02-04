@@ -389,10 +389,82 @@ const i18n = {
         chat_online: "在线",
         chat_welcome: "👋 您好！我是您的太阳能助手。<br>关于报价、电池或补贴有什么可以帮您的吗？",
         chat_placeholder: "请输入您的问题...",
-        chat_just_now: "刚刚"
+        chat_just_now: "刚刚",
         
+
+        // --- Hero / Inline Analysis ---
+        inline_max_capacity: "最大装机容量",
+        inline_roof_area: "预估屋顶面积",
+        inline_est_max_gen: "预估最大发电量", // 修改点 2
+        inline_value_label: "产值(搭配电池)：",
+        inline_month_gen_title: "月度发电量 (估算)",
+        inline_battery_reco: "您的屋顶发电潜力巨大，建议加装电池，提高自发自用并减少电网依赖。",
+        
+        // 按钮
+        btn_sat: "卫星图",
+        btn_heat: "热力图",
+        inline_btn_yes: "✅ 是的，我有光伏",
+        inline_btn_no: "❌ 没有（新装方案）",
+
+        inline_orientation: "屋顶主朝向",
+        // 方向
+        dir_n: "正北 (最佳)",
+        dir_ne: "东北",
+        dir_e: "正东",
+        dir_se: "东南",
+        dir_s: "正南",
+        dir_sw: "西南",
+        dir_w: "正西",
+        dir_nw: "西北",
+
+        guide_title: "想要更精准的方案？",
+        guide_desc: "请在下方完善您的电费和房屋信息，获取精确报价。",
+
+        // Disclaimer
+        inline_disclaimer_1: "* 声明：影像数据基于 Google Maps，仅供估算参考。",
+        inline_disclaimer_2: "预估数据是以房屋光照和最大装机量估算，实际发电量以实际配置为准。", // 修改点 1
+
+        // 环保数据 (新)
+        env_label_plant: "相当于种植",
+        env_unit_trees: "棵树 / 年",
+        env_desc_trees: "二氧化碳吸收抵消",
+        
+        env_label_save: "相当于节省",
+        env_unit_cars: "辆车 / 年",
+        env_desc_cars: "避免的燃油排放",
+        
+        // 分数描述
+        inline_grade_excellent: "极佳",
+        inline_grade_good: "良好",
+        inline_grade_fair: "一般",
+        inline_score_desc_excellent: "日照充足且遮挡风险低，适合高效方案。",
+        inline_score_desc_good: "整体表现良好，优化排布可进一步提升。",
+        inline_score_desc_fair: "可能存在遮挡或屋顶空间限制，建议做定制化设计。",
     },
     en: {
+
+        // --- Inline Solar Analysis (Hero) ---
+        inline_data_source_title: "Data Source",
+        inline_imagery_quality_label: "Required quality:",
+        inline_imagery_date_label: "Imagery date:",
+        inline_imagery_disclaimer: "Due to Google coverage limits, some rooftops may be less accurate (MEDIUM coverage expansion applied).",
+        inline_month_model_tag: "Seasonality model (estimated)",
+        inline_battery_reco: "Your roof shows strong generation potential — we recommend adding a battery to capture more self-consumption and reduce grid reliance.",
+        inline_sunshine_score: "Sunshine / Shade Score",
+        inline_capacity_score: "Installable Capacity Score",
+        inline_grade_excellent: "Excellent",
+        inline_grade_good: "Good",
+        inline_grade_fair: "Fair",
+        inline_score_desc_excellent: "Strong irradiation signals and low shade risk — ideal for high output.",
+        inline_score_desc_good: "Good sunlight profile. Layout optimization can improve results further.",
+        inline_score_desc_fair: "Some shading or limited roof area detected. A tailored design is recommended.",
+        inline_max_capacity: "Max Capacity",
+        inline_est_generation: "Est. Generation",
+        inline_value_label: "Value（with battery):",
+        inline_env_trees: "Trees",
+        inline_env_cars: "Cars",
+        inline_btn_yes: "✅ Yes, I do",
+        inline_btn_no: "❌ No (New Setup)",
         lbl_notes: "Notes / Special Requirements (Optional)",
         ph_notes: "Tip: Uploading your electricity bill or a photo of your switchboard helps us provide the most accurate quote possible.",
         lbl_file: "Upload Bill or Photo (Optional)",
@@ -585,6 +657,57 @@ const i18n = {
         msg_err_phone: "Error: Invalid AU Phone Number",
         msg_err_email: "Error: Invalid Email Address",
         msg_err_general: "Error. Please try again.",
+
+        // --- Hero / Inline Analysis ---
+        inline_max_capacity: "Max Capacity",
+        inline_roof_area: "Roof Area (Est.)",
+        inline_est_max_gen: "Est. Max Generation", // 修改点 2
+        inline_value_label: "Value(with battery):",
+        inline_month_gen_title: "Monthly Generation(est.)",
+        inline_battery_reco: "Your roof shows strong generation potential — we recommend adding a battery.",
+
+        // Buttons
+        btn_sat: "Satellite",
+        btn_heat: "Heatmap",
+        inline_btn_yes: "✅ Yes, I do",
+        inline_btn_no: "❌ No (New Setup)",
+
+        // Disclaimer
+        inline_disclaimer_1: "* Disclaimer: Imagery based on Google Maps data. Estimates only.",
+        inline_disclaimer_2: "Estimated values based on roof irradiance and max capacity. Actual output depends on final system configuration.", // 修改点 1
+
+        // Env Data (New)
+        env_label_plant: "Equivalent to planting",
+        env_unit_trees: "trees / year",
+        env_desc_trees: "CO2 absorption offset",
+        
+        env_label_save: "Equivalent to saving",
+        env_unit_cars: "cars / year",
+        env_desc_cars: "Petrol emissions avoided",
+
+        // ... 原有翻译 ...
+        inline_orientation: "Dominant Orientation",
+        // Directions
+        dir_n: "North (Ideal)",
+        dir_ne: "North East",
+        dir_e: "East",
+        dir_se: "South East",
+        dir_s: "South",
+        dir_sw: "South West",
+        dir_w: "West",
+        dir_nw: "North West",
+
+        // ... 原有翻译 ...
+        guide_title: "Want precise savings?",
+        guide_desc: "Enter your bill details below to unlock accurate ROI.",
+
+        // Score Desc
+        inline_grade_excellent: "Excellent",
+        inline_grade_good: "Good",
+        inline_grade_fair: "Fair",
+        inline_score_desc_excellent: "Strong irradiation signals and low shade risk — ideal for high output.",
+        inline_score_desc_good: "Good sunlight profile. Layout optimization can improve results further.",
+        inline_score_desc_fair: "Some shading or limited roof area detected. A tailored design is recommended.",
 
         // [New] Sticky Footer & Fake Loader
         sticky_net: "Total Net Price",
@@ -1616,7 +1739,11 @@ function isValidPostcode(p) { return /^\d{4}$/.test(p); }
 // ==========================================
 // 🟢 修改版 submitLead (防重 + 暴力解锁 UI)
 // ==========================================
+// ==========================================
+// 🟢 修改版 submitLead (完整版 - 含 AI 数据提交)
+// ==========================================
 async function submitLead() {
+    // --- 1. 获取基础 DOM 元素 (原有逻辑) ---
     const name = document.getElementById('lead-name').value.trim();
     const email = document.getElementById('lead-email').value.trim();
     const phone = document.getElementById('lead-phone').value.trim();
@@ -1626,6 +1753,7 @@ async function submitLead() {
     // 尝试从缓存里取出推荐码
     const trackingCode = localStorage.getItem('solaryo_ref_code') || null;
 
+    // UI 显隐逻辑
     const finalBtn = document.getElementById('btn-final-enquiry');
     if (finalBtn) {
         finalBtn.style.display = 'flex';
@@ -1639,7 +1767,7 @@ async function submitLead() {
 
     msgEl.innerText = '';
 
-    // 1. 基础验证
+    // --- 2. 基础验证 (原有逻辑) ---
     if (!name || !email || !phone) {
         msgEl.style.color = '#ef5350';
         msgEl.innerText = i18n[curLang].err_required;
@@ -1659,86 +1787,96 @@ async function submitLead() {
     const btn = document.getElementById('btn-submit');
     const originalBtnText = btn.innerText; 
 
-    // 2. 更改按钮状态
+    // 更改按钮状态
     btn.innerText = curLang === 'cn' ? "处理中..." : "Processing...";
     btn.disabled = true;
 
     try {
-        // --- 3. 准备数据 ---
+        // --- 3. 准备数据 (这里就是你担心删掉的部分，其实都在) ---
         const solarText = document.getElementById('solar-val').innerText;
         const batText = document.getElementById('bat-val').innerText;
         const priceText = document.getElementById('out-net').innerText;
 
+        // 🟢 [新增] 获取 AI 分析的隐藏数据 (从 index.html 的隐藏 input 里拿)
+        // 如果用户没用 AI 分析，这些就是 null，不影响流程
+        const latVal = document.getElementById('hidden-lat') ? parseFloat(document.getElementById('hidden-lat').value) : null;
+        const lngVal = document.getElementById('hidden-lng') ? parseFloat(document.getElementById('hidden-lng').value) : null;
+        const solarDataRaw = document.getElementById('hidden-solar-data') ? document.getElementById('hidden-solar-data').value : null;
+        
+        let solarJson = {};
+        try { solarJson = solarDataRaw ? JSON.parse(solarDataRaw) : {}; } catch(e){}
+
+        // --- 4. 构建发送给数据库的数据包 ---
+        
         // A. 准备发送给智能大脑 (SQL V13) 的核心数据
-        // 参数名必须严格对应 SQL 函数的定义 (p_name, p_phone...)
         const rpcPayload = {
             p_name: name,
-            p_phone: phone, // 直接传，SQL 会自动处理格式
+            p_phone: phone,
             p_email: email.toLowerCase(),
             p_address: address,
             p_postcode: extractedPostcode || "",
+            
+            // 这里用到了上面获取的 solarText 和 batText
             p_solar_size: solarText,
             p_battery_size: batText,
+            
             p_bill: document.getElementById('bill-input').value,
             p_estimated_price: priceText,
-            p_user_profile: userApplianceProfile || {}, 
+            
+            // 🟢 [修改] 把 AI 数据合并进 user_profile
+            p_user_profile: {
+                ...userApplianceProfile,          // 原有的家电画像
+                solar_ai_data: solarJson,         // 新增：卫星分析结果
+                geo: { lat: latVal, lng: lngVal } // 新增：经纬度
+            }, 
             p_ref_code: trackingCode
         };
 
-        // B. 准备 SQL 函数没包含的“额外详情” (用于后续补全)
+        // B. 准备详情 Update 数据 (用于后续补全)
         const detailPayload = {
             language: curLang,
             installation_mode: curMode,
             state: document.getElementById('state-select').value,
-            
-            // ❌ 【删除这行】绝对不要传 created_at，否则会覆盖老用户的“第一次”时间
-            // created_at: new Date().toISOString(), 
-
-            // 🔥 【新增】强制刷新 updated_at，让它排到列表最上面
             updated_at: new Date().toISOString(),
+            has_client_update: true,
+            
+            // 🟢 [新增] 如果你的 leads 表里有 lat/lng 字段，可以在这里直接存
+            // lat: latVal, 
+            // lng: lngVal,
 
-            // 🔥 【新增】点亮 Installer 端的橘色 "UPDATED" 提醒标
-            has_client_update: true, 
-            
             notes: "[System] User Unlocked Price (Preliminary Lead)",
-            
-            // 房屋详情
             property_storeys: getSelectedText('storey-select'),
             property_roof: getSelectedText('roof-select'),
             property_shade: getSelectedText('shade-select'),
             property_type: getSelectedText('property-type-select'),
             property_phase: getSelectedText('phase-select'),
-            
-            // 其他配置
             existing_solar_size: document.getElementById('exist-solar-val').innerText,
             budget_target: document.getElementById('budget-input').value,
             quote_tier: selectedTier,
             chat_history: globalChatHistory
         };
 
-        // --- 4. 🔥 核心修改：调用智能防重函数 (Rewrite/Insert) ---
+        // --- 5. 调用 Supabase (RPC) ---
         const { data, error } = await supabaseClient.rpc('submit_smart_quote', rpcPayload);
 
         if (error) throw error;
 
-        // 拿到 ID！(无论是新单还是老单，都会返回 ID)
+        // 拿到 ID
         const currentLeadId = data.id;
         console.log("Smart Submit Result:", data.status, "ID:", currentLeadId);
         
-        // 存入缓存，给 Step 2 用
+        // 存入缓存
         localStorage.setItem('current_lead_id', currentLeadId);
 
-        // --- 5. ⚡️ 立即补全详情 (Update) ---
-        // 因为 RPC 函数只处理了核心字段，我们这里用 ID 把剩下的房屋详情填进去
+        // --- 6. 立即补全详情 (Update) ---
         if (currentLeadId) {
             await supabaseClient.from('leads').update(detailPayload).eq('id', currentLeadId);
         }
 
-        // --- 6. 成功后的 UI 逻辑 (包含暴力解锁修复) ---
-
+        // --- 7. 成功后的 UI 逻辑 (解锁报价) ---
         sessionStorage.setItem('quoteUnlocked', 'true');
 
-        // 处理遮罩层 (兼容 hidden-opt)
+        // 处理遮罩层
         const overlay = document.getElementById('unlock-overlay');
         if (overlay) {
             overlay.classList.add('hidden');      // 你的原代码逻辑
@@ -1746,19 +1884,18 @@ async function submitLead() {
             overlay.style.display = 'none';       // 暴力隐藏
         }
 
-        // 🟢 [暴力修复] 处理结果卡文字阴影/模糊
+        // 处理文字模糊
         document.querySelectorAll('.price-number').forEach(el => {
             el.classList.remove('locked');
             el.classList.remove('blur-text');
-            
-            // 强制重置样式，确保变亮
-            el.style.filter = 'none';         
-            el.style.webkitFilter = 'none';   
-            el.style.textShadow = 'none';     
-            el.style.color = '';     
+            el.style.filter = 'none';          
+            el.style.webkitFilter = 'none';    
+            el.style.textShadow = 'none';      
+            el.style.color = '';      
             el.style.opacity = '1';
         });
 
+        // 显示 VPP Banner
         const vppBanner = document.getElementById('vpp-banner');
         if (vppBanner && curMode !== 'solar') vppBanner.style.display = 'flex';
 
@@ -1769,6 +1906,8 @@ async function submitLead() {
 
         msgEl.style.color = '#66bb6a';
         msgEl.innerText = i18n[curLang].alert_sent;
+        
+        // 撒花特效
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#10b981', '#f59e0b', '#0f172a'] });
 
         btn.innerText = curLang === 'cn' ? "解锁成功" : "Unlocked!";
@@ -1978,76 +2117,88 @@ setTimeout(() => {
 }, 500);
 
 // ==========================================
-// [NEW] Google Maps & Roof Preview Logic
+// [UPDATED] Google Maps & Autocomplete Logic (双输入框支持)
 // ==========================================
+// 全局变量存储选中的坐标
+window.selectedLat = null;
+window.selectedLng = null;
+
 function initAutocomplete() {
     console.log("🟢 initAutocomplete starting...");
-    const addressInput = document.getElementById('lead-address');
-    if (!addressInput) return;
+
     const options = {
         componentRestrictions: { country: "au" },
         fields: ["address_components", "formatted_address", "geometry"],
         types: ["address"],
     };
-    autocomplete = new google.maps.places.Autocomplete(addressInput, options);
-    autocomplete.addListener("place_changed", fillInAddress);
+
+    // 1. 绑定底部的报价表单 (原逻辑)
+    const leadInput = document.getElementById('lead-address');
+    if (leadInput) {
+        const acLead = new google.maps.places.Autocomplete(leadInput, options);
+        acLead.addListener("place_changed", () => {
+            fillInAddress(acLead, 'lead');
+        });
+    }
+
+    // 2. [新增] 绑定顶部的 Hero 搜索框 (AI 分析入口)
+    const heroInput = document.getElementById('hero-address');
+    if (heroInput) {
+        const acHero = new google.maps.places.Autocomplete(heroInput, options);
+        acHero.addListener("place_changed", () => {
+            fillInAddress(acHero, 'hero');
+        });
+    }
 }
 
-function fillInAddress() {
-    const place = autocomplete.getPlace();
+// 提取公用的填充逻辑
+function fillInAddress(autocompleteObj, source) {
+    const place = autocompleteObj.getPlace();
+    
+    // 1. 保存全局坐标 (给 AI 分析用)
+    if (place.geometry && place.geometry.location) {
+        window.selectedLat = place.geometry.location.lat();
+        window.selectedLng = place.geometry.location.lng();
+        
+        // 自动填入隐藏字段 (防丢失)
+        const latField = document.getElementById('hidden-lat');
+        const lngField = document.getElementById('hidden-lng');
+        if(latField) latField.value = window.selectedLat;
+        if(lngField) lngField.value = window.selectedLng;
+    }
+
+    // 2. 解析邮编和州
     extractedPostcode = "";
     extractedState = "";
-
-    // 1. Postcode & State
     if (place.address_components) {
         for (const component of place.address_components) {
-            const componentType = component.types[0];
-            if (componentType === "postal_code") extractedPostcode = component.long_name;
-            if (componentType === "administrative_area_level_1") extractedState = component.short_name;
+            const type = component.types[0];
+            if (type === "postal_code") extractedPostcode = component.long_name;
+            if (type === "administrative_area_level_1") extractedState = component.short_name;
         }
     }
 
-    // 2. Satellite Image Generation (只处理一个图)
-    if (place.geometry && place.geometry.location) {
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-
-        // 生成 URL
-        const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=20&size=600x400&maptype=satellite&scale=2&key=${GOOGLE_API_KEY}`;
-        console.log("🚀 Sat Map URL:", mapUrl);
-
-        // ✅ 只更新 Unlock 弹窗里的那张图
-        const img = document.getElementById('sat-image');
-        const box = document.getElementById('roof-preview-box');
-
-        if (img && box) {
-            img.onload = () => {
-                box.classList.remove('hidden');
-                box.style.display = 'block';
-            };
-            img.onerror = () => {
-                // 如果加载失败，隐藏盒子
-                box.style.display = 'none';
-            };
-            img.src = mapUrl;
-        }
-    }
-
-    // 3. Auto-select State
+    // 3. 自动选择州 (Dropdown)
     if (extractedState) {
         const stateSelect = document.getElementById('state-select');
         const targetVal = extractedState.toUpperCase();
-        let found = false;
         for (let i = 0; i < stateSelect.options.length; i++) {
             if (stateSelect.options[i].value === targetVal) {
                 stateSelect.selectedIndex = i;
-                found = true;
+                stateSelect.dispatchEvent(new Event('change'));
                 break;
             }
         }
-        if (found) stateSelect.dispatchEvent(new Event('change'));
+    }
+    
+    // 4. [新增] 如果是在顶部输入的，把数据同步到底部，但暂时不跳转
+    if (source === 'hero') {
+        const leadAddr = document.getElementById('lead-address');
+        if (leadAddr) leadAddr.value = document.getElementById('hero-address').value;
     }
 }
+
+// 保持暴露给全局
 window.initAutocomplete = initAutocomplete;
 
 // ==========================================
@@ -2821,6 +2972,18 @@ window.setLang = function (lang) {
     // 执行额外刷新逻辑
     if (typeof updateFomoContent === 'function') updateFomoContent(); // 更新滚动条语言
     renderBrandHub();    // 更新品牌墙语言
+
+    // [NEW] Refresh inline analysis texts after language switch
+    if (window.inlineAnalysisState) {
+        const s = window.inlineAnalysisState;
+        renderSolarScore(s.totalScore, s.gradeKey);
+        setSubScore('inline-sun-score', 'inline-sun-bar', s.sunScore);
+        setSubScore('inline-cap-score', 'inline-cap-bar', s.capScore);
+        const reco = document.getElementById('inline-battery-reco');
+        if (reco) reco.textContent = (i18n[curLang] && i18n[curLang].inline_battery_reco)
+            ? i18n[curLang].inline_battery_reco
+            : reco.textContent;
+    }
 };
 
 // 10. 暴露给全局 window
@@ -4304,3 +4467,379 @@ async function attemptLoginFromPage() {
 
 // 导出给 HTML 调用
 window.attemptLoginFromPage = attemptLoginFromPage;
+
+// ============================================================
+// 🚀 INLINE Solar Analysis (Pro Dashboard - Real API Ready)
+// ============================================================
+
+let monthlyChartInstance = null;
+
+// 1. 触发分析 (UI 动画)
+function triggerInlineAnalysis() {
+    const heroInput = document.getElementById('hero-address');
+    const container = document.getElementById('hero-input-container');
+    const panel = document.getElementById('inline-analysis-panel');
+    const btn = document.getElementById('btn-analyze-trigger');
+
+    if (!heroInput.value || !window.selectedLat) {
+        showToast("Please select an address from the dropdown first.");
+        heroInput.focus();
+        return;
+    }
+
+    // UI 状态变更
+    container.classList.add('expanded'); // 搜索框变直角
+    panel.classList.remove('hidden');    // 展开面板
+    
+    // 显示 Loading
+    document.getElementById('inline-loader').style.display = 'block';
+    document.getElementById('inline-results').style.display = 'none';
+    
+    btn.innerText = "Analyzing...";
+    btn.disabled = true;
+
+    // 开始执行
+    runInlineAnalysis();
+}
+
+// ============================================================
+// 🛡️ 修复版 Solar Analysis (防崩 + 提高成功率)
+// ============================================================
+
+// 1. 调用 API (删除了 HIGH 质量要求)
+
+async function runInlineAnalysis() {
+    const lat = window.selectedLat;
+    const lng = window.selectedLng;
+    const apiKey = GOOGLE_API_KEY;
+
+    // 1. 设置图片源 (更高清晰度 zoom=20)
+    const satelliteUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=20&size=600x400&maptype=satellite&scale=2&key=${apiKey}`;
+    
+    const imgEl = document.getElementById('inline-map-img');
+    if (imgEl) {
+        imgEl.src = satelliteUrl;
+        // 重置为卫星模式
+        toggleMapMode('satellite');
+    }
+
+    const coordsEl = document.getElementById('inline-coords');
+    if (coordsEl) coordsEl.innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+
+    // 2. 调用 Solar API
+    let apiData = null;
+    try {
+        const solarUrl = `https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=MEDIUM&key=${apiKey}`;
+        const resp = await fetch(solarUrl);
+        if (resp.ok) apiData = await resp.json();
+    } catch (e) {
+        console.warn("Solar API failed, fallback to simulated values.", e);
+    }
+
+    setTimeout(() => finishAnalysis(apiData), 700);
+}
+
+function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
+
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+function scoreFromRange(value, vMin, vMax) {
+    const p = (value - vMin) / (vMax - vMin);
+    return Math.round(clamp(p, 0, 1) * 100);
+}
+
+function gradeFromScore(total) {
+    // Only: Excellent / Good / Fair
+    if (total >= 80) return 'excellent';
+    if (total >= 65) return 'good';
+    return 'fair';
+}
+
+function renderSolarScore(total, gradeKey) {
+    const circle = document.querySelector('.circle');
+    const scoreText = document.getElementById('score-text');
+    const gradeEl = document.getElementById('score-grade');
+    const descEl = document.getElementById('score-desc');
+
+    if (scoreText) scoreText.textContent = total;
+
+    const gradeMap = (i18n[curLang] || {});
+    const gradeLabel = gradeMap['inline_grade_' + gradeKey] || gradeKey;
+    const descLabel = gradeMap['inline_score_desc_' + gradeKey] || '';
+
+    // Color logic (subtle, not too flashy)
+    let color = "#10b981";
+    if (gradeKey === 'good') color = "#f59e0b";
+    if (gradeKey === 'fair') color = "#fbbf24";
+
+    if (gradeEl) {
+        gradeEl.textContent = gradeLabel;
+        gradeEl.style.color = color;
+    }
+    if (descEl) descEl.textContent = descLabel || (gradeKey === 'excellent'
+        ? "Low shade risk and strong irradiation signals."
+        : gradeKey === 'good'
+            ? "Good sunlight profile. Output can be improved with layout optimization."
+            : "Some shading or limited roof area detected. A tailored design is recommended.");
+
+    if (circle) {
+        circle.style.stroke = color;
+        setTimeout(() => circle.setAttribute('stroke-dasharray', `${total}, 100`), 100);
+    }
+}
+
+function setSubScore(idVal, idBar, val) {
+    safeSetText(idVal, String(val));
+    const bar = document.getElementById(idBar);
+    if (bar) bar.style.width = clamp(val, 0, 100) + "%";
+}
+
+function finishAnalysis(apiData) {
+    const lat = window.selectedLat;
+    const lng = window.selectedLng;
+
+    // --- 默认值 ---
+    let maxKw = (Math.floor(Math.random() * 4) + 5) + 0.6; 
+    let yearlyKwh = Math.floor(maxKw * 3.9 * 365);
+    // 默认模拟朝向 (随机 0-360)
+    let azimuthDegrees = Math.floor(Math.random() * 360); 
+
+    // --- 如果有真实 API 数据 ---
+    if (apiData && apiData.solarPotential) {
+        const pot = apiData.solarPotential;
+        const panelKw = 0.44; 
+
+        // 1. 容量计算
+        if (typeof pot.maxArrayPanelsCount === 'number') {
+            maxKw = (pot.maxArrayPanelsCount * panelKw) * 0.7; 
+        }
+        if (typeof pot.maxSunshineHoursPerYear === 'number') {
+            yearlyKwh = Math.floor(maxKw * pot.maxSunshineHoursPerYear * 0.85);
+        }
+
+        // ============================================================
+        // 2. 【修正】获取主朝向 (Azimuth) - 核心修改部分
+        // ============================================================
+        // 逻辑：先找到"装板子最多"的配置方案(Config)，再在那个方案里找"装板子最多"的屋顶面(Segment)
+        if (pot.solarPanelConfigs && pot.solarPanelConfigs.length > 0) {
+            
+            // A. 找到板子总数最多的配置 (通常是列表最后一个，但保险起见我们对比一下)
+            const bestConfig = pot.solarPanelConfigs.reduce((prev, current) => {
+                return (current.panelsCount > prev.panelsCount) ? current : prev;
+            });
+
+            // B. 在这个最佳配置中，遍历所有屋顶面，找到安装板子数量最多的那个面
+            if (bestConfig.roofSegmentSummaries && bestConfig.roofSegmentSummaries.length > 0) {
+                const mainSegment = bestConfig.roofSegmentSummaries.reduce((prev, current) => {
+                    return (current.panelsCount > prev.panelsCount) ? current : prev;
+                });
+                
+                // C. 获取该面的朝向
+                if (typeof mainSegment.azimuthDegrees === 'number') {
+                    azimuthDegrees = mainSegment.azimuthDegrees;
+                }
+            }
+        }
+    }
+
+    // --- 计算其余数据 (保持不变) ---
+    const roofArea = Math.floor(maxKw * 6);
+    const annualValue = Math.floor(yearlyKwh * 0.28);
+
+    // 计算分数
+    const sunScore = scoreFromRange(maxKw, 4, 10); 
+    const capScore = scoreFromRange(maxKw, 3, 15);
+    const totalScore = Math.round(sunScore * 0.55 + capScore * 0.45);
+    const gradeKey = gradeFromScore(totalScore);
+
+    // --- 填充朝向数据 ---
+    const dirKey = getCardinalDirection(azimuthDegrees); 
+    const dirText = (i18n[curLang] && i18n[curLang][dirKey]) ? i18n[curLang][dirKey] : "North"; 
+    
+    safeSetText('inline-orientation-val', dirText);
+    
+    // 指南针旋转动画
+    const compassIcon = document.getElementById('inline-compass-icon');
+    if(compassIcon) {
+        compassIcon.style.display = 'inline-block';
+        // 稍微延迟一点执行动画，视觉效果更好
+        setTimeout(() => {
+            compassIcon.style.transform = `rotate(${azimuthDegrees}deg)`;
+            compassIcon.style.transition = 'transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)'; // 增加弹性效果
+        }, 100);
+    }
+
+    // --- 填充其他数据 ---
+    safeSetText('inline-max-kw', maxKw.toFixed(1));
+    safeSetText('inline-roof-area', roofArea);
+    safeSetText('inline-annual-kwh', yearlyKwh.toLocaleString());
+    safeSetText('inline-annual-value', "$" + annualValue.toLocaleString());
+
+    safeSetText('env-trees', String(Math.floor(yearlyKwh * 0.85 / 20)));
+    safeSetText('env-cars', String((yearlyKwh * 0.85 / 4600).toFixed(1)));
+
+    renderMonthlyChart(yearlyKwh);
+    renderSolarScore(totalScore, gradeKey);
+    
+    document.getElementById('inline-loader').style.display = 'none';
+    document.getElementById('inline-results').style.display = 'block';
+    
+    const btn = document.getElementById('btn-analyze-trigger');
+    if (btn) { btn.innerText = "Re-Analyze"; btn.disabled = false; }
+}
+
+/**
+ * Phase-1 Compare slider (static images): drag to reveal flux overlay.
+ */
+function initCompareSlider(containerId, overlayId, handleId) {
+    const container = document.getElementById(containerId);
+    const overlay = document.getElementById(overlayId);
+    const handle = document.getElementById(handleId);
+    if (!container || !overlay || !handle) return;
+
+    // Avoid double-binding
+    if (container.dataset.sliderBound === "1") return;
+    container.dataset.sliderBound = "1";
+
+    let isDragging = false;
+
+    const move = (e) => {
+        if (!isDragging) return;
+        const rect = container.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let x = clientX - rect.left;
+        x = clamp(x, 0, rect.width);
+        const percent = (x / rect.width) * 100;
+
+        overlay.style.width = percent + "%";
+        handle.style.left = percent + "%";
+    };
+
+    const startDrag = (e) => { isDragging = true; move(e); };
+    const stopDrag = () => { isDragging = false; };
+
+    handle.addEventListener('mousedown', startDrag);
+    handle.addEventListener('touchstart', startDrag, { passive: true });
+
+    container.addEventListener('mousedown', startDrag);
+    container.addEventListener('touchstart', startDrag, { passive: true });
+
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, { passive: true });
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('touchend', stopDrag);
+}
+function renderMonthlyChart(annualTotal) {
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    
+    const seasonality = [1.2, 1.1, 1.0, 0.8, 0.6, 0.5, 0.6, 0.7, 0.9, 1.0, 1.1, 1.2];
+    const avgMonthly = annualTotal / 12;
+    const dataPoints = seasonality.map(factor => Math.floor(avgMonthly * factor));
+
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    if (monthlyChartInstance) monthlyChartInstance.destroy();
+
+    monthlyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels, // 英文简写是国际通用的，通常不需要改中文 (1月, 2月...)
+            datasets: [{
+                data: dataPoints,
+                backgroundColor: '#f59e0b',
+                borderRadius: 3,
+                hoverBackgroundColor: '#fbbf24'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false }, 
+                tooltip: { enabled: true } 
+            },
+            scales: {
+                y: { display: false }, 
+                x: { 
+                    grid: { display: false },
+                    ticks: { 
+                        color: '#64748b', 
+                        font: { size: 10 } 
+                    }
+                }
+            }
+        }
+    });
+}
+// ============================================================
+// 🎯 决策逻辑：用户点击 Yes/No 后触发
+// ============================================================
+function applyAnalysisOutcome(hasSolar) {
+    // 1. 自动填充地址
+    const heroAddr = document.getElementById('hero-address').value;
+    const leadAddr = document.getElementById('lead-address');
+    
+    if (leadAddr && heroAddr) {
+        leadAddr.value = heroAddr;
+        // 视觉反馈：闪烁绿色
+        leadAddr.style.transition = "background-color 0.5s";
+        leadAddr.style.backgroundColor = "#dcfce7";
+        setTimeout(() => leadAddr.style.backgroundColor = "", 2000);
+    }
+
+    // 2. 模式切换
+    if (hasSolar === 'yes') {
+        // 有光伏 -> 去 Battery Only
+        setMode('battery');
+        showToast("Switched to 'Battery Only' mode.");
+    } else {
+        // 无光伏 -> 去 Solar + Battery (利润最大)
+        setMode('both');
+        showToast("Switched to 'Solar + Battery' mode.");
+    }
+
+    // 3. 平滑滚动到报价区
+    // 目标定位到 "Energy Usage" (电费滑块) 这一栏
+    const targetSection = document.querySelector('.section-title[data-i18n="sec_usage"]');
+    if (targetSection) {
+        targetSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // 注意：这里不自动调用 calculate()，等待用户调整电费后主动点击
+}
+
+// 暴露给全局
+window.triggerInlineAnalysis = triggerInlineAnalysis;
+window.applyAnalysisOutcome = applyAnalysisOutcome;
+
+// 放在 script.js 全局作用域
+function toggleMapMode(mode) {
+    const img = document.getElementById('inline-map-img');
+    const btns = document.querySelectorAll('.map-tog-btn');
+    
+    // 更新图片类名以应用不同的 CSS Filter
+    if(mode === 'satellite') {
+        img.classList.remove('heatmap-mode');
+        img.classList.add('satellite-mode');
+        btns[0].classList.add('active');
+        btns[1].classList.remove('active');
+    } else {
+        img.classList.remove('satellite-mode');
+        img.classList.add('heatmap-mode');
+        btns[0].classList.remove('active');
+        btns[1].classList.add('active');
+    }
+} // --- 辅助函数：将角度转换为罗盘方向 ---
+function getCardinalDirection(angle) {
+    // Google API: 0=North, 90=East, 180=South, 270=West
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    // 360度分8份，每份45度。加22.5是为了让 N 覆盖 337.5~22.5 的范围
+    const index = Math.round(((angle %= 360) < 0 ? angle + 360 : angle) / 45) % 8;
+    
+    // 返回翻译键值 (如 'dir_n', 'dir_ne')
+    return 'dir_' + directions[index].toLowerCase();
+}
+
