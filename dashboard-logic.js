@@ -420,89 +420,116 @@ function updateInstallerStatsUI(total, activeNew, valid, cancelled, installed, c
 
 
 // ==========================================
-// 🔍 Lead Details Modal Logic (Final V6 - With Tag Mapping)
+// 🔍 Lead Details Modal Logic (Final V3: Address & Bill Visible)
 // ==========================================
 window.showLeadDetails = function(leadEncoded) {
-    const lead = JSON.parse(decodeURIComponent(leadEncoded));
+    // 兼容逻辑：支持传入对象或编码字符串 (为了给自动刷新用)
+    let lead;
+    if (typeof leadEncoded === 'string') {
+        try { lead = JSON.parse(decodeURIComponent(leadEncoded)); } catch(e) { console.error(e); return; }
+    } else {
+        lead = leadEncoded; // 直接传入了对象
+    }
+
+    // 🟢 [新增] 打开弹窗时，隐藏底部导航栏
+    const navBar = document.querySelector('.bottom-nav');
+    if (navBar) navBar.style.display = 'none';
+
     const profile = lead.user_profile || {}; 
-    
-    // 1. 获取 DOM 元素
     const modal = document.getElementById('lead-details-modal');
     const content = document.getElementById('modal-body');
     const title = document.getElementById('modal-lead-name');
     if (title) title.innerText = lead.name;
     
-    // 2. 判断角色权限
+    // 判断锁定状态
     const isInstaller = (currentProfile.role === 'solar_pro' || currentProfile.role === 'installer');
+    // 🔒 锁定条件：是安装商 且 状态是New 且 未付费
+    const isLocked = isInstaller && (lead.status === 'new' && !lead.fee_paid);
 
-    // ==========================================
-    // A. 基础信息 (Referrer & Installer 可见) - 样式更紧凑
-    // ==========================================
-    let html = `
-        <div style="background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:8px; font-size:0.9rem;">
-            <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Phone:</span> <span class="detail-value"><a href="tel:${lead.phone}" style="text-decoration:none; color:var(--primary); font-weight:700;">${lead.phone || 'N/A'}</a></span></div>
-            <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Email:</span> <span class="detail-value"><a href="mailto:${lead.email}">${lead.email || 'N/A'}</a></span></div>
-            <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Address:</span> <span class="detail-value" style="font-size:0.8rem;">${lead.address || 'N/A'}</span></div>
-            <div class="detail-row" style="margin-bottom:0;"><span class="detail-label">Bill:</span> <span class="detail-value">${lead.bill_amount ? '$' + lead.bill_amount : 'N/A'}</span></div>
-        </div>
-    `;
+    let contactInfoHtml = '';
 
-    // ==========================================
-    // B. 安装模式 (逻辑保持不变)
-    // ==========================================
+    if (isLocked) {
+        // ============ 🔒 锁定状态 (Bill & Address 可见) ============
+        contactInfoHtml = `
+            <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:15px; margin-bottom:12px; text-align:center; box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1);">
+                <div style="font-size:2rem; margin-bottom:5px;">🔒</div>
+                <div style="color:#9a3412; font-weight:800; font-size:1rem; margin-bottom:4px;">Contact Details Locked</div>
+                <div style="color:#c2410c; font-size:0.8rem; margin-bottom:12px;">Unlock to view Phone & Email.</div>
+                
+                <button onclick="handleStatusChange(${lead.id}, 'contacted', '${lead.status}', false)" 
+                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:700; cursor:pointer; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); transition:transform 0.1s;">
+                    🔓 Unlock Now ($50)
+                </button>
+            </div>
+
+            <div style="background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:12px;">
+                 <div class="detail-row" style="margin-bottom:4px;">
+                    <span class="detail-label">📍 Address:</span> 
+                    <span class="detail-value" style="font-weight:700; color:#334155;">${lead.address || lead.postcode || 'Address Available'}</span>
+                 </div>
+                 
+                 <div class="detail-row" style="margin-bottom:0;">
+                    <span class="detail-label">💵 Bill:</span> 
+                    <span class="detail-value" style="font-weight:700; color:#0f172a;">${lead.bill_amount ? '$' + lead.bill_amount : 'N/A'}</span>
+                 </div>
+
+                 <div style="font-size:0.7rem; color:#10b981; text-align:right; margin-top:8px; border-top:1px dashed #cbd5e1; padding-top:4px;">
+                    ✅ Basic Info Visible
+                 </div>
+            </div>
+
+            <div style="filter: blur(5px); opacity: 0.6; user-select: none; pointer-events: none; margin-bottom:15px;">
+                <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Phone:</span> <span class="detail-value">04xx xxx xxx</span></div>
+                <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Email:</span> <span class="detail-value">hidden@email.com</span></div>
+            </div>
+        `;
+    } else {
+        // ============ 🔓 解锁状态 ============
+        contactInfoHtml = `
+            <div style="background:#f0fdf4; padding:10px 12px; border-radius:8px; border:1px solid #bbf7d0; margin-bottom:12px; font-size:0.9rem;">
+                ${isInstaller ? '<div style="font-size:0.7rem; color:#15803d; font-weight:700; margin-bottom:8px; text-transform:uppercase;">✅ Contact Details Unlocked</div>' : ''}
+                <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Phone:</span> <span class="detail-value"><a href="tel:${lead.phone}" style="text-decoration:none; color:var(--primary); font-weight:700;">${lead.phone || 'N/A'}</a></span></div>
+                <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Email:</span> <span class="detail-value"><a href="mailto:${lead.email}">${lead.email || 'N/A'}</a></span></div>
+                <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Address:</span> <span class="detail-value" style="font-size:0.8rem;">${lead.address || 'N/A'}</span></div>
+                <div class="detail-row" style="margin-bottom:0;"><span class="detail-label">Bill:</span> <span class="detail-value">${lead.bill_amount ? '$' + lead.bill_amount : 'N/A'}</span></div>
+            </div>
+        `;
+    }
+
+    let html = contactInfoHtml;
+
+    // ... (保留原本的 B.安装模式 和 C.详情代码) ...
+    // 为节省篇幅，这里假设你保留了后续的 Mode, Property Specs, Photos, History 代码
+    // 如果需要我完整贴出，请告诉我
+    
+    // ------ ✄ 剪切开始：保留下方原有代码 ✄ ------
     const rawMode = lead.installation_mode || profile.install_mode || 'both';
     const modeStr = String(rawMode).toLowerCase();
     let modeDisplay = '';
-
     if (isInstaller) {
         if (modeStr.includes('both') || (modeStr.includes('solar') && modeStr.includes('battery'))) {
             modeDisplay = `<div style="font-weight:700; color:var(--primary); font-size:0.85rem;">${lead.solar_size || 6.6}kW Solar + ${lead.battery_size || 10}kWh Bat</div>`;
-        }
-        else if (modeStr.includes('battery')) {
+        } else if (modeStr.includes('battery')) {
             const existSolar = profile.existing_solar_size ? `${profile.existing_solar_size}kW` : 'Unknown';
-            modeDisplay = `<div style="font-weight:700; color:var(--primary); font-size:0.85rem;">${lead.battery_size || 0}kWh Battery</div>
-                           <div style="font-size:0.7rem; color:var(--text-light); line-height:1;">(Existing Solar: ${existSolar})</div>`;
-        } 
-        else if (modeStr.includes('solar')) {
+            modeDisplay = `<div style="font-weight:700; color:var(--primary); font-size:0.85rem;">${lead.battery_size || 0}kWh Battery</div><div style="font-size:0.7rem; color:var(--text-light); line-height:1;">(Existing Solar: ${existSolar})</div>`;
+        } else if (modeStr.includes('solar')) {
             modeDisplay = `<div style="font-weight:700; color:var(--primary); font-size:0.85rem;">${lead.solar_size || 6.6}kW Solar System</div>`;
-        }
-        else {
-            modeDisplay = `<div style="font-weight:700; color:var(--text-light); font-size:0.85rem;">${rawMode}</div>`;
-        }
-    } else {
-        modeDisplay = `<span style="font-weight:600; color:var(--text-main);">${rawMode}</span>`;
-    }
+        } else { modeDisplay = `<div style="font-weight:700; color:var(--text-light); font-size:0.85rem;">${rawMode}</div>`; }
+    } else { modeDisplay = `<span style="font-weight:600; color:var(--text-main);">${rawMode}</span>`; }
     
     html += `<div class="detail-row" style="align-items:center; margin-bottom:8px;"><span class="detail-label">Mode:</span> <span class="detail-value">${modeDisplay}</span></div>`;
 
-    // ==========================================
-    // C. Installer 专属详细信息 (全量字段 - 高度压缩)
-    // ==========================================
     if (isInstaller) {
         const language = lead.language || profile.language || 'English';
         const phase = lead.property_phase || profile.property_phase || '-'; 
-
-        // 1. Property Profile 数据提取
         const pType = lead.property_type || profile.property_type || '-';
         const pStoreys = lead.property_storeys || profile.property_storeys || profile.storey || '-';
         const pRoof = lead.property_roof || profile.property_roof || profile.roof_type || '-';
         const pShade = lead.property_shade || profile.property_shade || profile.shade || '-';
+        const TAG_MAP = { 'ac': '❄️ A/C', 'hws': '💧 HWS', 'pool': '🏊 Pool', 'ev_now': '🚗 EV', 'ev_plan': '🔜 EV Plan', 'wfh': '🏠 WFH', 'gas2elec': '🔥 Gas>Elec', 'backup': '🔋 Backup', 'general': '📺 General', 'others': '⚡ High Use' };
+        const profileFlags = Object.entries(profile).filter(([key, val]) => (val === true || val === 'true' || val === 'Yes') && TAG_MAP[key]).map(([key, val]) => TAG_MAP[key]);
 
-        // 2. User Profile 标签映射表
-        const TAG_MAP = {
-            'ac': '❄️ A/C', 'hws': '💧 HWS', 'pool': '🏊 Pool', 'ev_now': '🚗 EV',
-            'ev_plan': '🔜 EV Plan', 'wfh': '🏠 WFH', 'gas2elec': '🔥 Gas>Elec',
-            'backup': '🔋 Backup', 'general': '📺 General', 'others': '⚡ High Use'
-        };
-
-        // 3. 提取所有值为 true 的标签
-        const profileFlags = Object.entries(profile)
-            .filter(([key, val]) => (val === true || val === 'true' || val === 'Yes') && TAG_MAP[key])
-            .map(([key, val]) => TAG_MAP[key]);
-
-        html += `
-            <hr style="border:0; border-top:1px dashed #e2e8f0; margin:8px 0;">
-            
+        html += `<hr style="border:0; border-top:1px dashed #e2e8f0; margin:8px 0;">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px; font-size:0.8rem;">
                 <div><span class="detail-label">Est. Price:</span> <span style="color:var(--accent); font-weight:700;">${lead.estimated_price || '-'}</span></div>
                 <div><span class="detail-label">Lang:</span> <span style="font-weight:600;">${language}</span></div>
@@ -511,40 +538,23 @@ window.showLeadDetails = function(leadEncoded) {
                 <div><span class="detail-label">Time:</span> <span>${profile.install_timeframe || 'Flex'}</span></div>
                 <div><span class="detail-label">Via:</span> <span>${profile.contact_method || 'Any'}</span></div>
             </div>
-
             <div style="background:#f1f5f9; padding:6px 8px; border-radius:6px; margin-bottom:8px; border:1px solid #e2e8f0;">
                 <div class="detail-label" style="margin-bottom:2px; font-size:0.7rem; text-transform:uppercase;">Property Specs</div>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:var(--text-main);">
-                    <span>🏠 ${pType}</span>
-                    <span>📶 ${pStoreys}</span>
-                    <span>🏗️ ${pRoof}</span>
-                    <span>☀️ ${pShade}</span>
+                    <span>🏠 ${pType}</span><span>📶 ${pStoreys}</span><span>🏗️ ${pRoof}</span><span>☀️ ${pShade}</span>
                 </div>
             </div>
-
-            ${profileFlags.length > 0 ? `
-            <div style="margin-bottom:8px;">
-                <div style="display:flex; flex-wrap:wrap; gap:4px;">
-                    ${profileFlags.map(flag => `<span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:600; border:1px solid #bae6fd;">${flag}</span>`).join('')}
-                </div>
-            </div>` : ''}
-
+            ${profileFlags.length > 0 ? `<div style="margin-bottom:8px;"><div style="display:flex; flex-wrap:wrap; gap:4px;">${profileFlags.map(flag => `<span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:600; border:1px solid #bae6fd;">${flag}</span>`).join('')}</div></div>` : ''}
             <div style="margin-bottom:8px;">
                 <div class="detail-label" style="margin-bottom:4px; font-size:0.75rem;">Photos</div>
-                <div style="display:flex; gap:8px;">
-                    ${renderPhotoBox(lead.meter_box_photo, 'Meter')}
-                    ${renderPhotoBox(lead.roof_photo, 'Roof')}
-                </div>
+                <div style="display:flex; gap:8px;">${renderPhotoBox(lead.meter_box_photo, 'Meter')}${renderPhotoBox(lead.roof_photo, 'Roof')}</div>
             </div>
-
             <div style="margin-top:10px; border-top:2px solid #f1f5f9; padding-top:8px;">
                 <div style="font-weight:700; font-size:0.75rem; margin-bottom:5px; color:#94a3b8;">HISTORY LOG</div>
-                <div id="lead-history-container" style="max-height:100px; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:4px;">
-                    ${renderSimpleHistory(lead.notes)}
-                </div>
-            </div>
-        `;
+                <div id="lead-history-container" style="max-height:100px; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:4px;">${renderSimpleHistory(lead.notes)}</div>
+            </div>`;
     }
+    // ------ ✄ 剪切结束 ✄ ------
 
     content.innerHTML = html;
     modal.style.display = 'flex';
@@ -604,10 +614,24 @@ function renderSimpleHistory(notes) {
 //}
 
 window.closeLeadModal = function(e) {
-    if (e && e.target.id !== 'lead-details-modal' && !e.target.classList.contains('modal-close')) return;
+    // 增加了一个检查：点击 "Close" 按钮也能触发
+    // 注意：原本的判断逻辑可能比较严，这里稍微放宽一点，确保点击内部按钮也能关
+    const isCloseBtn = e && (e.target.classList.contains('modal-close') || e.target.innerText === 'Close');
+    const isOverlay = e && e.target.id === 'lead-details-modal';
+    
+    // 如果不是点击背景，也不是点击关闭按钮，也不是直接调用(e为undefined)，则不关闭
+    if (e && !isOverlay && !isCloseBtn) return;
+
     const modal = document.getElementById('lead-details-modal');
     modal.style.opacity = '0';
-    setTimeout(() => modal.style.display = 'none', 300);
+
+    setTimeout(() => { 
+        modal.style.display = 'none';
+        
+        // 🟢 [新增] 弹窗完全关闭后，恢复底部导航栏
+        const navBar = document.querySelector('.bottom-nav');
+        if (navBar) navBar.style.display = ''; // 清空内联样式，让 CSS (media query) 重新接管
+    }, 300);
 }
 
 // 🔥 [Updated] Progress Bar: Added Fraud Review State
@@ -856,7 +880,19 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
             alert("Processed Successfully! ✅");
         }
         
-        loadInstallerDashboard();
+        // 1. 先刷新后台数据
+        await loadInstallerDashboard();
+
+        // 🔥 [新增逻辑] 2. 检查当前是否打开了详情弹窗，如果是，就自动刷新它！
+        const modal = document.getElementById('lead-details-modal');
+        if (modal && modal.style.display === 'flex') {
+             // 从刚才刷新的全局 currentLeads 中找到最新的这条 lead 数据
+             const updatedLead = currentLeads.find(l => l.id == leadId);
+             if (updatedLead) {
+                 // 重新渲染详情页 (此时状态已变成 contacted，所以会自动显示电话)
+                 showLeadDetails(updatedLead); 
+             }
+        }
 
     } catch (err) { console.error(err); alert("Error: " + err.message); loadInstallerDashboard(); }
 }
@@ -1006,7 +1042,7 @@ window.submitWithdrawRequest = async function() {
         await recordTransaction(currentProfile.id, -amount, 'withdrawal', `Payout Request: $${amount}`);
 
         // D. 成功反馈
-        alert("✅ Withdrawal Request Submitted!\n\nMoney is on the way (1-3 business days).");
+        alert("✅ Withdrawal Request Submitted!\n\nMoney is on the way (5-7 business days).");
         
         // E. 刷新页面数据
         if(currentProfile.role === 'referral') loadReferrerDashboard(); 
@@ -1607,9 +1643,9 @@ function renderInstallerTable(leads) {
         let optionsHtml = '';
         STATUS_FLOW.forEach((step, idx) => {
             let label = step.charAt(0).toUpperCase() + step.slice(1);
-            if (step === 'site_visit') label = "🚚 Site Visit";
+            if (step === 'site_visit') label = "🚚 Visited/Quoted";
             if (step === 'new') label = "📥 New Received";
-            if (step === 'contacted') label = "📞 Contacted ($50)";
+            if (step === 'contacted') label = "📞 Contact ($50)";
             if (step === 'deposit') label = "💰 Deposit";
             if (step === 'installed') label = "✅ Installed (Comm.)";
             const isReviewing = (displayStatus === 'fraud_review');
