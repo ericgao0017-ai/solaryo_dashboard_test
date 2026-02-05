@@ -4303,7 +4303,7 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
 .partner-modal-card {
     max-width: 500px !important;
     background: #ffffff;
-    padding: 30px 25px;
+    padding: 30px 25px 100px 25px;
     text-align: left;
     max-height: 90vh;
     overflow-y: auto;
