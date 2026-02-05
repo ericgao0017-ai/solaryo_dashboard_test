@@ -4301,16 +4301,23 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
 
 /* 2. 弹窗 & 卡片 */
 .partner-modal-card {
-    max-width: 420px !important;
+    /* 1. 宽度调整：改为 420px 以匹配 FOMO 卡片 */
+    max-width: 420px !important; 
+    width: 90%; /* 确保在小屏上不会撑破 */
+
+    /* 2. 圆角调整：FOMO 用的是 24px，这里建议统一 */
+    border-radius: 24px; 
+
     background: #ffffff;
-    padding: 30px 25px 100px 25px;
+    
+    /* 3. 内边距微调：宽度变窄了，左右内边距可以稍微减小一点点，给内容留空间 */
+    padding: 25px 20px 100px 20px; 
+    
     text-align: left;
-    max-height: 90vh;
+    max-height: 85vh; /* 稍微降低一点高度，避免在某些手机上顶满 */
     overflow-y: auto;
     scrollbar-width: thin;
-
-    /* 🟢 新增: 增加这个属性，让滚动更顺滑 */
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch; 
 }
 
 .partner-title { text-align: center; margin: 0 0 5px 0; color: var(--primary); font-size: 1.3rem; }
