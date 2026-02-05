@@ -4401,8 +4401,14 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
     margin-top: 20px; cursor: pointer; transition: transform 0.1s;
 }
 
+/* --- 修改后 --- */
 @media (max-width: 500px) {
-    .partner-modal-card { padding: 20px 15px; }
+    .partner-modal-card { 
+        /* 🟢 修改 2: 手机端不仅要设置左右边距，底部必须留出大空间 */
+        /* 上20px, 右15px, 下120px (留出足够空间), 左15px */
+        padding: 20px 15px 120px 15px !important; 
+    }
+    
     .partner-inline-btn { padding: 4px 10px; }
     .role-card-wide { padding: 12px; gap: 12px; }
 }
