@@ -4308,6 +4308,9 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
     max-height: 90vh;
     overflow-y: auto;
     scrollbar-width: thin;
+
+    /* 🟢 新增: 增加这个属性，让滚动更顺滑 */
+    -webkit-overflow-scrolling: touch;
 }
 
 .partner-title { text-align: center; margin: 0 0 5px 0; color: var(--primary); font-size: 1.3rem; }
