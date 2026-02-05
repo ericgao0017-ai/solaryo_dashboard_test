@@ -4301,7 +4301,7 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
 
 /* 2. 弹窗 & 卡片 */
 .partner-modal-card {
-    max-width: 500px !important;
+    max-width: 420px !important;
     background: #ffffff;
     padding: 30px 25px 100px 25px;
     text-align: left;
