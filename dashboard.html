@@ -520,7 +520,7 @@
         </div>
 
         <div class="card" id="ref-link-box">
-            <div class="link-text"><h3 style="margin:0; font-size:1rem;">🚀 Share Link</h3><span style="font-size:0.75rem; color:var(--accent); font-weight:600;">$200 Lead Unlock + Commission</span></div>
+            <div class="link-text"><h3 style="margin:0; font-size:1rem;">🚀 Share Link</h3><span style="font-size:0.75rem; color:var(--accent); font-weight:600;">$20 Lead Unlock + Commission</span></div>
             <input type="text" readonly>
             <button onclick="document.querySelector('#ref-link-box input').select(); document.execCommand('copy'); alert('Copied!');">Copy</button>
         </div>
@@ -654,7 +654,7 @@
                         <h3 style="margin:0; font-size:0.9rem; color:#64748b;">Wallet Credit</h3>
                         <p id="inst-stat-credit" class="stat-main" style="color:var(--blue); line-height: 1.2;">$0</p>
                     </div>
-                    <button onclick="alert('Top-up feature coming soon')" style="background:#eff6ff; color:#1e40af; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; white-space:nowrap;">+ Top Up</button>
+                    <button onclick="openTopUpModal()" style="background:#eff6ff; color:#1e40af; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; white-space:nowrap;">+ Top Up</button>
                 </div>
                 <div class="stat-footer" style="padding: 8px 15px;">
                     <span class="stat-footer-label">Pre-paid Balance</span>
@@ -921,6 +921,169 @@
             <button id="btn-confirm-pin" 
                     style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer;">
                 Verify
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="topup-modal" class="modal-overlay" onclick="closeTopUpModal(event)">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2 style="margin:0; font-size:1.2rem; color:var(--primary);">💰 Top Up Wallet</h2>
+            <button class="modal-close" onclick="closeTopUpModal()">×</button>
+        </div>
+
+        <div id="topup-step-amount">
+            <div style="text-align: center; padding: 20px 0;">
+                <label style="display:block; color:#64748b; font-size:0.9rem; font-weight:600; margin-bottom:10px;">
+                    How much would you like to add?
+                </label>
+                
+                <div style="position: relative; max-width: 200px; margin: 0 auto 25px auto;">
+                    <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--primary); font-weight: 700; font-size: 1.2rem;">$</span>
+                    <input type="number" id="topup-input-amount" placeholder="0.00" 
+                           style="width: 100%; padding: 12px 12px 12px 35px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1.5rem; font-weight: 700; color: var(--primary); outline: none; text-align: center;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px;">
+                    <button onclick="setTopUpAmount(500)" style="background: white; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; color: var(--text-main); font-weight: 600; cursor: pointer;">$500</button>
+                    <button onclick="setTopUpAmount(1000)" style="background: white; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; color: var(--text-main); font-weight: 600; cursor: pointer;">$1,000</button>
+                    <button onclick="setTopUpAmount(2000)" style="background: white; border: 1px solid #cbd5e1; padding: 8px; border-radius: 8px; color: var(--text-main); font-weight: 600; cursor: pointer;">$2,000</button>
+                </div>
+
+                <button onclick="proceedToTransferDetails()" 
+                        style="width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(15, 23, 42, 0.15);">
+                    Continue ➜
+                </button>
+            </div>
+        </div>
+
+        <div id="topup-step-details" style="display: none;">
+            
+            <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: rgba(59, 130, 246, 0.1); border-radius: 50%;"></div>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Bank Transfer Details</div>
+                    <div style="font-size: 0.9rem; color: var(--primary); font-weight: 800; background: rgba(255,255,255,0.5); padding: 2px 8px; border-radius: 6px;">
+                        Amount: $<span id="display-confirm-amount">0</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #475569; font-size: 0.85rem;">Bank:</span>
+                        <strong style="color: var(--primary);">Commonwealth Bank</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #475569; font-size: 0.85rem;">Acc Name:</span>
+                        <strong style="color: var(--primary);">Solaryo Pty Ltd</strong>
+                    </div>
+                    
+                    <div style="height: 1px; background: rgba(0,0,0,0.05); margin: 5px 0;"></div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #475569; font-size: 0.85rem;">BSB:</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <strong style="font-family: monospace; font-size: 1rem; color: var(--dark-blue);">000-000</strong>
+                            <span onclick="copyText('000-000')" style="font-size: 0.7rem; color: var(--blue); cursor: pointer; background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #bfdbfe;">Copy</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #475569; font-size: 0.85rem;">Acc No:</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <strong style="font-family: monospace; font-size: 1rem; color: var(--dark-blue);">1234 5678</strong>
+                            <span onclick="copyText('1234 5678')" style="font-size: 0.7rem; color: var(--blue); cursor: pointer; background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #bfdbfe;">Copy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; background: #fffbeb; border: 1px dashed #f59e0b; padding: 10px; border-radius: 8px;">
+                    <div style="font-size: 0.7rem; color: #b45309; font-weight: 700; margin-bottom: 2px;">🔴 IMPORTANT: Reference / Description</div>
+                    <div style="font-size: 1.1rem; color: var(--primary); font-weight: 800; letter-spacing: 1px;" id="topup-ref-display">LOADING...</div>
+                    <div style="font-size: 0.65rem; color: #b45309;">Exact match required for automated processing.</div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+            <div style="font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; color: var(--text-main);">How to verify?</div>
+            <ol style="margin: 0; padding-left: 20px; color: var(--text-light); font-size: 0.85rem; line-height: 1.6;">
+                <li>Transfer funds using the details above.</li>
+                <li>Take a screenshot of the receipt.</li>
+                <li>Email receipt to <a href="mailto:accounts@solaryo.com.au" style="color: var(--blue); font-weight: 600;">Accounts@Solaryo.com.au</a></li>
+            </ol>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 10px; text-align: center;">
+                Funds will be credited within 1-3 business days.
+            </div>
+        </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button onclick="resetTopUpStep()" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: var(--text-light); font-weight: 600; cursor: pointer;">
+                    Back
+                </button>
+                <button onclick="handleSentEmail()" style="flex: 1.5; padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(15, 23, 42, 0.15);">
+                    I've Sent the Email ✉️
+                </button>
+            </div>
+            
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 15px; text-align: center;">
+                Send receipt to <a href="mailto:accounts@solaryo.com.au" style="color:var(--blue)">Accounts@Solaryo.com.au</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="withdraw-modal" class="modal-overlay" onclick="closeWithdrawModal(event)">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2 style="margin:0; font-size:1.2rem; color:var(--primary);">💸 Request Payout</h2>
+            <button class="modal-close" onclick="closeWithdrawModal()">×</button>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+            <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">
+                Sending Funds To:
+            </div>
+            
+            <div id="withdraw-bank-details" style="font-family: monospace; font-size: 0.9rem; color: var(--primary); white-space: pre-wrap; line-height: 1.5; margin-bottom: 12px;">
+                Checking details...
+            </div>
+
+            <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; font-size: 0.75rem; color: #f59e0b; display: flex; align-items: center; gap: 5px;">
+                <span>⚠️ Need to change details?</span>
+                <span onclick="closeWithdrawModal(); openProfileModal()" 
+                      style="cursor: pointer; text-decoration: underline; font-weight: 700; color: #d97706;">
+                    Go to Partner Settings ↗
+                </span>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label style="display:block; color:#475569; font-size:0.9rem; font-weight:600; margin-bottom:8px;">
+                Withdrawal Amount ($)
+            </label>
+            <div style="position: relative;">
+                <span style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--primary); font-weight: 700;">$</span>
+                <input type="number" id="withdraw-amount-input" placeholder="0.00" 
+                       style="width: 100%; padding: 12px 12px 12px 30px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1.2rem; font-weight: 700; outline: none;">
+                
+                <button onclick="fillMaxWithdraw()" 
+                        style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #eff6ff; color: var(--blue); border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">
+                    MAX
+                </button>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 5px; text-align: right;">
+                Available: <span id="withdraw-max-display">$0.00</span>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button onclick="closeWithdrawModal()" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: white; color: var(--text-light); font-weight: 600; cursor: pointer;">
+                Cancel
+            </button>
+            <button onclick="submitWithdrawRequest()" style="flex: 1.5; padding: 12px; border-radius: 10px; border: none; background: #10b981; color: white; font-weight: 600; cursor: pointer; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">
+                Confirm & Withdraw
             </button>
         </div>
     </div>

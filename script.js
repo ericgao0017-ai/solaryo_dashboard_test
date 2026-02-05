@@ -2920,6 +2920,10 @@ function openBrandHub() {
 
     const fomo = document.getElementById('fomo-bar');
     if (fomo) fomo.style.display = 'none';
+
+    // 🟢 [新增] 隐藏底部导航栏 (防止遮挡内容)
+    const navBar = document.querySelector('.bottom-nav-container');
+    if (navBar) navBar.style.display = 'none';
 }
 
 // 6. 关闭品牌中心 (Level 1)
@@ -2937,6 +2941,10 @@ function closeBrandHub(e) {
         if (fomo && typeof fomoData !== 'undefined' && fomoData.length > 0) {
             fomo.style.display = 'flex';
         }
+
+        // 🟢 [新增] 恢复底部导航栏
+        const navBar = document.querySelector('.bottom-nav-container');
+        if (navBar) navBar.style.display = ''; // 清空内联样式，恢复CSS里的 flex
     }
 }
 
@@ -2960,6 +2968,10 @@ function closeBrandDetail(e) {
         if (fomo && typeof fomoData !== 'undefined' && fomoData.length > 0) {
             fomo.style.display = 'flex';
         }
+
+        // 🟢 [新增] 恢复底部导航栏
+        const navBar = document.querySelector('.bottom-nav-container');
+        if (navBar) navBar.style.display = ''; // 清空内联样式，恢复CSS里的 flex
     }
 }
 

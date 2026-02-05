@@ -436,17 +436,19 @@ window.showLeadDetails = function(leadEncoded) {
     const isInstaller = (currentProfile.role === 'solar_pro' || currentProfile.role === 'installer');
 
     // ==========================================
-    // A. 基础信息 (Referrer & Installer 可见)
+    // A. 基础信息 (Referrer & Installer 可见) - 样式更紧凑
     // ==========================================
     let html = `
-        <div class="detail-row"><span class="detail-label">Phone:</span> <span class="detail-value"><a href="tel:${lead.phone}">${lead.phone || 'N/A'}</a></span></div>
-        <div class="detail-row"><span class="detail-label">Email:</span> <span class="detail-value"><a href="mailto:${lead.email}">${lead.email || 'N/A'}</a></span></div>
-        <div class="detail-row"><span class="detail-label">Address:</span> <span class="detail-value">${lead.address || 'N/A'}</span></div>
-        <div class="detail-row"><span class="detail-label">Quarterly Bill:</span> <span class="detail-value">${lead.bill_amount ? '$' + lead.bill_amount : 'N/A'}</span></div>
+        <div style="background:#f8fafc; padding:8px 10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:8px; font-size:0.9rem;">
+            <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Phone:</span> <span class="detail-value"><a href="tel:${lead.phone}" style="text-decoration:none; color:var(--primary); font-weight:700;">${lead.phone || 'N/A'}</a></span></div>
+            <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Email:</span> <span class="detail-value"><a href="mailto:${lead.email}">${lead.email || 'N/A'}</a></span></div>
+            <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Address:</span> <span class="detail-value" style="font-size:0.8rem;">${lead.address || 'N/A'}</span></div>
+            <div class="detail-row" style="margin-bottom:0;"><span class="detail-label">Bill:</span> <span class="detail-value">${lead.bill_amount ? '$' + lead.bill_amount : 'N/A'}</span></div>
+        </div>
     `;
 
     // ==========================================
-    // B. 安装模式 (逻辑：关键字判断)
+    // B. 安装模式 (逻辑保持不变)
     // ==========================================
     const rawMode = lead.installation_mode || profile.install_mode || 'both';
     const modeStr = String(rawMode).toLowerCase();
@@ -454,50 +456,43 @@ window.showLeadDetails = function(leadEncoded) {
 
     if (isInstaller) {
         if (modeStr.includes('both') || (modeStr.includes('solar') && modeStr.includes('battery'))) {
-            modeDisplay = `<div style="font-weight:700; color:var(--primary);">${lead.solar_size || 6.6}kW Solar + ${lead.battery_size || 10}kWh Battery</div>`;
+            modeDisplay = `<div style="font-weight:700; color:var(--primary); font-size:0.85rem;">${lead.solar_size || 6.6}kW Solar + ${lead.battery_size || 10}kWh Bat</div>`;
         }
         else if (modeStr.includes('battery')) {
             const existSolar = profile.existing_solar_size ? `${profile.existing_solar_size}kW` : 'Unknown';
-            modeDisplay = `<div style="font-weight:700; color:var(--primary);">${lead.battery_size || 0}kWh Battery</div>
-                           <div style="font-size:0.75rem; color:var(--text-light); margin-top:2px;">(Existing Solar: ${existSolar})</div>`;
+            modeDisplay = `<div style="font-weight:700; color:var(--primary); font-size:0.85rem;">${lead.battery_size || 0}kWh Battery</div>
+                           <div style="font-size:0.7rem; color:var(--text-light); line-height:1;">(Existing Solar: ${existSolar})</div>`;
         } 
         else if (modeStr.includes('solar')) {
-            modeDisplay = `<div style="font-weight:700; color:var(--primary);">${lead.solar_size || 6.6}kW Solar System</div>`;
+            modeDisplay = `<div style="font-weight:700; color:var(--primary); font-size:0.85rem;">${lead.solar_size || 6.6}kW Solar System</div>`;
         }
         else {
-            modeDisplay = `<div style="font-weight:700; color:var(--text-light);">${rawMode}</div>`;
+            modeDisplay = `<div style="font-weight:700; color:var(--text-light); font-size:0.85rem;">${rawMode}</div>`;
         }
     } else {
         modeDisplay = `<span style="font-weight:600; color:var(--text-main);">${rawMode}</span>`;
     }
     
-    html += `<div class="detail-row" style="align-items:flex-start;"><span class="detail-label">System Mode:</span> <span class="detail-value">${modeDisplay}</span></div>`;
+    html += `<div class="detail-row" style="align-items:center; margin-bottom:8px;"><span class="detail-label">Mode:</span> <span class="detail-value">${modeDisplay}</span></div>`;
 
     // ==========================================
-    // C. Installer 专属详细信息 (全量字段)
+    // C. Installer 专属详细信息 (全量字段 - 高度压缩)
     // ==========================================
     if (isInstaller) {
         const language = lead.language || profile.language || 'English';
-        const phase = lead.property_phase || profile.property_phase || 'Unknown'; 
+        const phase = lead.property_phase || profile.property_phase || '-'; 
 
         // 1. Property Profile 数据提取
-        const pType = lead.property_type || profile.property_type || 'Unknown';
-        const pStoreys = lead.property_storeys || profile.property_storeys || profile.storey || 'Unknown';
-        const pRoof = lead.property_roof || profile.property_roof || profile.roof_type || 'Unknown';
-        const pShade = lead.property_shade || profile.property_shade || profile.shade || 'Unknown';
+        const pType = lead.property_type || profile.property_type || '-';
+        const pStoreys = lead.property_storeys || profile.property_storeys || profile.storey || '-';
+        const pRoof = lead.property_roof || profile.property_roof || profile.roof_type || '-';
+        const pShade = lead.property_shade || profile.property_shade || profile.shade || '-';
 
-        // 2. User Profile 标签映射表 (Key -> 显示文字)
+        // 2. User Profile 标签映射表
         const TAG_MAP = {
-            'ac': '❄️ Air Con',
-            'hws': '💧 Elec. Hot Water',
-            'pool': '🏊 Pool Pump',
-            'ev_now': '🚗 EV Owner',
-            'ev_plan': '🔜 Plan to buy EV',
-            'wfh': '🏠 Work From Home',
-            'gas2elec': '🔥 Switch Gas to Elec',
-            'backup': '🔋 Backup Power',
-            'general': '📺 General Usage',
-            'others': '⚡ High Load'
+            'ac': '❄️ A/C', 'hws': '💧 HWS', 'pool': '🏊 Pool', 'ev_now': '🚗 EV',
+            'ev_plan': '🔜 EV Plan', 'wfh': '🏠 WFH', 'gas2elec': '🔥 Gas>Elec',
+            'backup': '🔋 Backup', 'general': '📺 General', 'others': '⚡ High Use'
         };
 
         // 3. 提取所有值为 true 的标签
@@ -506,70 +501,47 @@ window.showLeadDetails = function(leadEncoded) {
             .map(([key, val]) => TAG_MAP[key]);
 
         html += `
-            <hr style="border:0; border-top:1px solid #e2e8f0; margin:15px 0;">
+            <hr style="border:0; border-top:1px dashed #e2e8f0; margin:8px 0;">
             
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-                <div>
-                    <div class="detail-label">Est. Price</div>
-                    <div style="color:var(--accent); font-weight:700;">${lead.estimated_price || 'N/A'}</div>
-                </div>
-                <div>
-                    <div class="detail-label">Language</div>
-                    <div style="font-weight:600;">${language}</div>
-                </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px; font-size:0.8rem;">
+                <div><span class="detail-label">Est. Price:</span> <span style="color:var(--accent); font-weight:700;">${lead.estimated_price || '-'}</span></div>
+                <div><span class="detail-label">Lang:</span> <span style="font-weight:600;">${language}</span></div>
+                <div><span class="detail-label">Brand:</span> <span>${profile.selected_brand || 'Any'}</span></div>
+                <div><span class="detail-label">Phase:</span> <span>${phase}</span></div>
+                <div><span class="detail-label">Time:</span> <span>${profile.install_timeframe || 'Flex'}</span></div>
+                <div><span class="detail-label">Via:</span> <span>${profile.contact_method || 'Any'}</span></div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-                <div>
-                    <div class="detail-label">Brand Pref</div>
-                    <div>${profile.selected_brand || 'Any Tier 1'}</div>
-                </div>
-                <div>
-                    <div class="detail-label">Phase</div>
-                    <div>${phase}</div>
-                </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-                <div>
-                    <div class="detail-label">Timeframe</div>
-                    <div>${profile.install_timeframe || 'Flexible'}</div>
-                </div>
-                <div>
-                    <div class="detail-label">Contact Method</div>
-                    <div>${profile.contact_method || 'Any'}</div>
-                </div>
-            </div>
-
-            <div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px; border:1px solid #e2e8f0;">
-                <div class="detail-label" style="margin-bottom:8px; font-weight:700; color:var(--primary);">Property Profile</div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:0.8rem;">
-                    <div><span style="color:#64748b;">Type:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pType}</span></div>
-                    <div><span style="color:#64748b;">Storeys:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pStoreys}</span></div>
-                    <div><span style="color:#64748b;">Roof:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pRoof}</span></div>
-                    <div><span style="color:#64748b;">Shade:</span> <span style="font-weight:600; color:var(--text-main); display:block;">${pShade}</span></div>
+            <div style="background:#f1f5f9; padding:6px 8px; border-radius:6px; margin-bottom:8px; border:1px solid #e2e8f0;">
+                <div class="detail-label" style="margin-bottom:2px; font-size:0.7rem; text-transform:uppercase;">Property Specs</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; color:var(--text-main);">
+                    <span>🏠 ${pType}</span>
+                    <span>📶 ${pStoreys}</span>
+                    <span>🏗️ ${pRoof}</span>
+                    <span>☀️ ${pShade}</span>
                 </div>
             </div>
 
             ${profileFlags.length > 0 ? `
-            <div style="margin-bottom:15px;">
-                <div class="detail-label" style="margin-bottom:6px;">Usage & Lifestyle</div>
-                <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                    ${profileFlags.map(flag => `<span style="background:#e0f2fe; color:#0369a1; padding:4px 10px; border-radius:15px; font-size:0.75rem; font-weight:600; border:1px solid #bae6fd;">${flag}</span>`).join('')}
+            <div style="margin-bottom:8px;">
+                <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                    ${profileFlags.map(flag => `<span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-size:0.7rem; font-weight:600; border:1px solid #bae6fd;">${flag}</span>`).join('')}
                 </div>
             </div>` : ''}
 
-            <div>
-                <div class="detail-label" style="margin-bottom:8px;">Site Photos</div>
-                <div style="display:flex; gap:10px;">
-                    ${renderPhotoBox(lead.meter_box_photo, 'Meter Box')}
+            <div style="margin-bottom:8px;">
+                <div class="detail-label" style="margin-bottom:4px; font-size:0.75rem;">Photos</div>
+                <div style="display:flex; gap:8px;">
+                    ${renderPhotoBox(lead.meter_box_photo, 'Meter')}
                     ${renderPhotoBox(lead.roof_photo, 'Roof')}
                 </div>
             </div>
 
-            <div style="margin-top:20px; border-top:2px solid #f1f5f9; padding-top:15px;">
-                <div style="font-weight:700; font-size:0.85rem; margin-bottom:10px; color:var(--primary);">User log / notes</div>
-                <div id="lead-history-container">${renderSimpleHistory(lead.notes)}</div>
+            <div style="margin-top:10px; border-top:2px solid #f1f5f9; padding-top:8px;">
+                <div style="font-weight:700; font-size:0.75rem; margin-bottom:5px; color:#94a3b8;">HISTORY LOG</div>
+                <div id="lead-history-container" style="max-height:100px; overflow-y:auto; background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:4px;">
+                    ${renderSimpleHistory(lead.notes)}
+                </div>
             </div>
         `;
     }
@@ -939,56 +911,112 @@ window.updateDefaultInstaller = async function(val) {
     currentProfile.default_installer_id = newId;
     alert("Default installer updated!");
 }
-window.handleWithdraw = async function() {
+// ==========================================
+// 💸 New Withdrawal Logic (Modal + PIN)
+// ==========================================
+
+// 1. 点击 Withdraw 按钮触发此函数
+window.handleWithdraw = function() {
     const balance = currentProfile.wallet_balance || 0;
-    if (balance <= 0) return alert("Wallet is empty.");
     
-    // 1. 先询问金额
-    const amountStr = prompt(`Available: $${balance}\nWithdraw Amount:`, balance);
-    const amount = parseFloat(amountStr);
-
-    // 只有金额有效时，才开始验证流程
-    if (amount > 0 && amount <= balance) {
-        
-        // 🔒🔒🔒 【关键修改】在此处“暂停”并请求验证 🔒🔒🔒
-        try {
-            // 这行代码会弹窗，并等待用户输入正确 PIN 码
-            // 如果用户点取消或输错，代码会跳到 catch，不会执行下面的转账
-            await requestPinVerification(); 
-        } catch (err) {
-            console.log("Withdrawal cancelled or PIN failed.");
-            return; // ⛔️ 停止执行！钱不会被转走
-        }
-        // 🔒🔒🔒 验证通过，继续执行 🔒🔒🔒
-
-        try {
-            // 2. 创建提现记录
-            const { error: insertErr } = await sbClient.from('payouts').insert({ 
-                partner_id: currentProfile.id, 
-                amount: amount, 
-                status: 'pending' 
-            });
-            if (insertErr) throw insertErr;
-
-            // 3. 扣减余额
-            await rpcUpdateBalance(currentProfile.id, -amount);
-
-            // 4. 记录流水
-            await recordTransaction(currentProfile.id, -amount, 'withdrawal', `Payout Request: $${amount}`);
-
-            alert("Withdrawal submitted successfully.");
-            
-            // 5. 刷新页面
-            if(currentProfile.role === 'referral') loadReferrerDashboard(); else loadInstallerDashboard();
-
-        } catch (dbErr) {
-            console.error(dbErr);
-            alert("Error processing withdrawal: " + dbErr.message);
-        }
-    } else if (amount > balance) {
-        alert("Insufficient balance.");
+    if (balance <= 0) {
+        alert("Wallet is empty. Generate some leads first! 🚀");
+        return;
     }
-};
+
+    // A. 检查是否填写了银行信息
+    const bankDetails = currentProfile.payout_method || "";
+    if (!bankDetails || bankDetails.length < 5) {
+        if(confirm("⚠️ Missing Payment Details.\n\nYou need to add your Bank Account / PayID in Settings before withdrawing.\n\nGo to Settings now?")) {
+            openProfileModal();
+        }
+        return;
+    }
+
+    // B. 填充弹窗数据
+    document.getElementById('withdraw-bank-details').innerText = bankDetails;
+    document.getElementById('withdraw-max-display').innerText = '$' + balance.toFixed(2);
+    document.getElementById('withdraw-amount-input').value = balance.toFixed(2); // 默认填最大值
+    
+    // C. 打开弹窗
+    const modal = document.getElementById('withdraw-modal');
+    modal.style.display = 'flex';
+    setTimeout(() => { modal.style.opacity = '1'; }, 10);
+}
+
+// 2. 辅助：点击 MAX 按钮
+window.fillMaxWithdraw = function() {
+    const balance = currentProfile.wallet_balance || 0;
+    document.getElementById('withdraw-amount-input').value = balance.toFixed(2);
+}
+
+// 3. 关闭弹窗
+window.closeWithdrawModal = function(e) {
+    if (e && e.target.id !== 'withdraw-modal' && !e.target.classList.contains('modal-close')) return;
+    const modal = document.getElementById('withdraw-modal');
+    modal.style.opacity = '0';
+    setTimeout(() => modal.style.display = 'none', 300);
+}
+
+// 4. 提交提现请求 (整合了 PIN 验证)
+window.submitWithdrawRequest = async function() {
+    const balance = currentProfile.wallet_balance || 0;
+    const inputVal = document.getElementById('withdraw-amount-input').value;
+    const amount = parseFloat(inputVal);
+
+    // 校验金额
+    if (!amount || amount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+    }
+    if (amount > balance) {
+        alert("❌ Insufficient balance.");
+        return;
+    }
+
+    // 先关闭提现弹窗，避免层级遮挡
+    closeWithdrawModal();
+
+    // 🔒🔒🔒 PIN 安全验证 🔒🔒🔒
+    try {
+        await requestPinVerification(); // 等待输入 PIN
+    } catch (err) {
+        console.log("Withdrawal cancelled or PIN incorrect.");
+        // 如果取消了，重新把提现弹窗打开，体验更好
+        if (err !== "USER_CANCELLED") {
+             // 只有非用户主动取消（即输错等情况）才处理，或者你可以选择什么都不做
+        }
+        return; 
+    }
+
+    // 🚀 PIN 通过，开始处理数据库
+    try {
+        // A. 创建 Payout 记录
+        const { error: insertErr } = await sbClient.from('payouts').insert({ 
+            partner_id: currentProfile.id, 
+            amount: amount, 
+            status: 'pending' 
+        });
+        if (insertErr) throw insertErr;
+
+        // B. 扣减余额 (RPC)
+        await rpcUpdateBalance(currentProfile.id, -amount);
+
+        // C. 记录流水
+        await recordTransaction(currentProfile.id, -amount, 'withdrawal', `Payout Request: $${amount}`);
+
+        // D. 成功反馈
+        alert("✅ Withdrawal Request Submitted!\n\nMoney is on the way (1-3 business days).");
+        
+        // E. 刷新页面数据
+        if(currentProfile.role === 'referral') loadReferrerDashboard(); 
+        else loadInstallerDashboard();
+
+    } catch (dbErr) {
+        console.error(dbErr);
+        alert("Error processing withdrawal: " + dbErr.message);
+    }
+}
 window.handleNudge = async function(leadId) {
     const btn = event.target;
     const originalText = btn.innerText;
@@ -1162,7 +1190,7 @@ window.saveProfileSettings = async function() {
             company_name: newCompany,
             phone: newPhone,
             abn_acn: newABN,
-            payment_method: newBank,
+            payout_method: newBank,
             payment_pin: newPin,
           //  notify_email: newNotify
         };
@@ -1727,4 +1755,94 @@ function updateSortIcons(activeCol, direction, prefix) {
              el2.style.color = 'var(--primary)';
          }
     }
+}
+
+// ==========================================
+// 💰 Top Up Modal Logic (Step-by-Step)
+// ==========================================
+
+// 1. 打开弹窗 (默认显示第一步)
+window.openTopUpModal = function() {
+    const modal = document.getElementById('topup-modal');
+    
+    // 重置状态
+    document.getElementById('topup-step-amount').style.display = 'block';
+    document.getElementById('topup-step-details').style.display = 'none';
+    document.getElementById('topup-input-amount').value = ''; // 清空输入框
+
+    modal.style.display = 'flex';
+    setTimeout(() => { 
+        modal.style.opacity = '1'; 
+        // 自动聚焦输入框
+        document.getElementById('topup-input-amount').focus();
+    }, 10);
+}
+
+// 2. 快捷填入金额
+window.setTopUpAmount = function(amount) {
+    document.getElementById('topup-input-amount').value = amount;
+}
+
+// 3. 点击 Continue，生成 Reference 并跳转第二步
+window.proceedToTransferDetails = function() {
+    const amountInput = document.getElementById('topup-input-amount');
+    const amountVal = parseFloat(amountInput.value);
+
+    // 校验金额
+    if (!amountVal || amountVal <= 0) {
+        alert("Please enter a valid amount.");
+        amountInput.focus();
+        return;
+    }
+
+    // A. 获取基础 Ref Code
+    let baseRef = "UNKNOWN";
+    if (currentProfile && currentProfile.ref_code) {
+        baseRef = currentProfile.ref_code;
+    } else if (currentProfile) {
+        baseRef = (currentProfile.company_name || "PARTNER").substring(0, 6).toUpperCase();
+    }
+
+    // B. 组合新的 Reference: CODE + 金额 (去除小数)
+    // 例如: SOLAR01-500
+    const finalRef = `${baseRef}-${Math.floor(amountVal)}`;
+
+    // C. 更新 UI
+    document.getElementById('topup-ref-display').innerText = finalRef;
+    document.getElementById('display-confirm-amount').innerText = amountVal.toLocaleString();
+
+    // D. 切换视图
+    document.getElementById('topup-step-amount').style.display = 'none';
+    document.getElementById('topup-step-details').style.display = 'block';
+}
+
+// 4. 返回上一步
+window.resetTopUpStep = function() {
+    document.getElementById('topup-step-details').style.display = 'none';
+    document.getElementById('topup-step-amount').style.display = 'block';
+}
+
+// 5. 关闭弹窗
+window.closeTopUpModal = function(e) {
+    if (e && e.target.id !== 'topup-modal' && !e.target.classList.contains('modal-close')) return;
+    const modal = document.getElementById('topup-modal');
+    modal.style.opacity = '0';
+    setTimeout(() => modal.style.display = 'none', 300);
+}
+
+// 6. 复制文本
+window.copyText = function(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Copied: " + text);
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+
+// 7. 确认已发送邮件
+window.handleSentEmail = function() {
+    closeTopUpModal();
+    setTimeout(() => {
+        alert("✅ Request Received!\n\nYour reference code helps us identify your payment instantly. Funds will be credited once verified.");
+    }, 400);
 }
