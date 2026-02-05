@@ -181,7 +181,8 @@
         // 1. Supabase 配置 (和你主页的一样)
         const SUPABASE_URL = 'https://iytxwgyhemetdkmqoxoa.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5dHh3Z3loZW1ldGRrbXFveG9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzMzI3MDIsImV4cCI6MjA3OTkwODcwMn0.ZsiueMCjwm5FoPlC3IDEgmsPaabkhefw3uHFl6gBm7Q';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
         // 实时检查密码复杂度
         function checkRequirements() {
@@ -226,7 +227,7 @@
 
             try {
                 // 调用 Supabase 更新密码接口
-                const { data, error } = await supabase.auth.updateUser({ 
+                const { data, error } = await sb.auth.updateUser({ 
                     password: pwd 
                 });
 

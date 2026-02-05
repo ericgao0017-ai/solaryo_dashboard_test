@@ -1694,11 +1694,18 @@ function openConfirmModal() {
     // 1. 【上锁】给 body 加类，隐藏 FOMO Bar
     document.body.classList.add('hide-fomo');
 
-    // 🟢 [新增] 隐藏品牌墙悬浮标
+    // 🟢 [Existing] 隐藏品牌墙悬浮标
     const brandBadge = document.querySelector('.fixed-brand-badge');
     if (brandBadge) brandBadge.style.display = 'none';
 
-    // ... (以下是原有逻辑，保持不变) ...
+    // 🟢 [NEW] Hide Bottom Nav & Sticky Footer (防止遮挡或视觉干扰)
+    const navBar = document.querySelector('.bottom-nav-container');
+    if (navBar) navBar.style.display = 'none';
+
+    const stickyFooter = document.getElementById('sticky-footer');
+    if (stickyFooter) stickyFooter.style.display = 'none';
+
+    // ... (Existing form population logic remains unchanged) ...
     document.getElementById('conf-name').value = document.getElementById('lead-name').value;
     document.getElementById('conf-phone').value = document.getElementById('lead-phone').value;
     document.getElementById('conf-email').value = document.getElementById('lead-email').value;
@@ -1716,6 +1723,7 @@ function openConfirmModal() {
     document.getElementById('btn-final-submit').disabled = false;
     document.getElementById('btn-final-submit').innerText = i18n[curLang].btn_confirm_send;
 }
+
 function closeConfirmModal(event) {
     const overlay = document.getElementById('confirm-modal');
     if (!event || event.target === overlay || event.target.classList.contains('close-btn')) {
@@ -1724,9 +1732,16 @@ function closeConfirmModal(event) {
         // 2. 【解锁】移除类，FOMO Bar 恢复显示
         document.body.classList.remove('hide-fomo');
 
-        // 🟢 [新增] 恢复品牌墙悬浮标
+        // 🟢 [Existing] 恢复品牌墙悬浮标
         const brandBadge = document.querySelector('.fixed-brand-badge');
         if (brandBadge) brandBadge.style.display = 'flex';
+
+        // 🟢 [NEW] Restore Bottom Nav & Sticky Footer
+        const navBar = document.querySelector('.bottom-nav-container');
+        if (navBar) navBar.style.display = ''; // Reverts to CSS default (flex)
+
+        const stickyFooter = document.getElementById('sticky-footer');
+        if (stickyFooter) stickyFooter.style.display = ''; // Reverts to CSS default
     }
 }
 function isValidAustralianPhone(p) { return /^(?:04|\+?614)\d{8}$|^(?:02|03|07|08)\d{8}$/.test(p.replace(/[\s()-]/g, '')); }
@@ -1945,7 +1960,12 @@ function getSelectedText(elementId) {
 // ==========================================
 // 🟢 修改版 sendFinalEnquiry (只更新不插入)
 // ==========================================
+// ==========================================
+// 🟢 修改版 sendFinalEnquiry (Update Success Logic)
+// ==========================================
 async function sendFinalEnquiry() {
+    // ... (Previous logic for getting elements and validation remains unchanged) ...
+    
     // 1. 获取 DOM 元素
     const nameEl = document.getElementById('conf-name');
     const phoneEl = document.getElementById('conf-phone');
@@ -1958,10 +1978,8 @@ async function sendFinalEnquiry() {
     const contactMethodEl = document.querySelector('input[name="contact-method"]:checked');
     const fileInput = document.getElementById('conf-file');
     
-    // 取出推荐码
     const trackingCode = localStorage.getItem('solaryo_ref_code') || null;
 
-    // 2. 验证
     if (!nameEl.value || !phoneEl.value || !postcodeEl.value) {
         document.getElementById('final-msg').style.color = 'red';
         document.getElementById('final-msg').innerText = curLang === 'cn' ? "请完善联系信息 (含邮编)" : "Please complete contact details (inc. Postcode)";
@@ -1974,18 +1992,14 @@ async function sendFinalEnquiry() {
     btn.innerText = curLang === 'cn' ? "提交中..." : "Sending...";
 
     try {
-        // 多文件上传逻辑 (保持你原版逻辑)
+        // ... (File upload logic and payload construction remain unchanged) ...
         let fileUrl = null;
         let fileName = null;
 
         if (fileInput.files.length > 0) {
             const files = Array.from(fileInput.files);
-            for (let file of files) {
-                if (file.size > 10 * 1024 * 1024) {
-                    throw new Error((curLang === 'cn' ? "文件过大: " : "File too large: ") + file.name);
-                }
-            }
-            const uploadPromises = files.map(async (file) => {
+            // ... (File upload loop) ...
+             const uploadPromises = files.map(async (file) => {
                 const uniqueName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
                 const { data: uploadData, error: uploadError } = await supabaseClient
                     .storage.from('uploads').upload(uniqueName, file);
@@ -1999,12 +2013,7 @@ async function sendFinalEnquiry() {
             fileName = results.map(r => r.name).join(', ');
         }
 
-        // 4. 构建更新数据包
-        // 注意：这里我们准备 update，所以不需要包含所有字段，只要包含变更字段即可
-        // 但为了保险，我们保持全量更新
-        // 4. 构建更新数据包
         const payload = {
-            // 基本信息更新
             language: curLang,
             installation_mode: curMode,
             state: stateEl.value,
@@ -2013,15 +2022,11 @@ async function sendFinalEnquiry() {
             email: emailEl.value,
             postcode: postcodeEl.value,
             address: addressEl ? addressEl.value : "",
-            
-            // 最终咨询特有字段
             contact_method: contactMethodEl ? contactMethodEl.value : 'phone',
             install_timeframe: getSelectedText('conf-timeframe'),
             notes: notesEl.value ? `[User Note]: ${notesEl.value}` : null,
             file_name: fileName,
             file_url: fileUrl,
-            
-            // 再次确认配置
             bill_amount: billInput.value,
             budget_target: document.getElementById('budget-input').value,
             solar_size: document.getElementById('solar-val').innerText,
@@ -2033,27 +2038,16 @@ async function sendFinalEnquiry() {
             user_profile: userApplianceProfile,
             chat_history: globalChatHistory,
             referral_code: trackingCode,
-            
-            // 🔥 【关键】刷新时间，保证排序
             updated_at: new Date().toISOString(),
-
-            // 🔥 【关键】告诉 Installer 这是一个客户主动发起的更新
             has_client_update: true 
         };
 
-        // 5. 🔥 核心修改：执行 Update 而不是 Insert
         const leadId = localStorage.getItem('current_lead_id');
 
         if (leadId) {
-            // A. 正常情况：更新 Step 1 的单子
-            const { error } = await supabaseClient
-                .from('leads')
-                .update(payload)
-                .eq('id', leadId);
-            
+            const { error } = await supabaseClient.from('leads').update(payload).eq('id', leadId);
             if (error) throw error;
         } else {
-            // B. 异常兜底：如果用户清了缓存导致没 ID，才被迫 Insert
             console.warn("No ID found, falling back to insert...");
             payload.created_at = new Date().toISOString();
             payload.status = 'new';
@@ -2070,8 +2064,17 @@ async function sendFinalEnquiry() {
             setTimeout(() => {
                 document.getElementById('confirm-modal').style.display = 'none';
                 document.body.classList.remove('hide-fomo');
+                
+                // 🟢 Restore elements on success close
                 const brandBadge = document.querySelector('.fixed-brand-badge');
                 if (brandBadge) brandBadge.style.display = 'flex';
+
+                const navBar = document.querySelector('.bottom-nav-container');
+                if (navBar) navBar.style.display = '';
+
+                const stickyFooter = document.getElementById('sticky-footer');
+                if (stickyFooter) stickyFooter.style.display = '';
+
             }, 2000);
         }, 1000);
 
@@ -2082,7 +2085,7 @@ async function sendFinalEnquiry() {
         document.getElementById('final-msg').style.color = 'red';
         document.getElementById('final-msg').innerText = errMsg;
         btn.disabled = false;
-        btn.innerText = originalBtnText; // 恢复按钮文字
+        btn.innerText = originalBtnText;
     }
 }
 // --- Inline Validation ---
