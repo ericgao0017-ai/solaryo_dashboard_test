@@ -669,7 +669,7 @@ const i18n = {
         // Buttons
         btn_sat: "Satellite",
         btn_heat: "Heatmap",
-        inline_btn_yes: "✅ Yes, I do",
+        inline_btn_yes: "✅ Yes, I have Solar",
         inline_btn_no: "❌ No (New Setup)",
 
         // Disclaimer

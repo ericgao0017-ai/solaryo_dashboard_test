@@ -5650,3 +5650,12 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
         margin-top: 12px;
     }
 }
+
+.hero-input-group.expanded + .ai-trust-badge {
+    opacity: 0;              /* 变透明 */
+    visibility: hidden;      /* 隐藏可见性 */
+    height: 0;               /* 高度收缩为0 */
+    margin-top: 0;           /* 去除顶部间距 */
+    transform: translateY(-10px); /* 稍微向上移动一点 */
+    transition: all 0.3s ease;    /* 添加 0.3秒 过渡动画 */
+}
