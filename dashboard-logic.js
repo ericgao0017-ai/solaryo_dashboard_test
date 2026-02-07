@@ -247,52 +247,60 @@ function renderReferrerTable(leads, installers) {
         else earnedDisplay = `<div class="waiting-badge" style="white-space:nowrap;">⏳ Wait for<br>Contact ($20) </div>`;
 
         // 3. 锁定选择框 (保持锁定，防止审核期间换人)
-        const isLocked = (isActuallyAssigned && !['cancelled', 'pending'].includes(status)) || status === 'fraud_review' || status === 'fraud';
-        const selectedId = lead.assigned_partner_id || currentProfile.default_installer_id;
+        const isLocked = (isActuallyAssigned && !['cancelled', 'pending'].includes(status)) || status === 'fraud_review' || status === 'fraud'|| lead.is_released_to_market;
+        
+        // 🟢 [核心修改] 下拉框逻辑优化
+        // 逻辑：如果是释放状态，则选中 'null'；否则按 assigned_id 选；都没有则按 default 选
+        const selectedId = lead.is_released_to_market ? 'null' : (lead.assigned_partner_id || currentProfile.default_installer_id || 'null');
         
         let assignSelect = `<select id="sel-lead-${lead.id}" class="installer-select" onchange="updateReassignUI(${lead.id})"
-            ${isLocked ? 'disabled style="background:#f1f5f9; color:#94a3b8; border-color:#e2e8f0;"' : ''}>
-            <option value="null">-- Select --</option>`;
+            ${isLocked ? 'disabled style="background:#f1f5f9; color:#94a3b8; border-color:#e2e8f0;"' : ''}>`;
+            
+        // 🟢 [新增] 每一行都要有 Open Network 选项，并根据状态判断是否 selected
+        const isOpenSel = (selectedId === 'null' || !selectedId);
+        assignSelect += `<option value="null" ${isOpenSel ? 'selected' : ''}>🌐 Open Network</option>`;
             
         let isCurrentSelectionRejected = false;
         if (installers) {
             installers.forEach(inst => {
                 const isRejected = cancelledList.includes(inst.id);
-                const isSel = (inst.id === selectedId);
+                // 注意这里用 == 弱类型比较，因为 selectedId 可能是字符串 'null'
+                const isSel = (inst.id == selectedId); 
                 if (isSel && isRejected) isCurrentSelectionRejected = true;
+                
                 let label = `⚡ ${inst.company_name}`;
                 if (isRejected) label += " (Rejected)"; 
+                
                 assignSelect += `<option value="${inst.id}" ${isSel?'selected':''} data-rejected="${isRejected}">${label}</option>`;
             });
         }
         assignSelect += `</select>`;
 
-        // 4. 🔥 按钮逻辑修正：Fraud Review 状态下仍然显示 Report
+        // 4. 按钮逻辑 (保持不变)
         let actionBtn = '';
         const btnId = `btn-action-${lead.id}`;
         
-        // 🚨 优先级 1: 已确认欺诈 (永久禁用)
         if (status === 'fraud') {
              actionBtn = `<button class="btn-action btn-report" disabled style="opacity:0.5">⛔ Invalid</button>`;
         }
-        // 🚨 优先级 2: 已取消 (处理重新分配逻辑)
         else if (status === 'cancelled') {
              if (isCurrentSelectionRejected) actionBtn = `<button id="${btnId}" onclick="handleReport(${lead.id}, 'Rejected')" class="btn-action btn-report">🚩 Report Issue</button>`;
              else actionBtn = `<button id="${btnId}" onclick="handleConfirmAllocation(${lead.id}, true)" class="btn-action btn-confirm" style="background:#f59e0b; border-color:#d97706;">🔄 Re-Assign</button>`;
         }
-        // 🚨 优先级 3: 未分配
-        else if (!isActuallyAssigned) {
-             actionBtn = `<button id="${btnId}" onclick="handleConfirmAllocation(${lead.id}, false)" class="btn-action btn-confirm">✅ Confirm</button>`;
+        // 🟢 [新增] 如果是 Open Market 状态，也视为 "未分配"，显示 Confirm 按钮
+        else if (!isActuallyAssigned || lead.is_released_to_market) {
+             if (lead.is_released_to_market) {
+                actionBtn = `<button class="btn-action" style="background:#0ea5e9; border-color:#0ea5e9; color:white; font-weight:700; cursor:default; opacity:0.9;">🌐 Published</button>`;
+                } 
+                // 否则还是显示 Confirm，等待用户操作
+            else {
+                    actionBtn = `<button id="${btnId}" onclick="handleConfirmAllocation(${lead.id}, false)" class="btn-action btn-confirm">✅ Confirm</button>`;
+                }
         }
-        // 🚨 优先级 4: 新分配未读
         else if (isActuallyAssigned && status === 'new') {
              actionBtn = `<button id="${btnId}" onclick="handleNudge(${lead.id})" class="btn-action btn-nudge">🔔 Nudge</button>`;
         }
-        // 🚨 优先级 5: 其他所有状态 (包含 fraud_review) -> 显示 Report 按钮
-        // 这样 Referrer 可以在审核期间点击 Report 进行质疑
         else {
-             // 如果是审核中，为了醒目，可以稍微加深一点颜色，或者直接用标准的 report 样式
-             // 这里使用标准样式，点击后弹出 prompt
              actionBtn = `<button id="${btnId}" onclick="handleReport(${lead.id}, '${status}')" class="btn-action btn-report-light">🚩 Report</button>`;
         }
 
@@ -304,7 +312,7 @@ function renderReferrerTable(leads, installers) {
         
         tr.innerHTML = `
             <td>
-                <div class="clickable-name" onclick="showLeadDetails('${leadSafe}')">${lead.name}</div>
+                <div class="clickable-name" onclick="handleLeadClick('${leadSafe}', ${lead.id})">${lead.name}</div>
                 <div class="user-sub">${dateStr}</div>
             </td>
             <td style="vertical-align: middle;">${earnedDisplay}</td>
@@ -430,8 +438,7 @@ window.showLeadDetails = function(leadEncoded) {
     } else {
         lead = leadEncoded; // 直接传入了对象
     }
-
-    // 🟢 [新增] 打开弹窗时，隐藏底部导航栏
+    
     const navBar = document.querySelector('.bottom-nav');
     if (navBar) navBar.style.display = 'none';
 
@@ -444,7 +451,7 @@ window.showLeadDetails = function(leadEncoded) {
     // 判断锁定状态
     const isInstaller = (currentProfile.role === 'solar_pro' || currentProfile.role === 'installer');
     // 🔒 锁定条件：是安装商 且 状态是New 且 未付费
-    const isLocked = isInstaller && (lead.status === 'new' && !lead.fee_paid);
+    const isLocked = isInstaller && (lead.status === 'new' || lead.status === 'assigned' && !lead.fee_paid);
 
     let contactInfoHtml = '';
 
@@ -815,7 +822,10 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         const now = new Date().toISOString();
 
         // 1. 设置各类时间戳
-        if (finalStatus === 'contacted') updateData.date_contacted = now;
+        if (finalStatus === 'contacted') {
+            updateData.date_contacted = now;
+            updateData.is_contacted = true; // 🟢 [必须新增] 同步标记为已联系
+        }
         if (finalStatus === 'site_visit') updateData.date_site_visit = now;
         if (finalStatus === 'deposit') updateData.date_deposit = now;
         if (finalStatus === 'installed') updateData.date_installed = now;
@@ -904,21 +914,47 @@ async function rpcUpdateBalance(partnerId, amount) {
 async function recordTransaction(partnerId, amount, type, desc) {
     await sbClient.from('transactions').insert([{ partner_id: partnerId, amount: amount, type: type, description: desc }]);
 }
+// 🟢 Referrer Confirm Allocation Logic (Updated for Open Market)
 window.handleConfirmAllocation = async function(leadId, isReassign) {
     const selectEl = document.getElementById(`sel-lead-${leadId}`);
     const newInstallerId = selectEl?.value;
-    if (!newInstallerId || newInstallerId === 'null') { alert("Please select a valid installer first."); return; }
-    let updatePayload = { assigned_partner_id: newInstallerId, status: 'new' };
+    
+    // 逻辑：如果选的是 'null'，表示放入 Open Market
+    const isToOpenMarket = (newInstallerId === 'null');
+
+    // 如果不是 Open Market 且没有选安装商，报错
+    if (!isToOpenMarket && (!newInstallerId || newInstallerId === '')) { 
+        alert("Please select a valid installer or Open Network."); 
+        return; 
+    }
+
+    let updatePayload = { status: 'new' };
+    
+    if (isToOpenMarket) {
+        updatePayload.assigned_partner_id = null;
+        updatePayload.is_released_to_market = true; // 🟢 关键点：标记为已释放，允许进入公海
+    } else {
+        updatePayload.assigned_partner_id = newInstallerId;
+        updatePayload.is_released_to_market = false; // 指定了人，就不再是公海
+    }
+
     if (isReassign) {
         if (!confirm("🔄 Re-assign this lead?\n\nThis will reset the workflow.")) return;
         const { data: currentLead } = await sbClient.from('leads').select('assigned_partner_id, cancelled_by_ids').eq('id', leadId).single();
         const oldId = currentLead?.assigned_partner_id;
         let newBlacklist = currentLead?.cancelled_by_ids || [];
         if (oldId && !newBlacklist.includes(oldId)) newBlacklist.push(oldId);
-        updatePayload.fee_paid = false; updatePayload.cancelled_by_ids = newBlacklist;
+        
+        updatePayload.fee_paid = false; 
+        updatePayload.cancelled_by_ids = newBlacklist;
     }
+
     const { error } = await sbClient.from('leads').update(updatePayload).eq('id', leadId);
-    if (error) alert("Allocation failed: " + error.message); else { alert(isReassign ? "Re-assigned! 🔄" : "Allocated! ✅"); loadReferrerDashboard(); }
+    if (error) alert("Allocation failed: " + error.message); 
+    else { 
+        alert(isReassign ? "Re-assigned! 🔄" : "Allocated! ✅"); 
+        loadReferrerDashboard(); 
+    }
 }
 window.updateReassignUI = function(leadId) {
     const selectEl = document.getElementById(`sel-lead-${leadId}`);
@@ -1606,7 +1642,16 @@ function renderInstallerTable(leads) {
     leads.forEach(lead => {
         const isMyLead = lead.assigned_partner_id === currentProfile.id;
         const isPastCancelled = lead.cancelled_by_ids && lead.cancelled_by_ids.includes(currentProfile.id);
-        const displayStatus = isPastCancelled && !isMyLead ? 'cancelled' : lead.status;
+        
+        // 🟢 1. [核心修改] 状态映射: 
+        // 数据库里的 'assigned' 状态 -> 前端视为 'new' (为了兼容进度条)，但打上 isTimeLocked 标记
+        let displayStatus = isPastCancelled && !isMyLead ? 'cancelled' : lead.status;
+        let isTimeLocked = false; 
+
+        if (displayStatus === 'assigned') {
+            displayStatus = 'new'; // 强行映射
+            isTimeLocked = true;   // 标记：这是一个倒计时单子
+        }
 
         // --- 统计逻辑 ---
         countTotal++;
@@ -1621,24 +1666,45 @@ function renderInstallerTable(leads) {
             }
         }
 
-        // --- 财务 HTML 生成 ---
+        // 🟢 2. [核心修改] 财务 HTML 生成
         let financialHtml = `<span style="color:#cbd5e1;">-</span>`;
         let items = [];
+        
         if (isMyLead) {
-            if (lead.fee_paid) items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
-            if (lead.status === 'installed' && lead.final_commission) {
-                const comm = Number(lead.final_commission);
-                const fee = comm * 0.05;
-                items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${(comm + fee).toFixed(0)}</span></div>`);
-            } else if (lead.commission_reward > 0) {
-                items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
+            // 情况 A: 刚抢来，还没付钱 (显示倒计时警告)
+            if (isTimeLocked && !lead.fee_paid) {
+                financialHtml = `
+                    <div style="font-size:0.75rem; color:#ef4444; font-weight:800; display:flex; align-items:center; gap:4px;">
+                        <- Click to Unlock
+                    </div>
+                    <div style="font-size:0.65rem; color:#f59e0b; font-weight:600;">
+                        🔒 Expires in 2 hours
+                    </div>
+                `;
+            } 
+            // 情况 B: 已付钱 (显示正常账单)
+            else {
+                if (lead.fee_paid) {
+                    items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
+                }
+                
+                if (lead.status === 'installed' && lead.final_commission) {
+                    const comm = Number(lead.final_commission);
+                    const fee = comm * 0.05;
+                    items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${(comm + fee).toFixed(0)}</span></div>`);
+                } else if (lead.commission_reward > 0) {
+                    items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
+                }
+                
+                if (items.length > 0) {
+                    financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
+                }
             }
-            if (items.length > 0) financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
         } else if (isPastCancelled) {
             financialHtml = `<div style="font-size:0.7rem; color:#94a3b8; font-style:italic;">Connection Ended</div>`;
         }
 
-        // --- 下拉菜单与状态逻辑 (保持你原来的 optionsHtml 生成代码) ---
+        // --- 下拉菜单与状态逻辑 (基本保持不变) ---
         const currentIdx = STATUS_FLOW.indexOf(displayStatus);
         let optionsHtml = '';
         STATUS_FLOW.forEach((step, idx) => {
@@ -1657,24 +1723,27 @@ function renderInstallerTable(leads) {
         else if (displayStatus === 'fraud') optionsHtml += `<option value="fraud" selected>⛔ Fraud Confirmed</option>`;
         else optionsHtml += `<option value="fraud">🚩 Report Invalid</option>`;
 
-        // --- 行渲染 ---
-        const isLocked = !isMyLead || ['installed', 'cancelled', 'fraud', 'fraud_review'].includes(lead.status);
+        // 🟢 3. [核心修改] 锁定下拉菜单：如果是 TimeLocked 且没付钱，禁用操作
+        const isActionLocked = !isMyLead || ['installed', 'cancelled', 'fraud', 'fraud_review'].includes(lead.status) || (isTimeLocked && !lead.fee_paid);
+        
         const refName = lead.referral_code && cachedRefMap[lead.referral_code] ? cachedRefMap[lead.referral_code] : '-';
         const leadSafe = encodeURIComponent(JSON.stringify(lead));
         const updateTag = lead.has_client_update ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` : '';
 
         const tr = document.createElement('tr');
         if (displayStatus === 'new' && isMyLead) tr.style.backgroundColor = '#f0fdf4';
+        // 🟢 4. [核心修改] 如果是锁定单，给个浅黄色背景提醒
+        if (isTimeLocked && !lead.fee_paid) tr.style.backgroundColor = '#fffbeb'; 
         
         tr.innerHTML = `
             <td>
-                <div class="clickable-name" onclick="handleLeadClick('${leadSafe}',${lead.id})">${lead.name}${updateTag}</div>
+                <div class="clickable-name" onclick="handleLeadClick('${leadSafe}', ${lead.id})">${lead.name}${updateTag}</div>
                 <div class="user-sub">${new Date(lead.created_at).toLocaleDateString('en-AU', {year: 'numeric', month:'short', day:'numeric'})}</div>
             </td>
             <td style="vertical-align:middle; font-size:0.8rem; font-weight:600; color:#475569;">${refName}</td>
             <td style="vertical-align:top;">${financialHtml}</td>
             <td style="vertical-align:middle;">
-                <select onchange="handleStatusChange(${lead.id}, this.value, '${lead.status}', ${lead.fee_paid})" class="installer-select" ${isLocked ? 'disabled style="background:#f1f5f9;"' : ''}>
+                <select onchange="handleStatusChange(${lead.id}, this.value, '${lead.status}', ${lead.fee_paid})" class="installer-select" ${isActionLocked ? 'disabled style="background:#f1f5f9; cursor:not-allowed;"' : ''}>
                     ${optionsHtml}
                 </select>
             </td>

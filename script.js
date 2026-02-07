@@ -360,7 +360,8 @@ const i18n = {
         pa_forgot: "忘记密码？",
         pa_login_btn: "登录后台",
 
-        lbl_individual: "推广大使",
+        lbl_ambassador: "推广大使",      // 或者 "能源推广大使"
+        lbl_industry: "行业合作伙伴",    // 或者 "商业合作伙伴"
 
         // ...
         pa_benefits_title: "为什么加入 Solaryo 合作伙伴？",
@@ -557,7 +558,8 @@ const i18n = {
         ben_4_title: "Quality Network",
         ben_4_desc: "Connect with top brands & trusted installers.",
 
-        lbl_individual: "Energy Ambassador",
+        lbl_ambassador: "Energy Ambassador",
+        lbl_industry: "Industry Partners",
         // ... (在 role_brand_req 下方添加)
         role_ref: "Referral Partner",
         role_ref_tag: "Commission Rewards",
@@ -1814,8 +1816,14 @@ async function submitLead() {
 
         // 🟢 [新增] 获取 AI 分析的隐藏数据 (从 index.html 的隐藏 input 里拿)
         // 如果用户没用 AI 分析，这些就是 null，不影响流程
-        const latVal = document.getElementById('hidden-lat') ? parseFloat(document.getElementById('hidden-lat').value) : null;
-        const lngVal = document.getElementById('hidden-lng') ? parseFloat(document.getElementById('hidden-lng').value) : null;
+       // 优先取隐藏框的值，如果没有（或为NaN），则取全局变量 window.selectedLat
+        let latVal = document.getElementById('hidden-lat') ? parseFloat(document.getElementById('hidden-lat').value) : null;
+        let lngVal = document.getElementById('hidden-lng') ? parseFloat(document.getElementById('hidden-lng').value) : null;
+
+        // 🟢 [修复] 兜底逻辑：如果 DOM 里没取到，试试全局变量
+        if (!latVal && window.selectedLat) latVal = window.selectedLat;
+        if (!lngVal && window.selectedLng) lngVal = window.selectedLng;
+        
         const solarDataRaw = document.getElementById('hidden-solar-data') ? document.getElementById('hidden-solar-data').value : null;
         
         let solarJson = {};
@@ -1856,8 +1864,8 @@ async function submitLead() {
             has_client_update: true,
             
             // 🟢 [新增] 如果你的 leads 表里有 lat/lng 字段，可以在这里直接存
-            // lat: latVal, 
-            // lng: lngVal,
+            lat: latVal, 
+            lng: lngVal,
 
             notes: "[System] User Unlocked Price (Preliminary Lead)",
             property_storeys: getSelectedText('storey-select'),
@@ -2250,6 +2258,73 @@ function updateSocialProof() {
     if (elModal) elModal.innerHTML = finalHtml;
 }
 
+// ============================================================
+// 🟢 [NEW] 地图抢单核心逻辑
+// ============================================================
+// ============================================================
+// 🟢 [UPDATED] 地图抢单核心逻辑 (增加了角色权限检查)
+// ============================================================
+async function claimLeadOnMap(leadId) {
+    // 1. 防抖：禁用所有按钮
+    const btns = document.querySelectorAll('.info-btn');
+    btns.forEach(b => { 
+        if(!b.disabled) {
+             b._originalText = b.innerText;
+             b.disabled = true; 
+             b.innerText = "Claiming..."; 
+        }
+    });
+
+    try {
+        // 2. 身份检查
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if(!user) throw new Error("Please Login first.");
+
+        // 🟢 [修改点] 这里多查一个 role 字段
+        const { data: partner } = await supabaseClient
+            .from('partners')
+            .select('id, role') // <--- 获取 role
+            .eq('auth_id', user.id)
+            .single();
+
+        if(!partner) throw new Error("Partner account error.");
+
+        // 🛑 [核心拦截] 只有 solar_pro 角色可以抢单
+        // 如果您还有 'installer' 这个旧角色名，建议写成: if (partner.role !== 'solar_pro' && partner.role !== 'installer')
+        if (partner.role !== 'solar_pro') {
+            throw new Error("🚫 Access Denied: Only INSTALLER accounts can claim leads.");
+        }
+
+        // 3. 调用数据库 RPC 进行抢单
+        const { data, error } = await supabaseClient.rpc('claim_lead_from_map', {
+            p_lead_id: leadId,
+            p_installer_id: partner.id
+        });
+
+        if (error) throw error;
+
+        // 4. 处理结果
+        if (data.success) {
+            alert("🎉 " + data.message);
+            window.location.href = 'dashboard.html'; 
+        } else {
+            alert("⚠️ " + data.message);
+            fetchMapData(); // 刷新地图
+        }
+    } catch (err) {
+        console.error("Claim Error:", err);
+        alert(err.message); // 会弹出 "Access Denied..."
+        
+        // 恢复按钮状态
+        btns.forEach(b => { 
+            b.disabled = false; 
+            if(b._originalText) b.innerText = b._originalText;
+        });
+    }
+}
+
+// 暴露给全局
+window.claimLeadOnMap = claimLeadOnMap;
 
 // ==========================================
 // [NEW] Helper Functions (Sticky Footer & Animation)
@@ -3749,111 +3824,79 @@ function showInfoWindow(marker, item) {
     }
     // [C] 线索 (核心修改：未解锁也显示需求类型)
     // [MODIFIED] 线索展示逻辑：未登录时隐藏详情
+    // ... (前文 installer/case/electrician 部分保持不变)
+
+    // [C] 线索 (核心修改：从 lead_data 读取详情 + Claim 按钮)
     else if (item.type === 'lead') {
         
-        // --- 1. 智能解析需求类型 (Tag Logic) ---
-        // 将标题和描述转为小写，方便匹配
-        const fullText = (item.title + " " + item.description).toLowerCase();
-
-        // 定义关键词标识
-        // 注意：为了更精准，我把 'panel', 'pv', 'powerwall' 等常见词也加进去了
-        const hasSolar   = fullText.includes('solar') || fullText.includes('光伏') || fullText.includes('pv') || fullText.includes('panel');
-        const hasBattery = fullText.includes('battery') || fullText.includes('storage') || fullText.includes('储能') || fullText.includes('电池') || fullText.includes('powerwall');
-        const hasRepair  = fullText.includes('repair') || fullText.includes('维修') || fullText.includes('maintenance');
-
-        let demandTag = isCN ? "光伏系统" : "Solar System"; // 默认兜底
-        let demandIcon = "☀️";
-
-        // --- 逻辑判断树 ---
+        let buttonHtml = '';
         
-        if (hasRepair) {
-            // 优先判断维修（通常维修是单独的一类）
-            demandTag = isCN ? "维修/维护" : "Maintenance";
-            demandIcon = "🔧";
-        } 
-        else if (hasSolar && hasBattery) {
-            // [Both] 既有光伏又有电池 -> 光储一体
-            demandTag = isCN ? "光伏+储能" : "Solar + Battery";
-            demandIcon = "⚡"; 
-        } 
-        else if (hasBattery && !hasSolar) {
-            // [Only Battery] 只有电池，没有光伏 -> 纯电池需求 (Retrofit)
-            demandTag = isCN ? "电池储能需求" : "Battery Storage";
-            demandIcon = "🔋";
-        } 
-        else {
-            // [Only Solar] 只有光伏，或者都没写（默认）
-            demandTag = isCN ? "光伏系统" : "Solar System";
-            demandIcon = "☀️";
-        }
-        // --- 2. 状态分支 ---
+        // A. 按钮逻辑：未登录显示Login，已登录显示Claim
         if (!userHasLoggedIn) {
-            // [未登录状态] -> 只显示标题，模糊描述
-            
-            // 假的占位文本 (用于制造模糊效果)
-            const blurredPlaceholder = isCN 
-                ? "此线索的详细描述已被锁定。包含具体的屋顶类型、房屋层数以及客户的特殊要求。请登录 Partner Hub 查看完整数据。" 
-                : "The detailed description for this lead is locked. It includes roof type, storeys, and specific customer requirements. Please login to view.";
-
-            content = `
-                <div class="info-card">
-                    ${closeBtnHtml}
-                    <span class="info-tag" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0;">
-                        🔒 ${isCN ? "未解锁" : "LOCKED"}
-                    </span>
-                    <span class="info-tag" style="background:#dcfce7; color:#166534; margin-left:4px;">
-                        ${demandIcon} ${demandTag}
-                    </span>
-                    
-                    <div class="info-title" style="margin-top:8px; color:#0f172a;">
-                        ${title}
-                    </div>
-                    
-                    <div style="font-size:0.85rem; color:#94a3b8; margin: 12px 0; filter: blur(5px); user-select: none; opacity: 0.7; line-height: 1.5;">
-                        ${blurredPlaceholder}
-                    </div>
-
-                    <div style="font-size:0.75rem; color:#64748b; margin-bottom: 15px; display:flex; align-items:center; gap:4px;">
-                        📍 ${item.postcode} <span style="opacity:0.5;">(Exact address hidden)</span>
-                    </div>
-
-                    <button class="info-btn" onclick="openLoginModal()" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);">
-                        ${isCN ? "登录解锁完整线索" : "Login to Unlock Details"}
-                    </button>
-                </div>
-            `;
+            buttonHtml = `<button class="info-btn" onclick="openLoginModal()" style="background:#3b82f6;">Login to Claim</button>`;
         } else {
-            // [已登录状态] -> 显示真实数据
-            // 获取按钮状态（防止重复点击）
-            // 这里为了简单，我们默认显示可点击。如果要做得更细，可以先查库看是否已申请。
-            
-             content = `
-                <div class="info-card">
-                    ${closeBtnHtml}
-                    <span class="info-tag" style="background:#f0fdf4; color:#15803d;">ACTIVE LEAD ✅</span>
-                    
-                    <div class="info-title" style="margin-top:8px;">${title}</div>
-                    
-                    <div class="info-desc" style="margin-top:8px; color:#334155;">
-                        ${desc}
-                    </div>
-                    
-                    <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #e2e8f0; font-size:0.8rem; color:#475569;">
-                        <div style="margin-bottom:4px;">📍 <strong>Postcode:</strong> ${item.postcode}</div>
-                        <div style="margin-bottom:4px;">👤 <strong>Name:</strong> Hidden (Request to view)</div>
-                        <div style="color:#10b981; font-weight:bold; margin-top:6px;">Ready to quote</div>
-                    </div>
+            // 这里的 lead_reference_id 是源头 ID，如果为空则兜底用 item.id
+            const actualLeadId = item.lead_reference_id || item.id;
 
-                    <div id="action-area-${item.id}">
-                        <button class="info-btn" onclick="requestConnection('${item.id}')" 
-                                style="margin-top:15px; background: linear-gradient(135deg, #0f172a 0%, #334155 100%); color:white; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);">
-                            ⚡ ${isCN ? "申请对接 / 接单" : "Request Connection"}
-                        </button>
+            buttonHtml = `
+                <div id="action-area-${item.id}">
+                    <button class="info-btn" onclick="claimLeadOnMap('${actualLeadId}')" 
+                            style="margin-top:10px; background: #10b981; color:white; font-weight:bold; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                        ⚡ Claim (Lock 2h)
+                    </button>
+                    <div style="font-size:0.7rem; color:#64748b; margin-top:6px; text-align:center;">
+                        First come, first served.
                     </div>
                 </div>
             `;
         }
+
+        // B. 详情解析：从 lead_data JSON 中解包数据
+        // (数据库里存的是 jsonb，Supabase 会自动转为 JS 对象)
+        const meta = item.lead_data || {}; 
+        
+        // 拼接房屋规格: "House • Tile Roof • 1 Storey"
+        const specs = [
+            meta.type, 
+            (meta.roof && meta.roof !== '-') ? meta.roof : null, 
+            (meta.storeys && meta.storeys !== '-') ? meta.storeys : null
+        ].filter(Boolean).join(' • ');
+
+        // 拼接电费
+        const billDisplay = meta.bill ? `$${meta.bill}` : 'N/A';
+        
+        // 拼接时间要求
+        const timeDisplay = meta.timeframe ? meta.timeframe : 'Flexible';
+
+        // 拼接预算 (如果有)
+        const priceHtml = meta.est_price ? `<div style="margin-top:2px; color:#059669;">💰 Budget: ${meta.est_price}</div>` : '';
+
+        content = `
+            <div class="info-card">
+                ${closeBtnHtml}
+                <span class="info-tag" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0;">ACTIVE LEAD</span>
+                
+                <div class="info-title" style="margin-top:8px;">${item.title}</div> 
+                
+                <div class="info-desc" style="font-weight:700; color:#0f172a; margin-bottom:8px;">
+                    ${item.description}
+                </div>
+                
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px; font-size:0.75rem; color:#475569; line-height:1.6;">
+                    ${specs ? `<div style="margin-bottom:2px;">🏠 ${specs}</div>` : ''}
+                    <div style="display:flex; justify-content:space-between;">
+                        <span>💵 Bill: <strong>${billDisplay}</strong></span>
+                        <span>⏳ ${timeDisplay}</span>
+                    </div>
+                    ${priceHtml}
+                </div>
+
+                ${buttonHtml}
+            </div>
+        `;
     }
+
+// ... (后续 electrican 部分保持不变)
     // [D] 电工
     else if (item.type === 'electrician') {
         content = `
@@ -4868,3 +4911,20 @@ function getCardinalDirection(angle) {
     return 'dir_' + directions[index].toLowerCase();
 }
 
+// ==========================================
+// 🟢 [新增] 自动检测登录状态 (Auto-Login Check)
+// ==========================================
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. 检查当前是否已有 Supabase 会话
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (session) {
+        userHasLoggedIn = true;
+        // console.log("✅ Detected active session. User is logged in.");
+    }
+
+    // 2. 监听状态变化 (防止用户在其他标签页登出)
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+        userHasLoggedIn = !!session; // 有 session 为 true，无 session 为 false
+    });
+});
