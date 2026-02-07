@@ -1160,38 +1160,50 @@ window.scrollToActions = function() {
 // ⚙️ Profile Settings Logic (Secure V2)
 // ==========================================
 
-// 1. 打开主 Profile 弹窗
+// 1. 打开设置弹窗（并隐藏底部导航）
 window.openProfileModal = async function() {
     const modal = document.getElementById('profile-modal');
     
-    // 🔥 每次打开都重置为锁定状态
+    // 🔥 【新增】找到底部导航栏，把它藏起来
+    const navBar = document.querySelector('.bottom-nav');
+    if (navBar) navBar.style.display = 'none';
+
+    // 重置为锁定状态
     document.getElementById('prof-lock-panel').style.display = 'flex';
     document.getElementById('prof-secure-fields').style.display = 'none';
 
-    // 填充只读和基础信息
+    // 填充数据（保持你原有的逻辑）
     document.getElementById('prof-role').value = (currentProfile.role || 'Partner').toUpperCase();
     document.getElementById('prof-email').value = currentUser.email || '';
     document.getElementById('prof-code').value = currentProfile.ref_code || '-';
-    
     document.getElementById('prof-name').value = currentProfile.contact_name || '';
     document.getElementById('prof-company').value = currentProfile.company_name || '';
     document.getElementById('prof-phone').value = currentProfile.phone || '';
     document.getElementById('prof-abn').value = currentProfile.abn_acn || '';
-    //document.getElementById('prof-notify').checked = currentProfile.notify_email !== false;
-
-    // 预填充敏感信息（虽然此时不可见，但先填进去，等解锁后直接显示）
     document.getElementById('prof-bank').value = currentProfile.payout_method || '';
     document.getElementById('prof-pin').value = currentProfile.payment_pin || ''; 
     document.getElementById('prof-new-pass').value = ''; 
 
+    // 显示弹窗
     modal.style.display = 'flex';
     setTimeout(() => modal.style.opacity = '1', 10);
 }
 
+// 2. 关闭设置弹窗（并恢复底部导航）
 window.closeProfileModal = function(e) {
+    // 如果点击的不是背景，也不是关闭按钮，就不关闭
     if (e && e.target.id !== 'profile-modal' && !e.target.classList.contains('modal-close')) return;
-    document.getElementById('profile-modal').style.opacity = '0';
-    setTimeout(() => document.getElementById('profile-modal').style.display = 'none', 300);
+    
+    const modal = document.getElementById('profile-modal');
+    modal.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        
+        // 🔥 【新增】弹窗彻底关掉后，把底部导航栏显示出来
+        const navBar = document.querySelector('.bottom-nav');
+        if (navBar) navBar.style.display = ''; // 清空 style，让它恢复 CSS 里的默认样式
+    }, 300);
 }
 
 // 2. 二级验证弹窗逻辑
@@ -1318,6 +1330,10 @@ window.openTimelineModal = function(leadId) {
     const lead = currentLeads.find(l => l.id == leadId);
     if (!lead) return;
 
+    // 🟢 [新增] 打开弹窗时，把底部导航栏藏起来
+    const navBar = document.querySelector('.bottom-nav');
+    if (navBar) navBar.style.display = 'none';
+
     // 1. 头部信息 (保持不变)
     const displayName = lead.name || lead.contact_name || lead.client_name || 'Valued Client';
     document.getElementById('time-lead-name').innerText = displayName;
@@ -1333,7 +1349,6 @@ window.openTimelineModal = function(leadId) {
     listContainer.innerHTML = ''; 
 
     // 定义每个阶段对应的时间字段
-    // 结构：[状态代码, 显示标题, 对应数据库字段, 描述文案]
     const milestones = [
         { id: 'new',        title: 'Lead Created',  time: lead.created_at,       desc: 'Customer submitted details.' },
         { id: 'contacted',  title: 'Contacted',     time: lead.date_contacted,   desc: 'Initial call made & verified.' },
@@ -1344,27 +1359,15 @@ window.openTimelineModal = function(leadId) {
 
     let html = '';
     let isCancelled = ['cancelled', 'void', 'fraud'].includes(lead.status);
-    let reachedCurrent = false;
 
     // A. 遍历正常流程
     milestones.forEach((step, index) => {
         // 如果已经到了取消状态，且当前步骤还没发生过（没时间），就跳过后续步骤
         if (isCancelled && !step.time && index > 0) return; 
 
-        // 判定状态：
-        // 1. 有时间 = Done (已完成)
-        // 2. 是当前状态 = Current (进行中)
-        // 3. 没时间 = Pending (灰色)
-        
-        let isDone = !!step.time; // 有时间就算做过
         let isCurrent = (lead.status === step.id);
         
-        // 特殊处理：有些步骤可能跳过了（比如直接从New变Installed），中间没时间但逻辑上算过
-        // 如果当前步骤的索引 < 实际状态的索引，且没有时间，我们给它补一个 "Skipped/Auto" 或者默认显示
-        // 这里为了简单，我们只显示"有时间"的或者"当前"的
-        
-        // 渲染逻辑：
-        // 显示条件：(有时间) 或者 (是当前状态) 或者 (是第一步)
+        // 渲染逻辑：(有时间) 或者 (是当前状态) 或者 (是第一步)
         if (step.time || isCurrent || step.id === 'new') {
             
             let timeDisplay = step.time ? formatTime(step.time) : 'In Progress...';
@@ -1412,7 +1415,6 @@ window.openTimelineModal = function(leadId) {
     modal.style.display = 'flex';
     setTimeout(() => modal.style.opacity = '1', 10);
 }
-
 // 辅助函数：优化时间显示
 // 如果有时间 -> 显示时间
 // 如果没时间 -> 显示 "Done" 而不是 "Completed" (更简洁)
@@ -1473,10 +1475,25 @@ function getStepDescription(status) {
     }
 }
 
+// 4. 关闭时间轴弹窗（并恢复底部导航）
 window.closeTimelineModal = function(e) {
-    if (e && e.target.id !== 'timeline-modal' && !e.target.classList.contains('modal-close')) return;
-    document.getElementById('timeline-modal').style.opacity = '0';
-    setTimeout(() => document.getElementById('timeline-modal').style.display = 'none', 300);
+    // 判断点击的是不是背景或关闭按钮
+    const isCloseBtn = e && (e.target.classList.contains('modal-close') || e.target.closest('.modal-close'));
+    const isOverlay = e && e.target.id === 'timeline-modal';
+    
+    // 如果不是背景也不是按钮，就不关
+    if (e && !isOverlay && !isCloseBtn) return;
+
+    const modal = document.getElementById('timeline-modal');
+    modal.style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        
+        // 🔥 【新增】恢复底部导航栏
+        const navBar = document.querySelector('.bottom-nav');
+        if (navBar) navBar.style.display = ''; 
+    }, 300);
 }
 
 // ==========================================
