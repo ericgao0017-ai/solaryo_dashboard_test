@@ -184,7 +184,7 @@ function renderDefaultInstallerBox(allInstallers) {
             const isSel = (inst.id === currentDefId) ? 'selected' : '';
             optionsHtml += `<option value="${inst.id}" ${isSel}>${inst.company_name}</option>`;
         });
-        defBox.innerHTML = `<span style="font-size:0.75rem; color:#15803d;">Default:</span><select onchange="updateDefaultInstaller(this.value)" style="border:none; bg:transparent; font-weight:700; color:#166534; font-size:0.8rem; cursor:pointer; outline:none;">${optionsHtml}</select>`;
+        defBox.innerHTML = `<span style="font-size:0.75rem; color:#15803d;">Preferred installer:</span><select onchange="updateDefaultInstaller(this.value)" style="border:none; bg:transparent; font-weight:700; color:#166534; font-size:0.8rem; cursor:pointer; outline:none;">${optionsHtml}</select>`;
     }
 }
 
@@ -450,8 +450,15 @@ window.showLeadDetails = function(leadEncoded) {
     
     // 判断锁定状态
     const isInstaller = (currentProfile.role === 'solar_pro' || currentProfile.role === 'installer');
-    // 🔒 锁定条件：是安装商 且 状态是New 且 未付费
-    const isLocked = isInstaller && (lead.status === 'new' || lead.status === 'assigned' && !lead.fee_paid);
+    
+    // 🛡️ [新增] 判断是否为自荐单 (Self-Referral)
+    const isSelfReferral = lead.referral_code === currentProfile.ref_code;
+
+    // 🔒 锁定条件修改：
+    // 原逻辑：是安装商 且 (状态是New 或 未付费)
+    // 新逻辑：是安装商 且 (不是自荐单) 且 (状态是New 或 未付费)
+    // 效果：如果是自荐单，isLocked 永远为 false，直接显示联系方式
+    const isLocked = isInstaller && !isSelfReferral && (lead.status === 'new' || lead.status === 'assigned' && !lead.fee_paid);
 
     let contactInfoHtml = '';
 
@@ -491,11 +498,23 @@ window.showLeadDetails = function(leadEncoded) {
             </div>
         `;
     } else {
-        // ============ 🔓 解锁状态 ============
+        // ============ 🔓 解锁状态 (自荐单直接进这里) ============
+        
+        // 🛡️ [新增] 自荐单专属绿色标签
+        const unlockedHeader = isInstaller 
+            ? `<div style="font-size:0.7rem; color:#15803d; font-weight:700; margin-bottom:8px; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
+                 <span>✅ Contact Details Unlocked</span>
+                 ${isSelfReferral ? '<span style="background:#dcfce7; padding:2px 6px; border-radius:4px; font-size:0.65rem; border:1px solid #bbf7d0;">✨ Self-Referral</span>' : ''}
+               </div>` 
+            : '';
+
         contactInfoHtml = `
             <div style="background:#f0fdf4; padding:10px 12px; border-radius:8px; border:1px solid #bbf7d0; margin-bottom:12px; font-size:0.9rem;">
-                ${isInstaller ? '<div style="font-size:0.7rem; color:#15803d; font-weight:700; margin-bottom:8px; text-transform:uppercase;">✅ Contact Details Unlocked</div>' : ''}
-                <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Phone:</span> <span class="detail-value"><a href="tel:${lead.phone}" style="text-decoration:none; color:var(--primary); font-weight:700;">${lead.phone || 'N/A'}</a></span></div>
+                ${unlockedHeader}
+                <div class="detail-row" style="margin-bottom:4px;">
+                    <span class="detail-label">Phone:</span> 
+                    <span class="detail-value"><a href="tel:${lead.phone}" style="text-decoration:none; color:var(--primary); font-weight:700; font-size:1.1rem;">${lead.phone || 'N/A'}</a></span>
+                </div>
                 <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Email:</span> <span class="detail-value"><a href="mailto:${lead.email}">${lead.email || 'N/A'}</a></span></div>
                 <div class="detail-row" style="margin-bottom:4px;"><span class="detail-label">Address:</span> <span class="detail-value" style="font-size:0.8rem;">${lead.address || 'N/A'}</span></div>
                 <div class="detail-row" style="margin-bottom:0;"><span class="detail-label">Bill:</span> <span class="detail-value">${lead.bill_amount ? '$' + lead.bill_amount : 'N/A'}</span></div>
@@ -506,8 +525,6 @@ window.showLeadDetails = function(leadEncoded) {
     let html = contactInfoHtml;
 
     // ... (保留原本的 B.安装模式 和 C.详情代码) ...
-    // 为节省篇幅，这里假设你保留了后续的 Mode, Property Specs, Photos, History 代码
-    // 如果需要我完整贴出，请告诉我
     
     // ------ ✄ 剪切开始：保留下方原有代码 ✄ ------
     const rawMode = lead.installation_mode || profile.install_mode || 'both';
@@ -707,51 +724,40 @@ function getSegmentedProgressHTML(status, isAssigned, commissionReward) {
 // 🔥 [Updated] Handle Status Change with Fraud Reason & Logic
 window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid) {
     
-    // 1. Fetch current lead data (Increased scope to fetch 'notes')
-    // 我们多取一个 'notes' 字段，以便把原因追加进去
+    // 1. Fetch current lead data
+    // 🟢 [修改] 增加 fetch referral_code 用于比对
     const { data: currentLeadData } = await sbClient
         .from('leads')
-        .select('commission_reward, cancelled_by_ids, notes')
+        .select('commission_reward, cancelled_by_ids, notes, referral_code')
         .eq('id', leadId)
         .single();
         
     const savedEst = currentLeadData?.commission_reward;
     const currentNotes = currentLeadData?.notes || '';
 
+    // 🛡️ [新增] 核心判断：是否为自荐单
+    const isSelfReferral = currentLeadData?.referral_code === currentProfile.ref_code;
+
     // ---------------------------------------------------------
     // 🛡️ 1. 防撞单拦截逻辑 (Fraud Protection Interceptor)
     // ---------------------------------------------------------
     let finalStatus = newStatus;
-    let fraudReason = null; // 用于存储输入的原因
+    let fraudReason = null; 
     
-    // 如果用户选了 "Report Invalid"
     if (newStatus === 'fraud') {
-        // 🔥 强制要求输入原因
         const input = prompt(
             "🛡️ REPORT INVALID LEAD\n\n" +
             "Please enter the reason (e.g., 'Wrong Number', 'Duplicate', 'Out of Service Area').\n" +
-            "This will be sent to the platform for review.\n\n" +
             "Reason (Required):"
         );
 
-        // 校验 1: 用户点击了取消
-        if (input === null) {
-            loadInstallerDashboard(); // 重置 UI
-            return; 
-        }
-
-        // 校验 2: 输入为空
-        if (input.trim() === "") {
-            alert("❌ Reason is REQUIRED to report a lead.");
-            loadInstallerDashboard(); // 重置 UI
-            return;
-        }
+        if (input === null) { loadInstallerDashboard(); return; }
+        if (input.trim() === "") { alert("❌ Reason is REQUIRED."); loadInstallerDashboard(); return; }
 
         fraudReason = input.trim();
-        finalStatus = 'fraud_review'; // 强制改为审核状态
+        finalStatus = 'fraud_review'; 
     } 
     else {
-        // 普通状态变更的确认
         if (!confirm(`⚠️ Confirm Status Change?\n\nTo: ${newStatus.toUpperCase()}`)) { 
             loadInstallerDashboard(); 
             return; 
@@ -763,25 +769,19 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
     let currentBalance = partner ? Number(partner.wallet_balance) : 0;
 
     const unlockTriggers = ['contacted', 'site_visit', 'deposit'];
-    let shouldPayUnlock = unlockTriggers.includes(finalStatus) && !feePaid;
+
+    // 🟢 [修改] 支付判定：如果是自荐单，shouldPayUnlock 永远为 false (不弹窗，不检查余额)
+    let shouldPayUnlock = unlockTriggers.includes(finalStatus) && !feePaid && !isSelfReferral;
     
-    // 🔥 1. 解锁费用 PIN 验证
+    // 🔥 1. 解锁费用 PIN 验证 (非自荐单才执行)
     if (shouldPayUnlock) {
         if (currentBalance < 50) { alert("❌ Insufficient Credit! Need $50.00."); loadInstallerDashboard(); return; }
-        // 先确认
         if (!confirm(`💰 PAYMENT REQUIRED\n\nLead Unlock Fee: $50.00\n\nProceed?`)) { loadInstallerDashboard(); return; }
-        
-        // 再输 PIN
-        try {
-            await requestPinVerification(); // 🔒 暂停等待输入 PIN
-        } catch (e) {
-            loadInstallerDashboard(); return; // 取消或失败
-        }
+        try { await requestPinVerification(); } catch (e) { loadInstallerDashboard(); return; }
     }
 
     let newEstComm = null;
     if (finalStatus === 'site_visit') {
-        // ... (保持 Site Visit 估价逻辑不变) ...
         const promptMsg = savedEst && savedEst > 0
             ? `🚚 Site Visit / Quote\n\nExisting Estimate: $${savedEst}\nUpdate Estimated Referrer Commission ($):` 
             : `🚚 Site Visit / Quote\n\nPlease enter ESTIMATED Referrer Commission ($):`;
@@ -791,9 +791,11 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         if (isNaN(newEstComm) || newEstComm < 0) { alert("Invalid amount."); loadInstallerDashboard(); return; }
     }
 
-    let commissionAmount = 0, totalDeduction = 0, shouldPayComm = (finalStatus === 'installed');
+    // 🟢 [修改] 佣金判定：如果是自荐单，shouldPayComm 永远为 false
+    let commissionAmount = 0, totalDeduction = 0;
+    let shouldPayComm = (finalStatus === 'installed') && !isSelfReferral;
     
-    // 🔥 2. 佣金支付 PIN 验证
+    // 🔥 2. 佣金支付 PIN 验证 (非自荐单才执行)
     if (shouldPayComm) {
         if (savedEst && savedEst > 0) {
             commissionAmount = Number(savedEst);
@@ -808,13 +810,7 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         
         totalDeduction = commissionAmount * 1.05;
         if (currentBalance < totalDeduction) { alert(`❌ Insufficient Credit! Need $${totalDeduction.toFixed(2)}.`); loadInstallerDashboard(); return; }
-
-        // 再输 PIN
-        try {
-            await requestPinVerification(); // 🔒 暂停等待输入 PIN
-        } catch (e) {
-            loadInstallerDashboard(); return; // 取消或失败
-        }
+        try { await requestPinVerification(); } catch (e) { loadInstallerDashboard(); return; }
     }
 
     try {
@@ -824,7 +820,7 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         // 1. 设置各类时间戳
         if (finalStatus === 'contacted') {
             updateData.date_contacted = now;
-            updateData.is_contacted = true; // 🟢 [必须新增] 同步标记为已联系
+            updateData.is_contacted = true; 
         }
         if (finalStatus === 'site_visit') updateData.date_site_visit = now;
         if (finalStatus === 'deposit') updateData.date_deposit = now;
@@ -835,20 +831,26 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         updateData.updated_at = now;
 
         // 2. 处理支付字段
-        if (shouldPayUnlock) updateData.fee_paid = true;
+        // 🟢 [核心逻辑] 
+        // A. 如果 shouldPayUnlock 为真（普通付费单），设为 true。
+        // B. 如果是自荐单 (isSelfReferral) 且 状态到了 unlockTriggers (比如 contacted)，也必须强制设为 true！
+        // 否则数据库里一直是 fee_paid: false，前端就会一直显示“待解锁”或倒计时锁定，导致死循环。
+        if (shouldPayUnlock || (isSelfReferral && unlockTriggers.includes(finalStatus))) {
+            updateData.fee_paid = true;
+        }
+
         if (shouldPayComm) updateData.final_commission = commissionAmount;
         if (newEstComm !== null) updateData.commission_reward = newEstComm; 
 
-        // 3. 处理黑名单 (Cancelled / Fraud)
+        // 3. 处理黑名单
         if (finalStatus === 'cancelled' || finalStatus === 'fraud' || finalStatus === 'fraud_review') {
             let currentBlacklist = currentLeadData?.cancelled_by_ids || [];
             if (!currentBlacklist.includes(currentProfile.id)) currentBlacklist.push(currentProfile.id);
             updateData.cancelled_by_ids = currentBlacklist;
         }
 
-        // 4. 🔥 核心：将原因写入 Notes
+        // 4. Notes
         if (fraudReason) {
-            // 格式： [FRAUD_REPORT] 2023-10-xx: 原因内容
             const reasonLog = `[FRAUD_REPORT] ${new Date().toLocaleDateString('en-AU')}: ${fraudReason}`;
             updateData.notes = currentNotes ? currentNotes + '\n' + reasonLog : reasonLog;
         }
@@ -856,10 +858,12 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         const { error: leadErr } = await sbClient.from('leads').update(updateData).eq('id', leadId);
         if (leadErr) throw leadErr;
 
-        // 5. 扣款与分润逻辑
+        // 5. 扣款与分润逻辑 (只有 shouldPay... 为真时才执行，自荐单会自动跳过)
         if (shouldPayUnlock) {
             await rpcUpdateBalance(currentProfile.id, -50);
             await recordTransaction(currentProfile.id, -50, 'lead_unlock', `Unlock Lead #${leadId}`);
+            
+            // 给推荐人返利
             const { data: leadInfo } = await sbClient.from('leads').select('referral_code').eq('id', leadId).single();
             if (leadInfo?.referral_code) {
                 const { data: refPartner } = await sbClient.from('partners').select('id').eq('ref_code', leadInfo.referral_code).single();
@@ -873,6 +877,8 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
         if (shouldPayComm) {
             await rpcUpdateBalance(currentProfile.id, -totalDeduction);
             await recordTransaction(currentProfile.id, -totalDeduction, 'commission_paid', `Lead #${leadId} Installed`);
+            
+            // 给推荐人返佣
             const { data: leadInfo } = await sbClient.from('leads').select('referral_code').eq('id', leadId).single();
             if (leadInfo?.referral_code) {
                 const { data: refPartner } = await sbClient.from('partners').select('id').eq('ref_code', leadInfo.referral_code).single();
@@ -885,21 +891,24 @@ window.handleStatusChange = async function(leadId, newStatus, oldStatus, feePaid
 
         // 6. 成功提示
         if (finalStatus === 'fraud_review') {
-            alert("🛡️ Report Submitted.\n\nStatus: 'Under Review'.\nNote added to history.");
+            alert("🛡️ Report Submitted.\n\nStatus: 'Under Review'.");
         } else {
-            alert("Processed Successfully! ✅");
+            // 如果是自荐单，提示稍微改一下比较贴心
+            if (isSelfReferral && (unlockTriggers.includes(finalStatus) || finalStatus === 'installed')) {
+                 alert("Updated! (Self-Referral: Fee Waived) ✨");
+            } else {
+                 alert("Processed Successfully! ✅");
+            }
         }
         
-        // 1. 先刷新后台数据
+        // 刷新
         await loadInstallerDashboard();
 
-        // 🔥 [新增逻辑] 2. 检查当前是否打开了详情弹窗，如果是，就自动刷新它！
+        // 如果详情弹窗开着，自动刷新内容
         const modal = document.getElementById('lead-details-modal');
         if (modal && modal.style.display === 'flex') {
-             // 从刚才刷新的全局 currentLeads 中找到最新的这条 lead 数据
              const updatedLead = currentLeads.find(l => l.id == leadId);
              if (updatedLead) {
-                 // 重新渲染详情页 (此时状态已变成 contacted，所以会自动显示电话)
                  showLeadDetails(updatedLead); 
              }
         }
@@ -1111,16 +1120,18 @@ window.handleNudge = async function(leadId) {
     }, 800);
 }
 window.handleReport = function(leadId, status) { prompt(`Report issue for Lead #${leadId}:`); alert("Report submitted."); }
-window.appSwitchToReferral = function() {
+window.appSwitchToReferral = async function() {
     document.getElementById('view-installer').style.display = 'none';
     document.getElementById('view-referral').style.display = 'block';
-    loadReferrerDashboard();
+    await loadReferrerDashboard();
     const btn = document.getElementById('btn-back-installer');
     if(btn) btn.style.display = 'inline-block';
 }
-window.appBackToInstaller = function() {
+window.appBackToInstaller = async function() {
     document.getElementById('view-referral').style.display = 'none';
     document.getElementById('view-installer').style.display = 'block';
+
+    await loadInstallerDashboard();
 }
 // ==========================================
 // 📱 Mobile UX Helpers
@@ -1640,118 +1651,145 @@ function renderInstallerTable(leads) {
     }
 
     leads.forEach(lead => {
-        const isMyLead = lead.assigned_partner_id === currentProfile.id;
-        const isPastCancelled = lead.cancelled_by_ids && lead.cancelled_by_ids.includes(currentProfile.id);
-        
-        // 🟢 1. [核心修改] 状态映射: 
-        // 数据库里的 'assigned' 状态 -> 前端视为 'new' (为了兼容进度条)，但打上 isTimeLocked 标记
-        let displayStatus = isPastCancelled && !isMyLead ? 'cancelled' : lead.status;
-        let isTimeLocked = false; 
-
-        if (displayStatus === 'assigned') {
-            displayStatus = 'new'; // 强行映射
-            isTimeLocked = true;   // 标记：这是一个倒计时单子
-        }
-
-        // --- 统计逻辑 ---
-        countTotal++;
-        if (displayStatus === 'new') countNew++;
-        if (['cancelled', 'fraud', 'fraud_review'].includes(displayStatus)) countCancelled++;
-        else countValid++;
-
-        if (isMyLead) {
-            if (lead.fee_paid) { countContacted++; totalUnlockPaid += 50; }
-            if (lead.status === 'installed' && lead.final_commission) {
-                countInstalled++; totalCommPaid += Number(lead.final_commission) * 1.05;
+        // 🔥 [新增] 容错处理：用 try-catch 包裹每一行。
+        // 这样如果某一行“普通单”的数据有问题，不会导致整个表格消失，只会在控制台报错。
+        try {
+            const isMyLead = lead.assigned_partner_id === currentProfile.id;
+            const isPastCancelled = lead.cancelled_by_ids && lead.cancelled_by_ids.includes(currentProfile.id);
+            
+            // 🛡️ [安全判定] 确保 ref_code 存在，防止报错
+            const isSelfReferral = (currentProfile.ref_code) && (lead.referral_code === currentProfile.ref_code);
+    
+            // 状态映射
+            let displayStatus = isPastCancelled && !isMyLead ? 'cancelled' : lead.status;
+            let isTimeLocked = false; 
+    
+            if (displayStatus === 'assigned') {
+                displayStatus = 'new'; 
+                isTimeLocked = true;   
             }
-        }
-
-        // 🟢 2. [核心修改] 财务 HTML 生成
-        let financialHtml = `<span style="color:#cbd5e1;">-</span>`;
-        let items = [];
-        
-        if (isMyLead) {
-            // 情况 A: 刚抢来，还没付钱 (显示倒计时警告)
-            if (isTimeLocked && !lead.fee_paid) {
-                financialHtml = `
-                    <div style="font-size:0.75rem; color:#ef4444; font-weight:800; display:flex; align-items:center; gap:4px;">
-                        <- Click to Unlock
-                    </div>
-                    <div style="font-size:0.65rem; color:#f59e0b; font-weight:600;">
-                        🔒 Expires in 2 hours
-                    </div>
-                `;
-            } 
-            // 情况 B: 已付钱 (显示正常账单)
-            else {
-                if (lead.fee_paid) {
-                    items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
+    
+            // --- 统计逻辑 ---
+            countTotal++;
+            if (displayStatus === 'new') countNew++;
+            if (['cancelled', 'fraud', 'fraud_review'].includes(displayStatus)) countCancelled++;
+            else countValid++;
+    
+            if (isMyLead) {
+                // 业务量统计 (只要 fee_paid 就记)
+                if (lead.fee_paid) { 
+                    countContacted++; 
+                    if (!isSelfReferral) totalUnlockPaid += 50; 
                 }
-                
+                // 安装量统计
                 if (lead.status === 'installed' && lead.final_commission) {
-                    const comm = Number(lead.final_commission);
-                    const fee = comm * 0.05;
-                    items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${(comm + fee).toFixed(0)}</span></div>`);
-                } else if (lead.commission_reward > 0) {
-                    items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
-                }
-                
-                if (items.length > 0) {
-                    financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
+                    countInstalled++; 
+                    if (!isSelfReferral) totalCommPaid += Number(lead.final_commission) * 1.05;
                 }
             }
-        } else if (isPastCancelled) {
-            financialHtml = `<div style="font-size:0.7rem; color:#94a3b8; font-style:italic;">Connection Ended</div>`;
+    
+            // 🟢 财务 HTML 生成
+            let financialHtml = `<span style="color:#cbd5e1;">-</span>`;
+            let items = [];
+            
+            if (isMyLead) {
+                // 自荐单
+                if (isSelfReferral) {
+                    financialHtml = `
+                        <div style="font-size:0.75rem; color:#10b981; font-weight:800; background:#f0fdf4; border:1px solid #bbf7d0; padding:4px; border-radius:6px; text-align:center;">
+                            ✨ Self-Referral<br>(Fee Waived)
+                        </div>
+                    `;
+                } 
+                // 正常锁定单
+                else if (isTimeLocked && !lead.fee_paid) {
+                    financialHtml = `
+                        <div style="font-size:0.75rem; color:#ef4444; font-weight:800; display:flex; align-items:center; gap:4px;">
+                            <- Click to Unlock
+                        </div>
+                        <div style="font-size:0.65rem; color:#f59e0b; font-weight:600;">
+                            🔒 Expires in 2 hours
+                        </div>
+                    `;
+                } 
+                // 正常已解锁/进行中单
+                else {
+                    if (lead.fee_paid) {
+                        items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">🔓 Unlock</span><span style="color:#ef4444; font-weight:700;">-$50</span></div>`);
+                    }
+                    
+                    if (lead.status === 'installed' && lead.final_commission) {
+                        const comm = Number(lead.final_commission);
+                        const fee = comm * 0.05;
+                        items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#334155;">✅ Comm</span><span style="color:#ef4444; font-weight:700;">-$${(comm + fee).toFixed(0)}</span></div>`);
+                    } else if (lead.commission_reward > 0) {
+                        items.push(`<div style="display:flex; justify-content:space-between;"><span style="color:#64748b;">Est. Comm</span><span style="color:#f59e0b; font-weight:700;">$${lead.commission_reward}</span></div>`);
+                    }
+                    
+                    if (items.length > 0) {
+                        financialHtml = `<div style="font-size:0.75rem; line-height:1.4;">${items.join('<div style="border-top:1px dashed #e2e8f0; margin:2px 0;"></div>')}</div>`;
+                    }
+                }
+            } else if (isPastCancelled) {
+                financialHtml = `<div style="font-size:0.7rem; color:#94a3b8; font-style:italic;">Connection Ended</div>`;
+            }
+    
+            // --- 下拉菜单与状态逻辑 ---
+            const currentIdx = STATUS_FLOW.indexOf(displayStatus);
+            let optionsHtml = '';
+            STATUS_FLOW.forEach((step, idx) => {
+                let label = step.charAt(0).toUpperCase() + step.slice(1);
+                if (step === 'site_visit') label = "🚚 Visited/Quoted";
+                if (step === 'new') label = "📥 New Received";
+                if (step === 'contacted') label = "📞 Contact" + (isSelfReferral ? "" : " ($50)"); 
+                if (step === 'deposit') label = "💰 Deposit";
+                if (step === 'installed') label = "✅ Installed (Comm.)";
+                const isReviewing = (displayStatus === 'fraud_review');
+                const isDisabled = (idx < currentIdx) || isReviewing; 
+                optionsHtml += `<option value="${step}" ${step===displayStatus?'selected':''} ${isDisabled?'disabled':''}>${isDisabled && !isReviewing?'✔ ':''}${label}</option>`;
+            });
+            optionsHtml += `<option value="cancelled" ${displayStatus==='cancelled'?'selected':''}>❌ Cancelled</option>`;
+            if (displayStatus === 'fraud_review') optionsHtml += `<option value="fraud_review" selected>⏳ Reviewing...</option>`;
+            else if (displayStatus === 'fraud') optionsHtml += `<option value="fraud" selected>⛔ Fraud Confirmed</option>`;
+            else optionsHtml += `<option value="fraud">🚩 Report Invalid</option>`;
+    
+            const isActionLocked = !isMyLead || ['installed', 'cancelled', 'fraud', 'fraud_review'].includes(lead.status) || (isTimeLocked && !lead.fee_paid);
+            
+            // 🛡️ [安全处理] 防止 cachedRefMap 不存在时报错
+            // 注意：如果 cachedRefMap 变量未定义，这里会使用默认空对象，避免崩溃
+            const safeRefMap = (typeof cachedRefMap !== 'undefined') ? cachedRefMap : {};
+            const refName = lead.referral_code && safeRefMap[lead.referral_code] ? safeRefMap[lead.referral_code] : '-';
+            
+            const leadSafe = encodeURIComponent(JSON.stringify(lead));
+            const updateTag = lead.has_client_update ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` : '';
+    
+            const tr = document.createElement('tr');
+            if (displayStatus === 'new' && isMyLead) tr.style.backgroundColor = '#f0fdf4';
+            if (isTimeLocked && !lead.fee_paid) tr.style.backgroundColor = '#fffbeb'; 
+            if (isSelfReferral && isMyLead) tr.style.backgroundColor = '#faf5ff';
+    
+            tr.innerHTML = `
+                <td>
+                    <div class="clickable-name" onclick="handleLeadClick('${leadSafe}', ${lead.id})">${lead.name}${updateTag}</div>
+                    <div class="user-sub">${new Date(lead.created_at).toLocaleDateString('en-AU', {year: 'numeric', month:'short', day:'numeric'})}</div>
+                </td>
+                <td style="vertical-align:middle; font-size:0.8rem; font-weight:600; color:#475569;">${refName}</td>
+                <td style="vertical-align:top;">${financialHtml}</td>
+                <td style="vertical-align:middle;">
+                    <select onchange="handleStatusChange(${lead.id}, this.value, '${lead.status}', ${lead.fee_paid})" class="installer-select" ${isActionLocked ? 'disabled style="background:#f1f5f9; cursor:not-allowed;"' : ''}>
+                        ${optionsHtml}
+                    </select>
+                </td>
+                <td style="vertical-align:middle;">
+                    <div onclick="openTimelineModal('${lead.id}')" style="cursor:pointer;">${getSegmentedProgressHTML(displayStatus, true)}</div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+        } catch (err) {
+            // 🔥 关键点：如果某一行报错，打印出来但不要阻止其他行渲染
+            console.error("Error rendering lead row:", lead.id, err);
         }
-
-        // --- 下拉菜单与状态逻辑 (基本保持不变) ---
-        const currentIdx = STATUS_FLOW.indexOf(displayStatus);
-        let optionsHtml = '';
-        STATUS_FLOW.forEach((step, idx) => {
-            let label = step.charAt(0).toUpperCase() + step.slice(1);
-            if (step === 'site_visit') label = "🚚 Visited/Quoted";
-            if (step === 'new') label = "📥 New Received";
-            if (step === 'contacted') label = "📞 Contact ($50)";
-            if (step === 'deposit') label = "💰 Deposit";
-            if (step === 'installed') label = "✅ Installed (Comm.)";
-            const isReviewing = (displayStatus === 'fraud_review');
-            const isDisabled = (idx < currentIdx) || isReviewing; 
-            optionsHtml += `<option value="${step}" ${step===displayStatus?'selected':''} ${isDisabled?'disabled':''}>${isDisabled && !isReviewing?'✔ ':''}${label}</option>`;
-        });
-        optionsHtml += `<option value="cancelled" ${displayStatus==='cancelled'?'selected':''}>❌ Cancelled</option>`;
-        if (displayStatus === 'fraud_review') optionsHtml += `<option value="fraud_review" selected>⏳ Reviewing...</option>`;
-        else if (displayStatus === 'fraud') optionsHtml += `<option value="fraud" selected>⛔ Fraud Confirmed</option>`;
-        else optionsHtml += `<option value="fraud">🚩 Report Invalid</option>`;
-
-        // 🟢 3. [核心修改] 锁定下拉菜单：如果是 TimeLocked 且没付钱，禁用操作
-        const isActionLocked = !isMyLead || ['installed', 'cancelled', 'fraud', 'fraud_review'].includes(lead.status) || (isTimeLocked && !lead.fee_paid);
-        
-        const refName = lead.referral_code && cachedRefMap[lead.referral_code] ? cachedRefMap[lead.referral_code] : '-';
-        const leadSafe = encodeURIComponent(JSON.stringify(lead));
-        const updateTag = lead.has_client_update ? `<span id="tag-update-${lead.id}" style="background:var(--orange); color:white; padding:1px 5px; border-radius:4px; font-size:9px; margin-left:5px; font-weight:800; display:inline-block;">UPDATED</span>` : '';
-
-        const tr = document.createElement('tr');
-        if (displayStatus === 'new' && isMyLead) tr.style.backgroundColor = '#f0fdf4';
-        // 🟢 4. [核心修改] 如果是锁定单，给个浅黄色背景提醒
-        if (isTimeLocked && !lead.fee_paid) tr.style.backgroundColor = '#fffbeb'; 
-        
-        tr.innerHTML = `
-            <td>
-                <div class="clickable-name" onclick="handleLeadClick('${leadSafe}', ${lead.id})">${lead.name}${updateTag}</div>
-                <div class="user-sub">${new Date(lead.created_at).toLocaleDateString('en-AU', {year: 'numeric', month:'short', day:'numeric'})}</div>
-            </td>
-            <td style="vertical-align:middle; font-size:0.8rem; font-weight:600; color:#475569;">${refName}</td>
-            <td style="vertical-align:top;">${financialHtml}</td>
-            <td style="vertical-align:middle;">
-                <select onchange="handleStatusChange(${lead.id}, this.value, '${lead.status}', ${lead.fee_paid})" class="installer-select" ${isActionLocked ? 'disabled style="background:#f1f5f9; cursor:not-allowed;"' : ''}>
-                    ${optionsHtml}
-                </select>
-            </td>
-            <td style="vertical-align:middle;">
-                <div onclick="openTimelineModal('${lead.id}')" style="cursor:pointer;">${getSegmentedProgressHTML(displayStatus, true)}</div>
-            </td>
-        `;
-        tbody.appendChild(tr);
     });
 
     // 渲染完成后更新统计 UI

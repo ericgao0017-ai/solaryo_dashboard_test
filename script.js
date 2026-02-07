@@ -10,10 +10,14 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ============================================================
 // 🟢 [升级版] 专属链接捕获 + 验证 + 记录访问量
 // ============================================================
+// ============================================================
+// 🟢 [增强版] 专属链接捕获 + 自动分配 Opensea (入口统一处理)
+// ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const rawRefCode = urlParams.get('ref'); // 获取 ?ref= 后的值
 
+    // 🌟 情况 A: 用户带来了 referral code (可能是有效的，也可能是乱写的)
     if (rawRefCode) {
         console.log(`[CPS] 正在验证推荐码: ${rawRefCode}...`);
 
@@ -26,27 +30,40 @@ window.addEventListener('DOMContentLoaded', async () => {
                 .single();
 
             if (data && !error) {
-                // ✅ 验证成功
+                // ✅ 验证成功：是真实存在的代理商
                 console.log(`[CPS] ✅ 有效推荐人: ${rawRefCode}`);
                 
-                // A. 存入本地缓存（为了后续提交 Lead 用）
+                // 存入本地缓存
                 localStorage.setItem('solaryo_ref_code', rawRefCode);
 
-                // 🟢 [新增] B. 写入访问记录表 (Referral Visits)
-                // 只有验证通过的有效代码，才会被记录到 visits 表
+                // 记录访问量 (仅针对真实代理商)
                 await supabaseClient.from('referral_visits').insert([
                     { 
                         ref_code: rawRefCode,
-                        user_agent: navigator.userAgent // 记录一下用户设备信息（可选）
+                        user_agent: navigator.userAgent 
                     }
                 ]);
 
             } else {
-                console.warn(`[CPS] ⚠️ 无效/伪造的推荐码，已忽略。`);
+                // ❌ 验证失败：码是乱写的
+                console.warn(`[CPS] ⚠️ 无效/伪造的推荐码，回退到 opensea。`);
+                localStorage.setItem('solaryo_ref_code', 'opensea');
             }
 
         } catch (err) {
-            console.error("[CPS] 验证/记录出错:", err);
+            console.error("[CPS] 验证出错，回退到 opensea:", err);
+            localStorage.setItem('solaryo_ref_code', 'opensea');
+        }
+    } 
+    // 🌟 情况 B: 用户完全没有带 ref 参数 (自然流量)
+    else {
+        // 检查之前是否已经有存过的码？(防止覆盖回头客的归属)
+        // 逻辑：只有当本地完全没记录时，才标记为 opensea
+        if (!localStorage.getItem('solaryo_ref_code')) {
+            console.log("[CPS] 🌍 自然流量，自动标记为 opensea");
+            localStorage.setItem('solaryo_ref_code', 'opensea');
+        } else {
+            console.log(`[CPS] 🔄 欢迎回来，保持原有归属: ${localStorage.getItem('solaryo_ref_code')}`);
         }
     }
 });
@@ -1768,7 +1785,10 @@ async function submitLead() {
     const msgEl = document.getElementById('submit-msg');
 
     // 尝试从缓存里取出推荐码
-    const trackingCode = localStorage.getItem('solaryo_ref_code') || null;
+    let trackingCode = localStorage.getItem('solaryo_ref_code');
+    if (!trackingCode || trackingCode.trim() === "") {
+        trackingCode = 'opensea';
+    }
 
     // UI 显隐逻辑
     const finalBtn = document.getElementById('btn-final-enquiry');
@@ -1986,8 +2006,11 @@ async function sendFinalEnquiry() {
     const contactMethodEl = document.querySelector('input[name="contact-method"]:checked');
     const fileInput = document.getElementById('conf-file');
     
-    const trackingCode = localStorage.getItem('solaryo_ref_code') || null;
-
+    // 更严谨的写法：确保一定是 null 或者 有效字符串
+    let trackingCode = localStorage.getItem('solaryo_ref_code');
+    if (!trackingCode || trackingCode.trim() === "") {
+        trackingCode = 'opensea';
+    }
     if (!nameEl.value || !phoneEl.value || !postcodeEl.value) {
         document.getElementById('final-msg').style.color = 'red';
         document.getElementById('final-msg').innerText = curLang === 'cn' ? "请完善联系信息 (含邮编)" : "Please complete contact details (inc. Postcode)";

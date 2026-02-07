@@ -5593,7 +5593,7 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
 }
 /* --- AI Trust Badge (Analyze 按钮下方的小字) --- */
 .ai-trust-badge {
-    margin-top: 10px; /* 距离按钮有一定的间距 */
+    margin-top: 12px; /* 距离按钮有一定的间距 */
     text-align: center;
     font-size: 0.75rem; /* 小巧精致的字体 */
     color: #64748b; /* 使用高级灰 (Text Light) */
@@ -5601,7 +5601,7 @@ input[type=range].gold-slider::-webkit-slider-thumb:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
     opacity: 0; /* 初始隐藏，为了做进场动画 */
     animation: fadeInUp 0.8s 0.2s ease forwards; /* 稍微延迟一点出现，更有层次感 */
     letter-spacing: 0.02em;
